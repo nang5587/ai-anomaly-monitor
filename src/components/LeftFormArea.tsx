@@ -32,7 +32,7 @@ interface LeftFormAreaProps {
 
 export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
     const { register, handleSubmit, formState: { errors }, watch, trigger, control, resetField, setValue } = useForm<FormValues>({
-        // ⭐입력값 바뀔 때마다 유효성 검사함
+        // ⭐ onChange : 입력값 바뀔 때마다 유효성 검사함
         mode: 'onChange', defaultValues: {
             userId: '',
             userName: '',
@@ -48,6 +48,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    //⭐감시하겠다는 뜻
     const password = watch('password');
     const factoryCodeValue = watch('factoryCode');
     const phoneValue = watch('phone');
@@ -86,7 +87,6 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
         }
     };
 
-    // [유지] 이전 버튼 로직은 훌륭하므로 그대로 둡니다.
     const handlePreviousStep = () => {
         if (step === 3) {
             resetField('factoryCode');
@@ -94,13 +94,12 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
         setStep(prevStep => prevStep - 1);
     };
 
+    // 실제 백이랑 연결
     const onSubmit: SubmitHandler<FormValues> = async (data) => {
         setIsSubmitting(true);
         try {
-            // 백엔드 DTO에 필요 없는 passwordConfirm 필드 제외
             const { ...submissionData } = data;
 
-            // 새로 만든 apiClient 인스턴스로 회원가입 요청
             await apiClient.post('/public/join', submissionData);
             setStep(4);
         } catch (error) {
@@ -116,8 +115,27 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
     };
 
     const handleGoToLogin = () => {
-        // 실제 로그인 페이지 경로로 이동시킵니다.
         router.push('/login');
+    };
+
+    // 엔터 키가 눌렸을 때만 로직 실행
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+        if (e.key === 'Enter') {
+            // ⭐기본 폼 제출(submit) 동작을 막아서, 각 단계에 맞는 유효성 검사만 실행되도록 함
+            e.preventDefault();
+
+            if (step === 1) {
+                handleNextToStep2();
+            } else if (step === 2) {
+                handleNextToStep3();
+            } else if (step === 3) {
+                // 3단계에서는 사용자가 '회원가입 완료' 버튼을 직접 누르므로,
+                // 이 버튼이 활성화되었을 때만 수동으로 submit을 트리거함.
+                if (factoryCodeValue) {
+                    handleSubmit(onSubmit)();
+                }
+            }
+        }
     };
 
     return (
@@ -131,6 +149,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                     className="transition-transform duration-700 ease-in-out"
                     style={{ transform: `translateY(-${(step - 1) * 470}px)` }}
                     onSubmit={handleSubmit(onSubmit)}
+                    onKeyDown={handleKeyDown}
                     noValidate
                 >
                     {/* ----- 1단계 폼 ----- */}
@@ -160,11 +179,11 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                                     })}
                                     className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
                                 />
-                                {errors.userId && <p className="text-sm text-red-500 mt-1">{errors.userId.message}</p>}
+                                {errors.userId && <p className="text-sm text-blue-600 mt-1">{errors.userId.message}</p>}
                             </div>
-                            <div><label htmlFor="userName">이름</label><input id="userName" type="text" {...register('userName', { required: '이름을 입력해주세요.' })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.userName && <p className="text-sm text-red-500 mt-1">{errors.userName.message}</p>}</div>
-                            <div><label htmlFor="password">비밀번호</label><input id="password" type="password" {...register('password', { required: '비밀번호를 입력해주세요.', minLength: { value: 8, message: '8자 이상 입력해주세요.' } })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}</div>
-                            <div><label htmlFor="passwordConfirm">비밀번호 확인</label><input id="passwordConfirm" type="password" {...register('passwordConfirm', { required: '비밀번호를 다시 입력해주세요.', validate: value => value === password || '비밀번호가 일치하지 않습니다.' })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.passwordConfirm && <p className="text-sm text-red-500 mt-1">{errors.passwordConfirm.message}</p>}</div>
+                            <div><label htmlFor="userName">이름</label><input id="userName" type="text" {...register('userName', { required: '이름을 입력해주세요.' })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.userName && <p className="text-sm text-blue-600 mt-1">{errors.userName.message}</p>}</div>
+                            <div><label htmlFor="password">비밀번호</label><input id="password" type="password" {...register('password', { required: '비밀번호를 입력해주세요.', minLength: { value: 8, message: '8자 이상 입력해주세요.' } })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.password && <p className="text-sm text-blue-600 mt-1">{errors.password.message}</p>}</div>
+                            <div><label htmlFor="passwordConfirm">비밀번호 확인</label><input id="passwordConfirm" type="password" {...register('passwordConfirm', { required: '비밀번호를 다시 입력해주세요.', validate: value => value === password || '비밀번호가 일치하지 않습니다.' })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.passwordConfirm && <p className="text-sm text-blue-600 mt-1">{errors.passwordConfirm.message}</p>}</div>
                         </div>
                         <div className="py-4 px-2">
                             <button type="button" onClick={handleNextToStep2} className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">다음</button>
@@ -174,7 +193,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                     {/* ----- 2단계 폼 ----- */}
                     <div className="h-[470px] flex flex-col">
                         <div className="flex-1 overflow-y-auto py-4 px-2 space-y-4">
-                            <div><label htmlFor="email">이메일</label><input id="email" type="email" {...register('email', { required: '이메일을 입력해주세요.', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: '유효한 이메일 주소를 입력해주세요.' } })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}</div>
+                            <div><label htmlFor="email">이메일</label><input id="email" type="email" {...register('email', { required: '이메일을 입력해주세요.', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: '유효한 이메일 주소를 입력해주세요.' } })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.email && <p className="text-sm text-blue-600 mt-1">{errors.email.message}</p>}</div>
                             <div><label htmlFor="phone">휴대전화</label><input id="phone" type="tel" {...register('phone', {
                                 required: '휴대전화 번호를 입력해주세요.', pattern: {
                                     value: /^\d{3}-\d{3,4}-\d{4}$/,
@@ -184,7 +203,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                                 maxLength={13} // '010-1234-5678'은 13자리
                                 className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
                             />
-                                {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>}</div>
+                                {errors.phone && <p className="text-sm text-blue-600 mt-1">{errors.phone.message}</p>}</div>
                         </div>
                         <div className="flex items-center gap-4 py-4 px-2">
                             <button type="button" onClick={handlePreviousStep} className="w-1/3 px-4 py-3 font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
@@ -200,7 +219,21 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                     <div className="h-[470px] flex flex-col">
                         <div className="flex-1 overflow-y-auto py-4 px-2">
                             <label className="block text-xl font-semibold text-center mb-6">소속 공장을 선택하세요</label>
-                            <Controller name="factoryCode" control={control} rules={{ validate: (value) => value > 0 || "공장을 선택해주세요." }} render={({ field }) => (<div className="grid grid-cols-2 gap-4">{factories.map((factory) => (<button key={factory.code} type="button" onClick={() => { const newValue = field.value === factory.code ? 0 : factory.code; field.onChange(newValue); }} className={`p-4 border rounded-lg text-center font-semibold transition-all duration-200 ${field.value === factory.code ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>{factory.name}</button>))}</div>)} />{errors.factoryCode && <p className="text-sm text-red-500 mt-2 text-center">{errors.factoryCode.message}</p>}
+                            <Controller
+                                name="factoryCode"
+                                control={control}
+                                rules={{ validate: (value) => value > 0 || "공장을 선택해주세요." }}
+                                render={({ field }) => (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {factories.map((factory) => (
+                                            <button key={factory.code} type="button" onClick={() => { const newValue = field.value === factory.code ? 0 : factory.code; field.onChange(newValue); }} className={`p-4 border rounded-lg text-center font-semibold transition-all duration-200 ${field.value === factory.code ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>
+                                                {factory.name}
+                                            </button>))}
+                                    </div>)}
+                            />
+                            {errors.factoryCode && <p className="text-sm text-blue-600 mt-2 text-center">
+                                {errors.factoryCode.message}
+                            </p>}
                         </div>
                         <div className="flex items-center gap-4 py-4 px-2">
                             <button type="button" onClick={handlePreviousStep} className="w-1/3 px-4 py-3 font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
@@ -219,7 +252,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             </svg>
 
                             <h2 className="text-3xl font-bold text-gray-800 mb-2">회원가입 완료!</h2>
-                            <p className="text-gray-600 mb-8 pt-5">환영합니다!<br />지금 바로 로그인하여 서비스를 이용해보세요.</p>
+                            <p className="text-gray-600 mb-8 pt-5">환영합니다!<br />가입 신청이 정상적으로 접수되었습니다.</p>
                         </div>
 
                         <button
@@ -227,7 +260,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             onClick={handleGoToLogin}
                             className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
                         >
-                            로그인하러 가기
+                            메인페이지로 이동
                         </button>
                     </div>
                 </form>

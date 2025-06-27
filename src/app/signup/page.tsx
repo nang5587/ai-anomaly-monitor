@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from "react";
-import styles from './signup.module.css';
 import LeftFormArea from '@/components/LeftFormArea';
 import RightAnimationArea from '@/components/RightAnimationArea';
 

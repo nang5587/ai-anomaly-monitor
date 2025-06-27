@@ -1,57 +1,50 @@
-'use client'; // <--- 이 페이지 전체를 클라이언트 컴포넌트로 만듭니다.
+'use client'
 
-import Head from 'next/head';
+import ImageCollage from '@/components/ImageCollage';
+import AuthSection from '@/components/AuthSection';
+
 import { useEffect, useState } from 'react';
-import LogisticsMap from '@/components/LogisticsMap'; // @/는 src/를 가리키는 경로 별칭
-
-// Trip 데이터 타입 정의 (컴포넌트 간 공유를 위해 별도 파일로 빼도 좋습니다)
-interface Trip {
-  product_serial: number;
-  waypoints: {
-    coordinates: [number, number];
-    timestamp: number;
-    read_point: string;
-    event_type: string;
-    product_name: string;
-  }[];
-}
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [tripData, setTripData] = useState<Trip[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  function LoadingScreen() {
+    return (
+      <div className="flex items-center justify-center w-full h-screen">
+        <p className="text-lg">불러오는 중...</p>
+        {/* 여기에 스피너 아이콘 등을 추가할 수 있습니다. */}
+      </div>
+    );
+  }
 
   useEffect(() => {
-    // public 폴더의 json 파일 가져오기
-    fetch('/trips_80000-80100.json')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('데이터 파일을 불러오는 데 실패했습니다.');
-        }
-        return res.json();
-      })
-      .then(data => {
-        setTripData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []); // 컴포넌트가 마운트될 때 한 번만 실행
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+
+    if (token) {
+      router.replace('/dashboard');
+    }
+    else {
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <>
-      <Head>
-        <title>물류 이동 경로 분석</title>
-        <meta name="description" content="실시간 물류 이동 경로 시각화" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <main>
-        {loading && <div style={{textAlign: 'center', marginTop: '50px'}}>데이터를 불러오는 중입니다...</div>}
-        {error && <div style={{textAlign: 'center', marginTop: '50px', color: 'red'}}>오류: {error}</div>}
-        {tripData && <LogisticsMap data={tripData} />}
-      </main>
-    </>
+    <main className="flex w-full h-full">
+      {/* 왼쪽: 비주얼 영역 */}
+      <div className="w-1/3 h-full">
+        <ImageCollage />
+      </div>
+
+      {/* 오른쪽: 인증/설명 영역 */}
+      <div className="w-2/3 h-full flex items-center justify-center">
+        <AuthSection />
+      </div>
+    </main>
   );
 }
