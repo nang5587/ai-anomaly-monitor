@@ -1,16 +1,15 @@
-// src/context/AuthContext.tsx
 'use client';
 import jwtDecode from 'jwt-decode';
 
 interface JwtPayload {
-  username: string;
+  userName: string;
   role: string;
 }
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
-  user: { username: string; role: string } | null;
+  user: { userName: string; role: string } | null;
   login: (token: string, rememberMe: boolean) => void;
   logout: () => void;
 }
@@ -18,7 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ userName: string; role: string } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,11 +28,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   if (storage) {
     const token = storage.getItem('token');
-    const username = storage.getItem('username');
+    const userName = storage.getItem('userName');
     const role = storage.getItem('role');
 
-    if (token && username && role) {
-      setUser({ username, role });
+    if (token && userName && role) {
+      setUser({ userName, role });
     } else {
       // 로그인 정보 누락 시 정리
       localStorage.clear();
@@ -44,14 +43,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 }, []);
 
   const login = (token: string, rememberMe: boolean) => {
-  const { username, role } = jwtDecode<JwtPayload>(token);
+  const { userName, role } = jwtDecode<JwtPayload>(token);
+  console.log(role, "🔴")
 
   const storage = rememberMe ? localStorage : sessionStorage;
   storage.setItem('token', token);
-  storage.setItem('username', username);
+  storage.setItem('userName', userName);
   storage.setItem('role', role);
 
-  setUser({ username, role });
+  setUser({ userName, role });
 };
 
   const logout = () => {

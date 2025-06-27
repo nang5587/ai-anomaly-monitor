@@ -18,3 +18,17 @@
     --foreground: #ededed;
   }
 }
+
+.animated-link {
+  stroke-dasharray: 10 5; /* 10px 그리고, 5px 비우고 */
+  animation: dash 1s linear infinite;
+  color: crimson;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -15; /* dasharray 합계만큼 이동 */
+  }
+}
+
+@import 'rc-slider/assets/index.css';

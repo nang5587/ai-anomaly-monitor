@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import apiClient from '../../api/apiClient';
 import jwtDecode from 'jwt-decode';
+import { useAuth } from '@/context/AuthContext';
 
 interface DecodedToken {
   role: string;
@@ -13,10 +14,10 @@ interface DecodedToken {
 
 function getRedirectUrl(role: string) {
   switch (role) {
-    case "supervisor": return "/supervisor";
-    case "manager1": return "/manager1";
-    case "manager2": return "/manager2";
-    case "manager3": return "/manager3";
+    case "ADMIN": return "/supervisor";
+    case "MANAGER": return "/manager1";
+    // case "manager2": return "/manager2";
+    // case "manager3": return "/manager3";
     default: return "/";
   }
 }
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,6 +54,8 @@ export default function LoginPage() {
 
         storage.setItem('accessToken', token);
         storage.setItem('role', role);
+
+        login(token, rememberMe);
 
         router.push(getRedirectUrl(role));
       } else {

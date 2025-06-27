@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "./ClientLayout";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -11,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body className="antialiased">
-        <ClientLayout>{children}</ClientLayout>
+        <AuthProvider><ClientLayout>{children}</ClientLayout></AuthProvider>
       </body>
     </html>
   );
