@@ -31,63 +31,98 @@ export interface Trip {
 }
 
 // --- 1. 노드 데이터 (모든 지점 포함) ---
-// 한국 지도 위에 논리적으로 그럴듯한 가상 좌표를 부여했습니다.
+// 제공된 CSV 좌표로 업데이트된 데이터
 export const nodes: Node[] = [
     // 공장 (Factories)
-    { id: 'ICN_Factory', name: '인천 공장', type: 'Factory', coordinates: [126.65, 37.45] },
-    { id: 'HWS_Factory', name: '화성 공장', type: 'Factory', coordinates: [126.83, 37.20] },
-    { id: 'YGS_Factory', name: '영광 공장', type: 'Factory', coordinates: [126.51, 35.27] },
-    { id: 'KUM_Factory', name: '구미 공장', type: 'Factory', coordinates: [128.33, 36.11] },
+    { id: 'ICN_Factory', name: '인천 공장', type: 'Factory', coordinates: [126.7053, 37.4561] },
+    { id: 'HWS_Factory', name: '화성 공장', type: 'Factory', coordinates: [126.8314, 37.1996] },
+    { id: 'YGS_Factory', name: '양산 공장', type: 'Factory', coordinates: [129.0371, 35.3350] },
+    { id: 'KUM_Factory', name: '구미 공장', type: 'Factory', coordinates: [128.3445, 36.1195] },
 
-    // 창고 (WMS) - 공장과 같은 위치로 가정
-    { id: 'ICN_WMS', name: '인천 창고', type: 'WMS', coordinates: [126.65, 37.45] },
-    { id: 'HWS_WMS', name: '화성 창고', type: 'WMS', coordinates: [126.83, 37.20] },
-    { id: 'YGS_WMS', name: '영광 창고', type: 'WMS', coordinates: [126.51, 35.27] },
-    { id: 'KUM_WMS', name: '구미 창고', type: 'WMS', coordinates: [128.33, 36.11] },
+    // 창고 (WMS)
+    { id: 'ICN_WMS', name: '인천 창고', type: 'WMS', coordinates: [126.7100, 37.4600] },
+    { id: 'HWS_WMS', name: '화성 창고', type: 'WMS', coordinates: [126.8250, 37.1950] },
+    { id: 'YGS_WMS', name: '양산 창고', type: 'WMS', coordinates: [129.0400, 35.3400] },
+    { id: 'KUM_WMS', name: '구미 창고', type: 'WMS', coordinates: [128.3500, 36.1250] },
 
     // 물류 허브 (Logistics Hubs)
-    { id: 'SEL_Logi_HUB', name: '수도권 허브', type: 'LogiHub', coordinates: [127.10, 37.40] }, // 군포/의왕 근처
-    { id: 'JB_Logi_HUB', name: '전북 허브', type: 'LogiHub', coordinates: [127.14, 35.82] },   // 전주
-    { id: 'JN_Logi_HUB', name: '전남 허브', type: 'LogiHub', coordinates: [126.85, 35.16] },   // 광주
-    { id: 'KB_Logi_HUB', name: '경북 허브', type: 'LogiHub', coordinates: [128.59, 35.87] },   // 대구
-    { id: 'KN_Logi_HUB', name: '경남 허브', type: 'LogiHub', coordinates: [128.88, 35.22] },   // 김해/부산 근처
+    { id: 'SEL_Logi_HUB', name: '수도권 허브', type: 'LogiHub', coordinates: [126.9700, 37.5500] },
+    { id: 'JB_Logi_HUB', name: '전북 허브', type: 'LogiHub', coordinates: [127.1500, 35.8300] },
+    { id: 'JN_Logi_HUB', name: '전남 허브', type: 'LogiHub', coordinates: [126.3900, 34.8200] },
+    { id: 'KB_Logi_HUB', name: '경북 허브', type: 'LogiHub', coordinates: [128.3400, 36.1400] },
+    { id: 'KN_Logi_HUB', name: '경남 허브', type: 'LogiHub', coordinates: [128.6800, 35.2300] },
 
-    // 수도권 도매상 (Wholesalers - SEL)
-    { id: 'SEL_WS1', name: '수도권 도매상1', type: 'Wholesaler', coordinates: [127.02, 37.58] }, // 서울 북부
-    { id: 'SEL_WS2', name: '수도권 도매상2', type: 'Wholesaler', coordinates: [126.84, 37.50] }, // 서울 서부
-    { id: 'SEL_WS3', name: '수도권 도매상3', type: 'Wholesaler', coordinates: [127.10, 37.51] }, // 서울 동부
+    // 도매상 (Wholesalers)
+    { id: 'SEL_WS1', name: '수도권 도매상1', type: 'Wholesaler', coordinates: [126.9800, 37.5700] },
+    { id: 'SEL_WS2', name: '수도권 도매상2', type: 'Wholesaler', coordinates: [126.9500, 37.6000] },
+    { id: 'SEL_WS3', name: '수도권 도매상3', type: 'Wholesaler', coordinates: [127.0200, 37.5400] },
+    { id: 'JB_WS1', name: '전북 도매상1', type: 'Wholesaler', coordinates: [127.1500, 35.8200] },
+    { id: 'JB_WS2', name: '전북 도매상2', type: 'Wholesaler', coordinates: [127.1300, 35.8400] },
+    { id: 'JB_WS3', name: '전북 도매상3', type: 'Wholesaler', coordinates: [127.1700, 35.8000] },
+    { id: 'JN_WS1', name: '전남 도매상1', type: 'Wholesaler', coordinates: [126.3900, 34.8100] },
+    { id: 'JN_WS2', name: '전남 도매상2', type: 'Wholesaler', coordinates: [126.3700, 34.8300] },
+    { id: 'JN_WS3', name: '전남 도매상3', type: 'Wholesaler', coordinates: [126.4100, 34.7900] },
+    { id: 'KB_WS1', name: '경북 도매상1', type: 'Wholesaler', coordinates: [128.3500, 36.1200] },
+    { id: 'KB_WS2', name: '경북 도매상2', type: 'Wholesaler', coordinates: [128.3300, 36.1400] },
+    { id: 'KB_WS3', name: '경북 도매상3', type: 'Wholesaler', coordinates: [128.3700, 36.1000] },
+    { id: 'KN_WS1', name: '경남 도매상1', type: 'Wholesaler', coordinates: [128.6800, 35.2300] },
+    { id: 'KN_WS2', name: '경남 도매상2', type: 'Wholesaler', coordinates: [128.6600, 35.2500] },
+    { id: 'KN_WS3', name: '경남 도매상3', type: 'Wholesaler', coordinates: [128.7000, 35.2100] },
 
-    // 전북 도매상 (Wholesalers - JB)
-    { id: 'JB_WS1', name: '전북 도매상1', type: 'Wholesaler', coordinates: [127.15, 35.84] },
-    { id: 'JB_WS2', name: '전북 도매상2', type: 'Wholesaler', coordinates: [126.88, 35.94] }, // 군산 근처
-    { id: 'JB_WS3', name: '전북 도매상3', type: 'Wholesaler', coordinates: [127.08, 35.47] }, // 남원 근처
+    // 리셀러 (Resellers) - CSV의 모든 데이터를 반영
+    // (id는 CSV의 '..._Rsell1'를 '..._R1'과 같이 축약하여 사용)
+    { id: 'SEL_WS1_R1', name: '리셀러 (수도권1-1)', type: 'Reseller', coordinates: [126.9810, 37.5620] },
+    { id: 'SEL_WS1_R2', name: '리셀러 (수도권1-2)', type: 'Reseller', coordinates: [126.9790, 37.5590] },
+    { id: 'SEL_WS1_R3', name: '리셀러 (수도권1-3)', type: 'Reseller', coordinates: [126.9830, 37.5610] },
+    { id: 'SEL_WS2_R1', name: '리셀러 (수도권2-1)', type: 'Reseller', coordinates: [126.9510, 37.6010] },
+    { id: 'SEL_WS2_R2', name: '리셀러 (수도권2-2)', type: 'Reseller', coordinates: [126.9530, 37.5990] },
+    { id: 'SEL_WS2_R3', name: '리셀러 (수도권2-3)', type: 'Reseller', coordinates: [126.9490, 37.6020] },
+    { id: 'SEL_WS3_R1', name: '리셀러 (수도권3-1)', type: 'Reseller', coordinates: [127.0210, 37.5410] },
+    { id: 'SEL_WS3_R2', name: '리셀러 (수도권3-2)', type: 'Reseller', coordinates: [127.0190, 37.5390] },
+    { id: 'SEL_WS3_R3', name: '리셀러 (수도권3-3)', type: 'Reseller', coordinates: [127.0220, 37.5420] },
 
-    // 전남 도매상 (Wholesalers - JN)
-    { id: 'JN_WS1', name: '전남 도매상1', type: 'Wholesaler', coordinates: [126.90, 35.15] },
-    { id: 'JN_WS2', name: '전남 도매상2', type: 'Wholesaler', coordinates: [126.39, 34.81] }, // 목포
-    { id: 'JN_WS3', name: '전남 도매상3', type: 'Wholesaler', coordinates: [127.49, 34.90] }, // 여수/순천
+    { id: 'JB_WS1_R1', name: '리셀러 (전북1-1)', type: 'Reseller', coordinates: [127.1610, 35.8360] },
+    { id: 'JB_WS1_R2', name: '리셀러 (전북1-2)', type: 'Reseller', coordinates: [127.1590, 35.8340] },
+    { id: 'JB_WS1_R3', name: '리셀러 (전북1-3)', type: 'Reseller', coordinates: [127.1620, 35.8370] },
+    { id: 'JB_WS2_R1', name: '리셀러 (전북2-1)', type: 'Reseller', coordinates: [127.1460, 35.8210] },
+    { id: 'JB_WS2_R2', name: '리셀러 (전북2-2)', type: 'Reseller', coordinates: [127.1440, 35.8230] },
+    { id: 'JB_WS2_R3', name: '리셀러 (전북2-3)', type: 'Reseller', coordinates: [127.1470, 35.8220] },
+    { id: 'JB_WS3_R1', name: '리셀러 (전북3-1)', type: 'Reseller', coordinates: [127.1560, 35.8260] },
+    { id: 'JB_WS3_R2', name: '리셀러 (전북3-2)', type: 'Reseller', coordinates: [127.1540, 35.8240] },
+    { id: 'JB_WS3_R3', name: '리셀러 (전북3-3)', type: 'Reseller', coordinates: [127.1570, 35.8270] },
 
-    // 경북 도매상 (Wholesalers - KB)
-    { id: 'KB_WS1', name: '경북 도매상1', type: 'Wholesaler', coordinates: [128.62, 35.88] },
-    { id: 'KB_WS2', name: '경북 도매상2', type: 'Wholesaler', coordinates: [129.21, 36.01] }, // 포항
-    { id: 'KB_WS3', name: '경북 도매상3', type: 'Wholesaler', coordinates: [128.35, 36.13] }, // 구미
+    { id: 'JN_WS1_R1', name: '리셀러 (전남1-1)', type: 'Reseller', coordinates: [126.3960, 34.8160] },
+    { id: 'JN_WS1_R2', name: '리셀러 (전남1-2)', type: 'Reseller', coordinates: [126.3940, 34.8140] },
+    { id: 'JN_WS1_R3', name: '리셀러 (전남1-3)', type: 'Reseller', coordinates: [126.3970, 34.8170] },
+    { id: 'JN_WS2_R1', name: '리셀러 (전남2-1)', type: 'Reseller', coordinates: [126.3860, 34.8260] },
+    { id: 'JN_WS2_R2', name: '리셀러 (전남2-2)', type: 'Reseller', coordinates: [126.3840, 34.8240] },
+    { id: 'JN_WS2_R3', name: '리셀러 (전남2-3)', type: 'Reseller', coordinates: [126.3870, 34.8270] },
+    { id: 'JN_WS3_R1', name: '리셀러 (전남3-1)', type: 'Reseller', coordinates: [126.4010, 34.8110] },
+    { id: 'JN_WS3_R2', name: '리셀러 (전남3-2)', type: 'Reseller', coordinates: [126.3990, 34.8090] },
+    { id: 'JN_WS3_R3', name: '리셀러 (전남3-3)', type: 'Reseller', coordinates: [126.4020, 34.8120] },
 
-    // 경남 도매상 (Wholesalers - KN)
-    { id: 'KN_WS1', name: '경남 도매상1', type: 'Wholesaler', coordinates: [128.95, 35.20] },
-    { id: 'KN_WS2', name: '경남 도매상2', type: 'Wholesaler', coordinates: [128.69, 35.23] }, // 창원
-    { id: 'KN_WS3', name: '경남 도매상3', type: 'Wholesaler', coordinates: [128.10, 35.18] }, // 진주
+    { id: 'KB_WS1_R1', name: '리셀러 (경북1-1)', type: 'Reseller', coordinates: [128.3460, 36.1360] },
+    { id: 'KB_WS1_R2', name: '리셀러 (경북1-2)', type: 'Reseller', coordinates: [128.3440, 36.1340] },
+    { id: 'KB_WS1_R3', name: '리셀러 (경북1-3)', type: 'Reseller', coordinates: [128.3470, 36.1370] },
+    { id: 'KB_WS2_R1', name: '리셀러 (경북2-1)', type: 'Reseller', coordinates: [128.3360, 36.1460] },
+    { id: 'KB_WS2_R2', name: '리셀러 (경북2-2)', type: 'Reseller', coordinates: [128.3340, 36.1440] },
+    { id: 'KB_WS2_R3', name: '리셀러 (경북2-3)', type: 'Reseller', coordinates: [128.3370, 36.1470] },
+    { id: 'KB_WS3_R1', name: '리셀러 (경북3-1)', type: 'Reseller', coordinates: [128.3510, 36.1260] },
+    { id: 'KB_WS3_R2', name: '리셀러 (경북3-2)', type: 'Reseller', coordinates: [128.3490, 36.1240] },
+    { id: 'KB_WS3_R3', name: '리셀러 (경북3-3)', type: 'Reseller', coordinates: [128.3520, 36.1270] },
 
-    // 리셀러 (Resellers) - 도매상 주변에 가상으로 배치
-    { id: 'SEL_WS1_R1', name: '리셀러 (수도권1-1)', type: 'Reseller', coordinates: [127.03, 37.60] },
-    { id: 'SEL_WS1_R2', name: '리셀러 (수도권1-2)', type: 'Reseller', coordinates: [127.01, 37.59] },
-    { id: 'KN_WS2_R1', name: '리셀러 (경남2-1)', type: 'Reseller', coordinates: [128.70, 35.25] },
-    { id: 'KB_WS2_R1', name: '리셀러 (경북2-1)', type: 'Reseller', coordinates: [129.23, 36.03] },
+    { id: 'KN_WS1_R1', name: '리셀러 (경남1-1)', type: 'Reseller', coordinates: [128.6860, 35.2360] },
+    { id: 'KN_WS1_R2', name: '리셀러 (경남1-2)', type: 'Reseller', coordinates: [128.6840, 35.2340] },
+    { id: 'KN_WS1_R3', name: '리셀러 (경남1-3)', type: 'Reseller', coordinates: [128.6870, 35.2370] },
+    { id: 'KN_WS2_R1', name: '리셀러 (경남2-1)', type: 'Reseller', coordinates: [128.6760, 35.2260] },
+    { id: 'KN_WS2_R2', name: '리셀러 (경남2-2)', type: 'Reseller', coordinates: [128.6740, 35.2240] },
+    { id: 'KN_WS2_R3', name: '리셀러 (경남2-3)', type: 'Reseller', coordinates: [128.6770, 35.2270] },
+    { id: 'KN_WS3_R1', name: '리셀러 (경남3-1)', type: 'Reseller', coordinates: [128.6910, 35.2410] },
+    { id: 'KN_WS3_R2', name: '리셀러 (경남3-2)', type: 'Reseller', coordinates: [128.6890, 35.2390] },
+    { id: 'KN_WS3_R3', name: '리셀러 (경남3-3)', type: 'Reseller', coordinates: [128.6920, 35.2420] },
 ];
 
 // --- 2. 이동 경로 데이터 (Trips) ---
-// 실제 데이터에서는 event_time을 파싱하여 동적으로 생성해야 합니다.
-// 여기서는 0부터 시작하는 가상의 시간(분)을 타임스탬프로 사용합니다.
-
 // 좌표를 쉽게 찾기 위한 헬퍼 맵
 const nodeCoords = new Map<string, [number, number]>(nodes.map(n => [n.id, n.coordinates]));
 
@@ -96,16 +131,14 @@ export const trips: Trip[] = [
     { from: 'ICN_WMS', to: 'SEL_Logi_HUB', path: [nodeCoords.get('ICN_WMS')!, nodeCoords.get('SEL_Logi_HUB')!], timestamps: [10, 120], product: 'Product A' },
     { from: 'SEL_Logi_HUB', to: 'SEL_WS1', path: [nodeCoords.get('SEL_Logi_HUB')!, nodeCoords.get('SEL_WS1')!], timestamps: [150, 180], product: 'Product A' },
     { from: 'SEL_Logi_HUB', to: 'SEL_WS2', path: [nodeCoords.get('SEL_Logi_HUB')!, nodeCoords.get('SEL_WS2')!], timestamps: [160, 200], product: 'Product B' },
-    { from: 'SEL_WS1', to: 'SEL_WS1_R1', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R1')!], timestamps: [220, 225], product: 'Product A' },
-    { from: 'SEL_WS1', to: 'SEL_WS1_R2', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R2')!], timestamps: [230, 235], product: 'Product A' },
-
+    
     // === 시나리오 2: 화성공장(HWS) -> 수도권허브(SEL) & 경남허브(KN)로 분산 -> 각 지역 도매상 ===
     { from: 'HWS_WMS', to: 'SEL_Logi_HUB', path: [nodeCoords.get('HWS_WMS')!, nodeCoords.get('SEL_Logi_HUB')!], timestamps: [50, 100], product: 'Product C' },
     { from: 'HWS_WMS', to: 'KN_Logi_HUB', path: [nodeCoords.get('HWS_WMS')!, nodeCoords.get('KN_Logi_HUB')!], timestamps: [60, 480], product: 'Product D' },
     { from: 'SEL_Logi_HUB', to: 'SEL_WS3', path: [nodeCoords.get('SEL_Logi_HUB')!, nodeCoords.get('SEL_WS3')!], timestamps: [120, 150], product: 'Product C' },
     { from: 'KN_Logi_HUB', to: 'KN_WS1', path: [nodeCoords.get('KN_Logi_HUB')!, nodeCoords.get('KN_WS1')!], timestamps: [500, 520], product: 'Product D' },
     { from: 'KN_Logi_HUB', to: 'KN_WS2', path: [nodeCoords.get('KN_Logi_HUB')!, nodeCoords.get('KN_WS2')!], timestamps: [510, 540], product: 'Product D' },
-    { from: 'KN_WS2', to: 'KN_WS2_R1', path: [nodeCoords.get('KN_WS2')!, nodeCoords.get('KN_WS2_R1')!], timestamps: [580, 585], product: 'Product D' },
+    { from: 'KN_Logi_HUB', to: 'KN_WS3', path: [nodeCoords.get('KN_Logi_HUB')!, nodeCoords.get('KN_WS3')!], timestamps: [515, 545], product: 'Product D' }, // KN_WS3 경로 추가
 
     // === 시나리오 3: 구미공장(KUM) -> 경북허브(KB) & 전북허브(JB)로 분산 (지역간 이동) ===
     { from: 'KUM_WMS', to: 'KB_Logi_HUB', path: [nodeCoords.get('KUM_WMS')!, nodeCoords.get('KB_Logi_HUB')!], timestamps: [30, 80], product: 'Product E' },
@@ -116,7 +149,7 @@ export const trips: Trip[] = [
     { from: 'JB_Logi_HUB', to: 'JB_WS1', path: [nodeCoords.get('JB_Logi_HUB')!, nodeCoords.get('JB_WS1')!], timestamps: [320, 330], product: 'Product F' },
     { from: 'JB_Logi_HUB', to: 'JB_WS2', path: [nodeCoords.get('JB_Logi_HUB')!, nodeCoords.get('JB_WS2')!], timestamps: [330, 370], product: 'Product F' },
 
-    // === 시나리오 4: 영광공장(YGS) -> 전남허브(JN) & 전북허브(JB) -> 각 지역 도매상 ===
+    // === 시나리오 4: 양산공장(YGS) -> 전남허브(JN) & 전북허브(JB) -> 각 지역 도매상 ===
     { from: 'YGS_WMS', to: 'JN_Logi_HUB', path: [nodeCoords.get('YGS_WMS')!, nodeCoords.get('JN_Logi_HUB')!], timestamps: [20, 90], product: 'Product G' },
     { from: 'YGS_WMS', to: 'JB_Logi_HUB', path: [nodeCoords.get('YGS_WMS')!, nodeCoords.get('JB_Logi_HUB')!], timestamps: [30, 150], product: 'Product G' },
     { from: 'JN_Logi_HUB', to: 'JN_WS1', path: [nodeCoords.get('JN_Logi_HUB')!, nodeCoords.get('JN_WS1')!], timestamps: [110, 120], product: 'Product G' },
@@ -124,4 +157,69 @@ export const trips: Trip[] = [
     { from: 'JN_Logi_HUB', to: 'JN_WS3', path: [nodeCoords.get('JN_Logi_HUB')!, nodeCoords.get('JN_WS3')!], timestamps: [130, 220], product: 'Product G' },
     { from: 'JB_Logi_HUB', to: 'JB_WS3', path: [nodeCoords.get('JB_Logi_HUB')!, nodeCoords.get('JB_WS3')!], timestamps: [180, 250], product: 'Product G' },
 
+    // === 시나리오 5: 도매상(Wholesaler) -> 리셀러(Reseller) [신규 추가된 전체 경로] ===
+    // SEL_WS1 (Product A 도착: 180)
+    { from: 'SEL_WS1', to: 'SEL_WS1_R1', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R1')!], timestamps: [220, 225], product: 'Product A' },
+    { from: 'SEL_WS1', to: 'SEL_WS1_R2', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R2')!], timestamps: [230, 235], product: 'Product A' },
+    { from: 'SEL_WS1', to: 'SEL_WS1_R3', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R3')!], timestamps: [240, 245], product: 'Product A' },
+    // SEL_WS2 (Product B 도착: 200)
+    { from: 'SEL_WS2', to: 'SEL_WS2_R1', path: [nodeCoords.get('SEL_WS2')!, nodeCoords.get('SEL_WS2_R1')!], timestamps: [250, 255], product: 'Product B' },
+    { from: 'SEL_WS2', to: 'SEL_WS2_R2', path: [nodeCoords.get('SEL_WS2')!, nodeCoords.get('SEL_WS2_R2')!], timestamps: [260, 265], product: 'Product B' },
+    { from: 'SEL_WS2', to: 'SEL_WS2_R3', path: [nodeCoords.get('SEL_WS2')!, nodeCoords.get('SEL_WS2_R3')!], timestamps: [270, 275], product: 'Product B' },
+    // SEL_WS3 (Product C 도착: 150)
+    { from: 'SEL_WS3', to: 'SEL_WS3_R1', path: [nodeCoords.get('SEL_WS3')!, nodeCoords.get('SEL_WS3_R1')!], timestamps: [190, 195], product: 'Product C' },
+    { from: 'SEL_WS3', to: 'SEL_WS3_R2', path: [nodeCoords.get('SEL_WS3')!, nodeCoords.get('SEL_WS3_R2')!], timestamps: [200, 205], product: 'Product C' },
+    { from: 'SEL_WS3', to: 'SEL_WS3_R3', path: [nodeCoords.get('SEL_WS3')!, nodeCoords.get('SEL_WS3_R3')!], timestamps: [210, 215], product: 'Product C' },
+    
+    // JB_WS1 (Product F 도착: 330)
+    { from: 'JB_WS1', to: 'JB_WS1_R1', path: [nodeCoords.get('JB_WS1')!, nodeCoords.get('JB_WS1_R1')!], timestamps: [350, 355], product: 'Product F' },
+    { from: 'JB_WS1', to: 'JB_WS1_R2', path: [nodeCoords.get('JB_WS1')!, nodeCoords.get('JB_WS1_R2')!], timestamps: [360, 365], product: 'Product F' },
+    { from: 'JB_WS1', to: 'JB_WS1_R3', path: [nodeCoords.get('JB_WS1')!, nodeCoords.get('JB_WS1_R3')!], timestamps: [370, 375], product: 'Product F' },
+    // JB_WS2 (Product F 도착: 370)
+    { from: 'JB_WS2', to: 'JB_WS2_R1', path: [nodeCoords.get('JB_WS2')!, nodeCoords.get('JB_WS2_R1')!], timestamps: [400, 405], product: 'Product F' },
+    { from: 'JB_WS2', to: 'JB_WS2_R2', path: [nodeCoords.get('JB_WS2')!, nodeCoords.get('JB_WS2_R2')!], timestamps: [410, 415], product: 'Product F' },
+    { from: 'JB_WS2', to: 'JB_WS2_R3', path: [nodeCoords.get('JB_WS2')!, nodeCoords.get('JB_WS2_R3')!], timestamps: [420, 425], product: 'Product F' },
+    // JB_WS3 (Product G 도착: 250)
+    { from: 'JB_WS3', to: 'JB_WS3_R1', path: [nodeCoords.get('JB_WS3')!, nodeCoords.get('JB_WS3_R1')!], timestamps: [280, 285], product: 'Product G' },
+    { from: 'JB_WS3', to: 'JB_WS3_R2', path: [nodeCoords.get('JB_WS3')!, nodeCoords.get('JB_WS3_R2')!], timestamps: [290, 295], product: 'Product G' },
+    { from: 'JB_WS3', to: 'JB_WS3_R3', path: [nodeCoords.get('JB_WS3')!, nodeCoords.get('JB_WS3_R3')!], timestamps: [300, 305], product: 'Product G' },
+
+    // JN_WS1 (Product G 도착: 120)
+    { from: 'JN_WS1', to: 'JN_WS1_R1', path: [nodeCoords.get('JN_WS1')!, nodeCoords.get('JN_WS1_R1')!], timestamps: [140, 145], product: 'Product G' },
+    { from: 'JN_WS1', to: 'JN_WS1_R2', path: [nodeCoords.get('JN_WS1')!, nodeCoords.get('JN_WS1_R2')!], timestamps: [150, 155], product: 'Product G' },
+    { from: 'JN_WS1', to: 'JN_WS1_R3', path: [nodeCoords.get('JN_WS1')!, nodeCoords.get('JN_WS1_R3')!], timestamps: [160, 165], product: 'Product G' },
+    // JN_WS2 (Product G 도착: 180)
+    { from: 'JN_WS2', to: 'JN_WS2_R1', path: [nodeCoords.get('JN_WS2')!, nodeCoords.get('JN_WS2_R1')!], timestamps: [200, 205], product: 'Product G' },
+    { from: 'JN_WS2', to: 'JN_WS2_R2', path: [nodeCoords.get('JN_WS2')!, nodeCoords.get('JN_WS2_R2')!], timestamps: [210, 215], product: 'Product G' },
+    { from: 'JN_WS2', to: 'JN_WS2_R3', path: [nodeCoords.get('JN_WS2')!, nodeCoords.get('JN_WS2_R3')!], timestamps: [220, 225], product: 'Product G' },
+    // JN_WS3 (Product G 도착: 220)
+    { from: 'JN_WS3', to: 'JN_WS3_R1', path: [nodeCoords.get('JN_WS3')!, nodeCoords.get('JN_WS3_R1')!], timestamps: [240, 245], product: 'Product G' },
+    { from: 'JN_WS3', to: 'JN_WS3_R2', path: [nodeCoords.get('JN_WS3')!, nodeCoords.get('JN_WS3_R2')!], timestamps: [250, 255], product: 'Product G' },
+    { from: 'JN_WS3', to: 'JN_WS3_R3', path: [nodeCoords.get('JN_WS3')!, nodeCoords.get('JN_WS3_R3')!], timestamps: [260, 265], product: 'Product G' },
+    
+    // KB_WS1 (Product E 도착: 110)
+    { from: 'KB_WS1', to: 'KB_WS1_R1', path: [nodeCoords.get('KB_WS1')!, nodeCoords.get('KB_WS1_R1')!], timestamps: [130, 135], product: 'Product E' },
+    { from: 'KB_WS1', to: 'KB_WS1_R2', path: [nodeCoords.get('KB_WS1')!, nodeCoords.get('KB_WS1_R2')!], timestamps: [140, 145], product: 'Product E' },
+    { from: 'KB_WS1', to: 'KB_WS1_R3', path: [nodeCoords.get('KB_WS1')!, nodeCoords.get('KB_WS1_R3')!], timestamps: [150, 155], product: 'Product E' },
+    // KB_WS2 (Product E 도착: 150)
+    { from: 'KB_WS2', to: 'KB_WS2_R1', path: [nodeCoords.get('KB_WS2')!, nodeCoords.get('KB_WS2_R1')!], timestamps: [170, 175], product: 'Product E' },
+    { from: 'KB_WS2', to: 'KB_WS2_R2', path: [nodeCoords.get('KB_WS2')!, nodeCoords.get('KB_WS2_R2')!], timestamps: [180, 185], product: 'Product E' },
+    { from: 'KB_WS2', to: 'KB_WS2_R3', path: [nodeCoords.get('KB_WS2')!, nodeCoords.get('KB_WS2_R3')!], timestamps: [190, 195], product: 'Product E' },
+    // KB_WS3 (Product E 도착: 130)
+    { from: 'KB_WS3', to: 'KB_WS3_R1', path: [nodeCoords.get('KB_WS3')!, nodeCoords.get('KB_WS3_R1')!], timestamps: [150, 155], product: 'Product E' },
+    { from: 'KB_WS3', to: 'KB_WS3_R2', path: [nodeCoords.get('KB_WS3')!, nodeCoords.get('KB_WS3_R2')!], timestamps: [160, 165], product: 'Product E' },
+    { from: 'KB_WS3', to: 'KB_WS3_R3', path: [nodeCoords.get('KB_WS3')!, nodeCoords.get('KB_WS3_R3')!], timestamps: [170, 175], product: 'Product E' },
+
+    // KN_WS1 (Product D 도착: 520)
+    { from: 'KN_WS1', to: 'KN_WS1_R1', path: [nodeCoords.get('KN_WS1')!, nodeCoords.get('KN_WS1_R1')!], timestamps: [540, 545], product: 'Product D' },
+    { from: 'KN_WS1', to: 'KN_WS1_R2', path: [nodeCoords.get('KN_WS1')!, nodeCoords.get('KN_WS1_R2')!], timestamps: [550, 555], product: 'Product D' },
+    { from: 'KN_WS1', to: 'KN_WS1_R3', path: [nodeCoords.get('KN_WS1')!, nodeCoords.get('KN_WS1_R3')!], timestamps: [560, 565], product: 'Product D' },
+    // KN_WS2 (Product D 도착: 540)
+    { from: 'KN_WS2', to: 'KN_WS2_R1', path: [nodeCoords.get('KN_WS2')!, nodeCoords.get('KN_WS2_R1')!], timestamps: [580, 585], product: 'Product D' },
+    { from: 'KN_WS2', to: 'KN_WS2_R2', path: [nodeCoords.get('KN_WS2')!, nodeCoords.get('KN_WS2_R2')!], timestamps: [590, 595], product: 'Product D' },
+    { from: 'KN_WS2', to: 'KN_WS2_R3', path: [nodeCoords.get('KN_WS2')!, nodeCoords.get('KN_WS2_R3')!], timestamps: [600, 605], product: 'Product D' },
+    // KN_WS3 (Product D 도착: 545)
+    { from: 'KN_WS3', to: 'KN_WS3_R1', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R1')!], timestamps: [570, 575], product: 'Product D' },
+    { from: 'KN_WS3', to: 'KN_WS3_R2', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R2')!], timestamps: [580, 585], product: 'Product D' },
+    { from: 'KN_WS3', to: 'KN_WS3_R3', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R3')!], timestamps: [590, 595], product: 'Product D' },
 ];
