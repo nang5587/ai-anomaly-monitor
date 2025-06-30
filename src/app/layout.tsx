@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "./ClientLayout";
 import { AuthProvider } from "@/context/AuthContext";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 export const metadata: Metadata = {
   title: "Create Next App",

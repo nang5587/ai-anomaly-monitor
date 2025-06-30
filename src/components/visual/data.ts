@@ -1,90 +1,127 @@
-// src/data/supplyChainData.ts (파일 경로 예시)
+// Data.ts
 
-// 1. 각 노드의 ID와 화면 위 고정 좌표 (x, y)
-// Deck.gl의 뷰포트 크기(예: 1200x800)에 맞춰 좌표를 설정합니다.
-// (0, 0)은 왼쪽 하단이 기본이지만, 뷰 설정에 따라 변경될 수 있습니다.
-// 여기서는 왼쪽 상단을 (0,0)으로 가정하고 좌표를 설정했습니다.
-export const nodePositions: { [key: string]: { x: number; y: number } } = {
-    // 단계 1: 공장 (Factories) - 왼쪽
-    'ICN_Factory': { x: 150, y: 150 }, // 인천
-    'HWS_Factory': { x: 150, y: 250 }, // 화성
-    'YGS_Factory': { x: 150, y: 350 }, // 연기
-    'KUM_Factory': { x: 150, y: 450 }, // 구미
+/**
+ * 시각화에 사용될 각 노드(위치)의 타입 정의
+ * @param id - 고유 식별자 (데이터 연결에 사용)
+ * @param name - 화면에 표시될 이름 (툴팁 등)
+ * @param type - 노드의 종류 (색상이나 크기를 다르게 할 때 사용)
+ * @param coordinates - 지도 위에 표시될 좌표 [경도, 위도]
+ */
+export interface Node {
+    id: string;
+    name: string;
+    type: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller';
+    coordinates: [number, number];
+}
 
-    // 단계 2: 창고 (WMS) - 공장 옆
-    'ICN_WMS': { x: 300, y: 150 },
-    'HWS_WMS': { x: 300, y: 250 },
-    'YGS_WMS': { x: 300, y: 350 },
-    'KUM_WMS': { x: 300, y: 450 },
+/**
+ * 상품의 이동 경로(Trip) 타입 정의
+ * @param from - 출발지 노드 ID
+ * @param to - 도착지 노드 ID
+ * @param path - 이동 경로 좌표 배열 [[출발지 경위도], [도착지 경위도]]
+ * @param timestamps - 이동 타임스탬프 배열 [출발 시간, 도착 시간]
+ * @param product - (옵션) 이동하는 상품 이름
+ */
+export interface Trip {
+    from: string;
+    to: string;
+    path: [[number, number], [number, number]];
+    timestamps: [number, number];
+    product: string;
+}
 
-    // 단계 3: 물류 허브 (Logistics HUB) - 중앙
-    'SEL_Logi_HUB': { x: 600, y: 200 }, // 수도권
-    'JB_Logi_HUB': { x: 600, y: 300 },  // 전북
-    'JN_Logi_HUB': { x: 600, y: 400 },  // 전남
-    'KB_Logi_HUB': { x: 600, y: 500 },  // 경북
-    'KN_Logi_HUB': { x: 600, y: 600 },  // 경남
+// --- 1. 노드 데이터 (모든 지점 포함) ---
+// 한국 지도 위에 논리적으로 그럴듯한 가상 좌표를 부여했습니다.
+export const nodes: Node[] = [
+    // 공장 (Factories)
+    { id: 'ICN_Factory', name: '인천 공장', type: 'Factory', coordinates: [126.65, 37.45] },
+    { id: 'HWS_Factory', name: '화성 공장', type: 'Factory', coordinates: [126.83, 37.20] },
+    { id: 'YGS_Factory', name: '영광 공장', type: 'Factory', coordinates: [126.51, 35.27] },
+    { id: 'KUM_Factory', name: '구미 공장', type: 'Factory', coordinates: [128.33, 36.11] },
 
-    // 단계 4: 도매상 (Wholesalers) - 오른쪽
-    'SEL_WS1': { x: 850, y: 160 }, 'SEL_WS2': { x: 850, y: 200 }, 'SEL_WS3': { x: 850, y: 240 },
-    'JB_WS1': { x: 850, y: 280 }, 'JB_WS2': { x: 850, y: 320 }, 'JB_WS3': { x: 850, y: 360 },
-    'JN_WS1': { x: 850, y: 400 }, 'JN_WS2': { x: 850, y: 440 }, 'JN_WS3': { x: 850, y: 480 },
-    'KB_WS1': { x: 850, y: 520 }, 'KB_WS2': { x: 850, y: 560 }, 'KB_WS3': { x: 850, y: 600 },
-    'KN_WS1': { x: 850, y: 640 }, 'KN_WS2': { x: 850, y: 680 }, 'KN_WS3': { x: 850, y: 720 },
+    // 창고 (WMS) - 공장과 같은 위치로 가정
+    { id: 'ICN_WMS', name: '인천 창고', type: 'WMS', coordinates: [126.65, 37.45] },
+    { id: 'HWS_WMS', name: '화성 창고', type: 'WMS', coordinates: [126.83, 37.20] },
+    { id: 'YGS_WMS', name: '영광 창고', type: 'WMS', coordinates: [126.51, 35.27] },
+    { id: 'KUM_WMS', name: '구미 창고', type: 'WMS', coordinates: [128.33, 36.11] },
 
-    // 단계 5: 소매상 (Retailers) - 맨 오른쪽
-    'SEL_Retailer1': { x: 1050, y: 180 }, 'SEL_Retailer2': { x: 1050, y: 220 },
-    'KB_Retailer1': { x: 1050, y: 540 }, 'KN_Retailer1': { x: 1050, y: 660 },
-};
+    // 물류 허브 (Logistics Hubs)
+    { id: 'SEL_Logi_HUB', name: '수도권 허브', type: 'LogiHub', coordinates: [127.10, 37.40] }, // 군포/의왕 근처
+    { id: 'JB_Logi_HUB', name: '전북 허브', type: 'LogiHub', coordinates: [127.14, 35.82] },   // 전주
+    { id: 'JN_Logi_HUB', name: '전남 허브', type: 'LogiHub', coordinates: [126.85, 35.16] },   // 광주
+    { id: 'KB_Logi_HUB', name: '경북 허브', type: 'LogiHub', coordinates: [128.59, 35.87] },   // 대구
+    { id: 'KN_Logi_HUB', name: '경남 허브', type: 'LogiHub', coordinates: [128.88, 35.22] },   // 김해/부산 근처
 
-// 2. 전체 노드 목록 (ID, 이름 등 추가 정보 포함 가능)
-// ScatterplotLayer의 data prop에 이 배열의 'position' 값만 넘겨줄 수도 있고,
-// 객체 전체를 넘겨주고 accessor 함수에서 position을 꺼내 쓸 수도 있습니다.
-export const allNodes = Object.keys(nodePositions).map(id => ({
-    id: id,
-    name: id, // 나중에 툴팁 등에 표시할 이름
-    position: [nodePositions[id].x, nodePositions[id].y], // [x, y] 배열 형태
-}));
+    // 수도권 도매상 (Wholesalers - SEL)
+    { id: 'SEL_WS1', name: '수도권 도매상1', type: 'Wholesaler', coordinates: [127.02, 37.58] }, // 서울 북부
+    { id: 'SEL_WS2', name: '수도권 도매상2', type: 'Wholesaler', coordinates: [126.84, 37.50] }, // 서울 서부
+    { id: 'SEL_WS3', name: '수도권 도매상3', type: 'Wholesaler', coordinates: [127.10, 37.51] }, // 서울 동부
 
+    // 전북 도매상 (Wholesalers - JB)
+    { id: 'JB_WS1', name: '전북 도매상1', type: 'Wholesaler', coordinates: [127.15, 35.84] },
+    { id: 'JB_WS2', name: '전북 도매상2', type: 'Wholesaler', coordinates: [126.88, 35.94] }, // 군산 근처
+    { id: 'JB_WS3', name: '전북 도매상3', type: 'Wholesaler', coordinates: [127.08, 35.47] }, // 남원 근처
 
-// 3. 모든 이벤트 데이터: 시간(time) 순서대로 정렬된 공급망 활동
-// ArcLayer의 data prop에 이 배열이 필터링되어 전달됩니다.
-export const allEvents: { time: number; source: string; target: string }[] = [
-    // === 시간 1: 각 공장에서 생산 및 WMS 입고 ===
-    { time: 1, source: 'ICN_Factory', target: 'ICN_WMS' },
-    { time: 1, source: 'HWS_Factory', target: 'HWS_WMS' },
-    { time: 1, source: 'YGS_Factory', target: 'YGS_WMS' },
-    { time: 1, source: 'KUM_Factory', target: 'KUM_WMS' },
+    // 전남 도매상 (Wholesalers - JN)
+    { id: 'JN_WS1', name: '전남 도매상1', type: 'Wholesaler', coordinates: [126.90, 35.15] },
+    { id: 'JN_WS2', name: '전남 도매상2', type: 'Wholesaler', coordinates: [126.39, 34.81] }, // 목포
+    { id: 'JN_WS3', name: '전남 도매상3', type: 'Wholesaler', coordinates: [127.49, 34.90] }, // 여수/순천
 
-    // === 시간 2: 각 WMS에서 물류 허브로 출고 ===
-    { time: 2, source: 'ICN_WMS', target: 'SEL_Logi_HUB' },
-    { time: 2, source: 'HWS_WMS', target: 'SEL_Logi_HUB' },
-    { time: 2, source: 'YGS_WMS', target: 'JB_Logi_HUB' },
-    { time: 2, source: 'KUM_WMS', target: 'KB_Logi_HUB' },
+    // 경북 도매상 (Wholesalers - KB)
+    { id: 'KB_WS1', name: '경북 도매상1', type: 'Wholesaler', coordinates: [128.62, 35.88] },
+    { id: 'KB_WS2', name: '경북 도매상2', type: 'Wholesaler', coordinates: [129.21, 36.01] }, // 포항
+    { id: 'KB_WS3', name: '경북 도매상3', type: 'Wholesaler', coordinates: [128.35, 36.13] }, // 구미
 
-    // === 시간 3: 다른 지역 허브로 추가 이동 ===
-    { time: 3, source: 'SEL_Logi_HUB', target: 'JN_Logi_HUB' },
-    { time: 3, source: 'KB_Logi_HUB', target: 'KN_Logi_HUB' },
+    // 경남 도매상 (Wholesalers - KN)
+    { id: 'KN_WS1', name: '경남 도매상1', type: 'Wholesaler', coordinates: [128.95, 35.20] },
+    { id: 'KN_WS2', name: '경남 도매상2', type: 'Wholesaler', coordinates: [128.69, 35.23] }, // 창원
+    { id: 'KN_WS3', name: '경남 도매상3', type: 'Wholesaler', coordinates: [128.10, 35.18] }, // 진주
 
-    // === 시간 4: 각 지역 허브에서 해당 지역 도매상으로 분배 ===
-    { time: 4, source: 'SEL_Logi_HUB', target: 'SEL_WS1' },
-    { time: 4, source: 'SEL_Logi_HUB', target: 'SEL_WS2' },
-    { time: 4, source: 'SEL_Logi_HUB', target: 'SEL_WS3' },
-    { time: 4, source: 'JB_Logi_HUB', target: 'JB_WS1' },
-    { time: 4, source: 'JB_Logi_HUB', target: 'JB_WS2' },
-    { time: 4, source: 'JB_Logi_HUB', target: 'JB_WS3' },
-    { time: 4, source: 'JN_Logi_HUB', target: 'JN_WS1' },
-    { time: 4, source: 'JN_Logi_HUB', target: 'JN_WS2' },
-    { time: 4, source: 'JN_Logi_HUB', target: 'JN_WS3' },
-    { time: 4, source: 'KB_Logi_HUB', target: 'KB_WS1' },
-    { time: 4, source: 'KB_Logi_HUB', target: 'KB_WS2' },
-    { time: 4, source: 'KB_Logi_HUB', target: 'KB_WS3' },
-    { time: 4, source: 'KN_Logi_HUB', target: 'KN_WS1' },
-    { time: 4, source: 'KN_Logi_HUB', target: 'KN_WS2' },
-    { time: 4, source: 'KN_Logi_HUB', target: 'KN_WS3' },
+    // 리셀러 (Resellers) - 도매상 주변에 가상으로 배치
+    { id: 'SEL_WS1_R1', name: '리셀러 (수도권1-1)', type: 'Reseller', coordinates: [127.03, 37.60] },
+    { id: 'SEL_WS1_R2', name: '리셀러 (수도권1-2)', type: 'Reseller', coordinates: [127.01, 37.59] },
+    { id: 'KN_WS2_R1', name: '리셀러 (경남2-1)', type: 'Reseller', coordinates: [128.70, 35.25] },
+    { id: 'KB_WS2_R1', name: '리셀러 (경북2-1)', type: 'Reseller', coordinates: [129.23, 36.03] },
+];
 
-    // === 시간 5: 도매상에서 리셀러(소매상)로 이동 ===
-    { time: 5, source: 'SEL_WS1', target: 'SEL_Retailer1' },
-    { time: 5, source: 'SEL_WS2', target: 'SEL_Retailer2' },
-    { time: 5, source: 'KB_WS1', target: 'KB_Retailer1' },
-    { time: 5, source: 'KN_WS3', target: 'KN_Retailer1' },
+// --- 2. 이동 경로 데이터 (Trips) ---
+// 실제 데이터에서는 event_time을 파싱하여 동적으로 생성해야 합니다.
+// 여기서는 0부터 시작하는 가상의 시간(분)을 타임스탬프로 사용합니다.
+
+// 좌표를 쉽게 찾기 위한 헬퍼 맵
+const nodeCoords = new Map<string, [number, number]>(nodes.map(n => [n.id, n.coordinates]));
+
+export const trips: Trip[] = [
+    // === 시나리오 1: 인천공장(ICN) -> 수도권허브(SEL) -> 수도권 도매상(SEL_WS) -> 리셀러 ===
+    { from: 'ICN_WMS', to: 'SEL_Logi_HUB', path: [nodeCoords.get('ICN_WMS')!, nodeCoords.get('SEL_Logi_HUB')!], timestamps: [10, 120], product: 'Product A' },
+    { from: 'SEL_Logi_HUB', to: 'SEL_WS1', path: [nodeCoords.get('SEL_Logi_HUB')!, nodeCoords.get('SEL_WS1')!], timestamps: [150, 180], product: 'Product A' },
+    { from: 'SEL_Logi_HUB', to: 'SEL_WS2', path: [nodeCoords.get('SEL_Logi_HUB')!, nodeCoords.get('SEL_WS2')!], timestamps: [160, 200], product: 'Product B' },
+    { from: 'SEL_WS1', to: 'SEL_WS1_R1', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R1')!], timestamps: [220, 225], product: 'Product A' },
+    { from: 'SEL_WS1', to: 'SEL_WS1_R2', path: [nodeCoords.get('SEL_WS1')!, nodeCoords.get('SEL_WS1_R2')!], timestamps: [230, 235], product: 'Product A' },
+
+    // === 시나리오 2: 화성공장(HWS) -> 수도권허브(SEL) & 경남허브(KN)로 분산 -> 각 지역 도매상 ===
+    { from: 'HWS_WMS', to: 'SEL_Logi_HUB', path: [nodeCoords.get('HWS_WMS')!, nodeCoords.get('SEL_Logi_HUB')!], timestamps: [50, 100], product: 'Product C' },
+    { from: 'HWS_WMS', to: 'KN_Logi_HUB', path: [nodeCoords.get('HWS_WMS')!, nodeCoords.get('KN_Logi_HUB')!], timestamps: [60, 480], product: 'Product D' },
+    { from: 'SEL_Logi_HUB', to: 'SEL_WS3', path: [nodeCoords.get('SEL_Logi_HUB')!, nodeCoords.get('SEL_WS3')!], timestamps: [120, 150], product: 'Product C' },
+    { from: 'KN_Logi_HUB', to: 'KN_WS1', path: [nodeCoords.get('KN_Logi_HUB')!, nodeCoords.get('KN_WS1')!], timestamps: [500, 520], product: 'Product D' },
+    { from: 'KN_Logi_HUB', to: 'KN_WS2', path: [nodeCoords.get('KN_Logi_HUB')!, nodeCoords.get('KN_WS2')!], timestamps: [510, 540], product: 'Product D' },
+    { from: 'KN_WS2', to: 'KN_WS2_R1', path: [nodeCoords.get('KN_WS2')!, nodeCoords.get('KN_WS2_R1')!], timestamps: [580, 585], product: 'Product D' },
+
+    // === 시나리오 3: 구미공장(KUM) -> 경북허브(KB) & 전북허브(JB)로 분산 (지역간 이동) ===
+    { from: 'KUM_WMS', to: 'KB_Logi_HUB', path: [nodeCoords.get('KUM_WMS')!, nodeCoords.get('KB_Logi_HUB')!], timestamps: [30, 80], product: 'Product E' },
+    { from: 'KUM_WMS', to: 'JB_Logi_HUB', path: [nodeCoords.get('KUM_WMS')!, nodeCoords.get('JB_Logi_HUB')!], timestamps: [40, 290], product: 'Product F' },
+    { from: 'KB_Logi_HUB', to: 'KB_WS1', path: [nodeCoords.get('KB_Logi_HUB')!, nodeCoords.get('KB_WS1')!], timestamps: [100, 110], product: 'Product E' },
+    { from: 'KB_Logi_HUB', to: 'KB_WS2', path: [nodeCoords.get('KB_Logi_HUB')!, nodeCoords.get('KB_WS2')!], timestamps: [110, 150], product: 'Product E' },
+    { from: 'KB_Logi_HUB', to: 'KB_WS3', path: [nodeCoords.get('KB_Logi_HUB')!, nodeCoords.get('KB_WS3')!], timestamps: [120, 130], product: 'Product E' },
+    { from: 'JB_Logi_HUB', to: 'JB_WS1', path: [nodeCoords.get('JB_Logi_HUB')!, nodeCoords.get('JB_WS1')!], timestamps: [320, 330], product: 'Product F' },
+    { from: 'JB_Logi_HUB', to: 'JB_WS2', path: [nodeCoords.get('JB_Logi_HUB')!, nodeCoords.get('JB_WS2')!], timestamps: [330, 370], product: 'Product F' },
+
+    // === 시나리오 4: 영광공장(YGS) -> 전남허브(JN) & 전북허브(JB) -> 각 지역 도매상 ===
+    { from: 'YGS_WMS', to: 'JN_Logi_HUB', path: [nodeCoords.get('YGS_WMS')!, nodeCoords.get('JN_Logi_HUB')!], timestamps: [20, 90], product: 'Product G' },
+    { from: 'YGS_WMS', to: 'JB_Logi_HUB', path: [nodeCoords.get('YGS_WMS')!, nodeCoords.get('JB_Logi_HUB')!], timestamps: [30, 150], product: 'Product G' },
+    { from: 'JN_Logi_HUB', to: 'JN_WS1', path: [nodeCoords.get('JN_Logi_HUB')!, nodeCoords.get('JN_WS1')!], timestamps: [110, 120], product: 'Product G' },
+    { from: 'JN_Logi_HUB', to: 'JN_WS2', path: [nodeCoords.get('JN_Logi_HUB')!, nodeCoords.get('JN_WS2')!], timestamps: [120, 180], product: 'Product G' },
+    { from: 'JN_Logi_HUB', to: 'JN_WS3', path: [nodeCoords.get('JN_Logi_HUB')!, nodeCoords.get('JN_WS3')!], timestamps: [130, 220], product: 'Product G' },
+    { from: 'JB_Logi_HUB', to: 'JB_WS3', path: [nodeCoords.get('JB_Logi_HUB')!, nodeCoords.get('JB_WS3')!], timestamps: [180, 250], product: 'Product G' },
+
 ];
