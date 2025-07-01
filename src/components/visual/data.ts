@@ -30,6 +30,36 @@ export interface Trip {
     product: string;
 }
 
+export type AnomalyType = 'SPACE_JUMP' | 'CLONE' | 'ORDER_ERROR' | 'PATH_FAKE';
+
+// 각 위변조 유형에 따른 추가 정보 타입 정의
+export interface SpaceJumpInfo {
+    type: 'SPACE_JUMP';
+    travelTime: number; // 실제 이동 시간 (분)
+    distance: number; // 실제 이동 거리 (km)
+}
+export interface CloneInfo {
+    type: 'CLONE';
+    cloneCount: number; // 몇 개로 복제되었는지
+    originalTripId: string; // 원본 Trip의 ID
+}
+export interface OrderErrorInfo {
+    type: 'ORDER_ERROR';
+    previousEventTime: number; // 이전 이벤트 발생 시각
+    currentEventTime: number; // 현재 이벤트 발생 시각
+}
+export interface PathFakeInfo {
+    type: 'PATH_FAKE';
+    expectedPath: [[number, number], [number, number]]; // 예정 경로
+    bypassedNode: { name: string; coordinates: [number, number] }; // 경유한 의심 지점
+}
+
+// AI 분석 결과를 포함하는 확장된 Trip 타입
+export interface AnalyzedTrip extends Trip {
+    id: string; // 각 Trip에 고유 ID 부여
+    anomaly?: SpaceJumpInfo | CloneInfo | OrderErrorInfo | PathFakeInfo; // 위변조 정보 (옵셔널)
+}
+
 // --- 1. 노드 데이터 (모든 지점 포함) ---
 // 제공된 CSV 좌표로 업데이트된 데이터
 export const nodes: Node[] = [
@@ -223,3 +253,68 @@ export const trips: Trip[] = [
     { from: 'KN_WS3', to: 'KN_WS3_R2', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R2')!], timestamps: [580, 585], product: 'Product D' },
     { from: 'KN_WS3', to: 'KN_WS3_R3', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R3')!], timestamps: [590, 595], product: 'Product D' },
 ];
+
+const baseTrips: Omit<AnalyzedTrip, 'anomaly'>[] = trips.map((trip, index) => ({
+    ...trip,
+    id: `trip-${index}`
+}));
+
+// 위변조 데이터를 생성할 가상의 AI 분석 로직
+export const analyzedTrips: AnalyzedTrip[] = [...baseTrips];
+
+// --- 시나리오 적용 ---
+
+// 1. 시공간 점프 (Space Jump): 화성 -> 경남 허브
+// 가장 장거리인 경로를 선정하여, 비정상적으로 빠른 도착 시간으로 조작
+const spaceJumpTrip = analyzedTrips.find(t => t.from === 'HWS_WMS' && t.to === 'KN_Logi_HUB');
+if (spaceJumpTrip) {
+    spaceJumpTrip.timestamps = [60, 90]; // 도착 시간을 480 -> 90으로 극단적으로 단축
+    spaceJumpTrip.anomaly = {
+        type: 'SPACE_JUMP',
+        travelTime: 30, // 30 단위 시간 (30시간)
+        distance: 280 // 대략적인 거리 (km)
+    };
+}
+
+// 2. 경로 위조 (Path Fake): 구미 -> 전북 허브
+// 중간에 가상의 '의심 지역'을 경유하도록 실제 경로를 수정하고, 예정 경로 정보를 추가
+const pathFakeTrip = analyzedTrips.find(t => t.from === 'KUM_WMS' && t.to === 'JB_Logi_HUB');
+if (pathFakeTrip) {
+    const originalPath = pathFakeTrip.path;
+    const bypassedNodeCoords: [number, number] = [127.8, 36.0]; // 충북 영동군 어딘가
+    pathFakeTrip.path = [originalPath[0], bypassedNodeCoords]; // 실제 경로는 의심 지역까지
+    // 참고: 시각화를 위해선 의심지역->도착지 경로도 추가 데이터로 필요하지만, 여기선 개념만 표현
+    pathFakeTrip.anomaly = {
+        type: 'PATH_FAKE',
+        expectedPath: originalPath, // 원래 갔어야 할 경로
+        bypassedNode: { name: '미승인 경유지', coordinates: bypassedNodeCoords }
+    };
+}
+
+// 3. 이벤트 순서 오류 (Order Error): 전남 도매상 -> 리셀러
+// '도착'보다 '출발'이 늦게 일어난 것처럼 타임스탬프를 뒤집음
+const orderErrorTrip = analyzedTrips.find(t => t.from === 'JN_WS1' && t.to === 'JN_WS1_R1');
+if (orderErrorTrip) {
+    orderErrorTrip.timestamps = [150, 145]; // [140, 145] -> [150, 145]
+    orderErrorTrip.anomaly = {
+        type: 'ORDER_ERROR',
+        previousEventTime: 120, // 도매상 도착 시간
+        currentEventTime: 150, // 리셀러로 출발한 시간 (오류)
+    };
+}
+
+// 4. 복제 (Cloning): 경남 허브 -> 도매상들
+// 한 허브에서 여러 곳으로 가는 경로 중 일부를 '복제'된 것으로 가정
+const cloneTrips = analyzedTrips.filter(t => t.from === 'KN_Logi_HUB');
+if (cloneTrips.length > 1) {
+    const originalTripId = cloneTrips[0].id;
+    cloneTrips.forEach((trip, index) => {
+        if (index > 0) { // 첫 번째를 제외한 나머지를 복제품으로 처리
+            trip.anomaly = {
+                type: 'CLONE',
+                cloneCount: cloneTrips.length,
+                originalTripId: originalTripId
+            };
+        }
+    });
+}

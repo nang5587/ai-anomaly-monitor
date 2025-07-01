@@ -32,3 +32,16 @@
 }
 
 @import 'rc-slider/assets/index.css';
+
+.hide-scrollbar {
+  /* Firefox를 위한 표준 방식 */
+  scrollbar-width: none;
+  
+  /* IE, Edge 구버전 */
+  -ms-overflow-style: none;
+}
+
+/* Chrome, Safari, Edge 등 Webkit 기반 브라우저를 위한 방식 */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
