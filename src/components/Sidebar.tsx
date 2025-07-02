@@ -8,7 +8,6 @@ import {
   UserIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 
 const menus = [
   { name: "대시보드", icon: HomeIcon, href: "/" },
@@ -23,15 +22,14 @@ interface SidebarProps {
   setHovered: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Sidebar({hovered, setHovered}: SidebarProps) {
-  // const [hovered, setHovered] = useState(false);
+export default function Sidebar({ hovered, setHovered }: SidebarProps) {
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`bg-white shadow-md transition-all duration-300 h-screen flex flex-col
-        ${hovered ? "w-52" : "w-16"}`}
+      className={`h-screen bg-black shadow-md transition-all duration-300 flex flex-col flex-shrink-0 pt-20 ${hovered ? "w-52" : "w-16"
+        }`}
     >
       <div className="flex-1 overflow-auto px-2 py-4">
         <div className="flex flex-col space-y-4">
@@ -39,11 +37,11 @@ export default function Sidebar({hovered, setHovered}: SidebarProps) {
             <Link
               key={menu.name}
               href={menu.href}
-              className="flex items-center gap-4 p-2 hover:bg-blue-100 rounded-md"
+              className="flex items-center gap-4 p-2 hover:bg-[rgba(40,40,40,1)] rounded-md"
             >
-              <menu.icon className="w-6 h-6 text-gray-700 flex-shrink-0" />
+              <menu.icon className="w-6 h-6 text-white flex-shrink-0" />
               {hovered && (
-                <span className="text-gray-800 whitespace-nowrap">
+                <span className="text-white whitespace-nowrap">
                   {menu.name}
                 </span>
               )}

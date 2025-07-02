@@ -35,7 +35,7 @@ export default function Home() {
   }
 
   return (
-    <main className="flex w-full h-full">
+    <main className="flex w-full h-full bg-black">
       {/* 왼쪽: 비주얼 영역 */}
       <div className="w-1/3 h-full">
         <ImageCollage />

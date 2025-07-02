@@ -15,11 +15,18 @@ import * as d3 from 'd3-ease';
 
 import type { PickingInfo } from '@deck.gl/core';
 
-// import { nodes, trips, Node, Trip } from './data';
 import { nodes, analyzedTrips, Node, AnalyzedTrip, AnomalyType } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
 
 import TimeSlider from './TimeSlider';
+
+import AnomalyList from './AnomalyList';
+import DetailsPanel from './DetailsPanel';
+import MapLegend from './MapLegend';
+import AnomalySearch from './AnomalySearch';
+import AnomalyFilter from './AnomalyFilter';
+import { getNodeColor, getAnomalyColor } from '../visual/colorUtils';
+import { NodeIcon, getIconAltitude } from '../visual/icons';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibmFuZzU1ODciLCJhIjoiY21jYnFnZ2RiMDhkNDJybmNwOGZ4ZmwxMCJ9.OBoc45r9z0yM1EpqNuffpQ';
 
@@ -34,18 +41,6 @@ const INITIAL_VIEW_STATE = {
 const ANIMATION_SPEED = 1;
 const minTime = Math.min(...analyzedTrips.map(t => t.timestamps[0]));
 const maxTime = Math.max(...analyzedTrips.map(t => t.timestamps[1]));
-
-const getNodeColor = (type: Node['type']): [number, number, number, number] => { // 반환 타입에 number 추가
-    const alpha = 100; // 투명도 값 (0 ~ 255)
-    switch (type) {
-        case 'Factory': return [0, 255, 255, alpha];     // 네온 시안 (아쿠아 블루)
-        case 'WMS': return [255, 0, 255, alpha];         // 네온 마젠타 (형광 보라핑크)
-        case 'LogiHub': return [186, 255, 0, alpha];     // 네온 라임 옐로우
-        case 'Wholesaler': return [0, 255, 128, alpha];  // 형광 에메랄드 민트
-        case 'Reseller': return [255, 64, 128, alpha];   // 네온 코랄 핑크
-        default: return [180, 180, 180, alpha];
-    }
-};
 
 // 분리된 모델들을 미리 파싱합니다.
 const parsedCubeModel = parseSync(cubeModel, OBJLoader);
@@ -72,313 +67,6 @@ const material = {
     specularColor: [number, number, number];
 };
 
-// ✨ 2. 아이콘을 표시할 고도(altitude)를 계산하는 함수를 만듭니다.
-const getIconAltitude = (node: Node): number => {
-    const BUILDING_TOP_Z = 100; // 건물 지붕 높이
-    const CHIMNEY_MODEL_HEIGHT = 2.5;
-    const SIZE_SCALE = 50;
-
-    return BUILDING_TOP_Z;
-};
-
-const NodeIcon: React.FC<{ type: Node['type'] }> = ({ type }) => {
-    const style = { width: '70%', height: '70%', fill: 'white' };
-    switch (type) {
-        // 굴뚝이 있는 공장 아이콘
-        case 'Factory':
-            return (
-                <svg viewBox="0 0 24 24" style={style}>
-                    <path d="M19 7h-1V5h-4v2h-4V5H6v2H5c-1.1 0-2 .9-2 2v11h18V9c0-1.1-.9-2-2-2zm-9 11H6v-4h4v4zm6 0h-4v-4h4v4z" />
-                </svg>
-            );
-
-        // 여러 개의 상자가 쌓인 창고(Warehouse) 아이콘
-        case 'WMS':
-            return (
-                <svg viewBox="0 0 24 24" style={style}>
-                    <path d="M20 7V5h-4v2h4zm-6 2V7h-4v2h4zM4 9h4V7H4v2zm16 4v-2h-4v2h4zm-6 0v-2h-4v2h4zM4 13h4v-2H4v2zm16 4v-2h-4v2h4zm-6 0v-2h-4v2h4zM4 17h4v-2H4v2z" />
-                </svg>
-            );
-
-        // 여러 갈래로 퍼져나가는 물류 허브 아이콘
-        case 'LogiHub':
-            return (
-                <svg viewBox="0 0 24 24" style={style}>
-                    <path d="M20 18h-4v-2h4v2zm-6-2h-4v-2h4v2zm-6-2H4v-2h4v2zM20 8h-4V6h4v2zm-6 0h-4V6h4v2zM4 8h4V6H4v2z" />
-                </svg>
-            );
-
-        // 상점 건물을 형상화한 도매점(Wholesaler) 아이콘
-        case 'Wholesaler':
-            return (
-                <svg viewBox="0 0 24 24" style={style}>
-                    <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 18H4v-4h4v4zm0-6H4v-4h4v4zm6 6h-4v-4h4v4zm0-6h-4v-4h4v4zm6 6h-4v-4h4v4zm0-6h-4v-4h4v4z" />
-                </svg>
-            );
-
-        // 태그(가격표) 모양의 리셀러(Reseller) 아이콘
-        case 'Reseller':
-            return (
-                <svg viewBox="0 0 24 24" style={style}>
-                    <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.22-1.05-.59-1.42zM13 20.01L4 11V4h7l9 9-7 7.01z" /><circle cx="6.5" cy="6.5" r="1.5" />
-                </svg>
-            );
-
-        default:
-            return null;
-    }
-};
-
-interface MapLegendProps {
-    onHover: (type: Node['type'] | null) => void;
-    onToggleVisibility: (type: Node['type']) => void;
-    visibleTypes: Record<Node['type'], boolean>;
-}
-
-const LEGEND_TYPES: Node['type'][] = ['Factory', 'WMS', 'LogiHub', 'Wholesaler', 'Reseller'];
-
-const MapLegend: React.FC<MapLegendProps> = ({ onHover, onToggleVisibility, visibleTypes }) => {
-    return (
-        <div style={{
-            position: 'absolute',
-            top: '50px',
-            right: '20px',
-            background: 'rgba(40, 40, 40)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '25px',
-            padding: '20px',
-            color: '#E0E0E0',
-            fontFamily: 'Inter, sans-serif',
-            width: '180px',
-            zIndex: 2,
-        }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#FFFFFF', paddingBottom: '10px' }}
-            >Legend</h3>
-            {LEGEND_TYPES.map(type => {
-                const [r, g, b] = getNodeColor(type);
-                const isVisible = visibleTypes[type];
-
-                return (
-                    <div
-                        key={type}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            marginBottom: '12px',
-                            cursor: 'pointer',
-                            opacity: isVisible ? 1 : 0.4,
-                            transition: 'opacity 0.2s, transform 0.2s',
-                            willChange: 'opacity, transform',
-                        }}
-                        onMouseEnter={() => onHover(type)}
-                        onMouseLeave={() => onHover(null)}
-                        onClick={() => onToggleVisibility(type)}
-                    >
-                        <div style={{
-                            width: '28px',
-                            height: '28px',
-                            minWidth: '28px',
-                            borderRadius: '20%',
-                            backgroundColor: `rgb(60, 60, 60)`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginRight: '12px', // Increased spacing
-                            transition: 'all 0.2s ease-out',
-                        }}>
-                            <NodeIcon type={type} />
-                        </div>
-                        <span style={{
-                            fontSize: '13px', // Slightly larger font
-                            color: isVisible ? '#E0E0E0' : '#888888', // Better contrast
-                            textDecoration: isVisible ? 'none' : 'line-through',
-                            transition: 'color 0.2s, text-decoration 0.2s',
-                        }}>
-                            {type}
-                        </span>
-                    </div>
-                );
-            })}
-        </div>
-    );
-};
-
-interface AnomalyListProps {
-    anomalies: AnalyzedTrip[];
-    onCaseClick: (trip: AnalyzedTrip) => void;
-    selectedTripId: string | null;
-}
-
-// 위변조 타입을 한글로 변환하는 헬퍼 함수
-const getAnomalyName = (type?: AnomalyType) => {
-    switch (type) {
-        case 'SPACE_JUMP': return '시공간 점프';
-        case 'CLONE': return '제품 복제';
-        case 'ORDER_ERROR': return '이벤트 순서 오류';
-        case 'PATH_FAKE': return '경로 위조';
-        default: return '알 수 없는 오류';
-    }
-};
-
-const getAnomalyColor = (type?: AnomalyType): [number, number, number] => {
-    switch (type) {
-        case 'SPACE_JUMP': return [199, 21, 133];   // 보라/마젠타 계열 (DeepPink)
-        case 'CLONE': return [255, 215, 0];       // 노랑/골드 계열 (Gold)
-        case 'ORDER_ERROR': return [255, 140, 0];  // 주황 계열 (DarkOrange)
-        case 'PATH_FAKE': return [220, 20, 60];    // 빨강 계열 (Crimson)
-        default: return [128, 128, 128];             // 회색 (기본값)
-    }
-};
-
-const AnomalySearch: React.FC = () => {
-    return (
-        <div style={{
-            fontFamily: 'Inter, sans-serif',
-            background: 'rgba(40, 40, 40)',
-            borderRadius: '25px',
-            padding: '20px',
-        }}>
-            <h3 style={{
-                fontSize: '18px', margin: '0 0 15px 0', color: '#FFFFFF',
-            }}>
-                Search
-            </h3>
-            <input
-                type="text"
-                placeholder="Search by EPC or LotID..."
-                style={{
-                    width: '100%', padding: '6px 12px', background: 'rgba(20, 22, 25)',
-                    border: '1px solid #757575', borderRadius: '25px', color: '#E0E0E0',
-                    fontSize: '14px', marginBottom: '15px', boxSizing: 'border-box'
-                }}
-            />
-        </div>
-    );
-};
-
-const AnomalyFilter: React.FC = () => {
-    const buttonStyle: React.CSSProperties = {
-        flex: 1, padding: '8px 10px', border: '1px solid #757575',
-        borderRadius: '25px', color: '#E0E0E0', fontSize: '13px', cursor: 'pointer',
-        textAlign: 'center',
-    };
-
-    return (
-        <div style={{
-            fontFamily: 'Inter, sans-serif',
-            background: 'rgba(40, 40, 40)',
-            borderRadius: '25px',
-            padding: '20px',
-        }}>
-            <h3 style={{
-                fontSize: '18px', margin: '0 0 15px 0', color: '#FFFFFF', fontWeight: 600,
-            }}>
-                Filter by
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button style={buttonStyle} className='whitespace-nowrap'>Time Range ▼</button>
-                    <button style={buttonStyle} className='whitespace-nowrap'>Location ▼</button>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button style={buttonStyle} className='whitespace-nowrap'>Event Type ▼</button>
-                    <button style={buttonStyle} className='whitespace-nowrap'>Anomaly Type ▼</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selectedTripId }) => {
-    const listTopPosition = 50 + 120 + 15 + 140 + 15;
-    return (
-        <div style={{
-            flex: 1,
-            minHeight: 0,
-            background: 'rgba(40, 40, 40)', // 기존 배경색
-            borderRadius: '25px',
-            color: '#FFFFFF',
-            fontFamily: 'Inter, sans-serif',
-            zIndex: 2,
-
-            display: 'flex',       // Flexbox 레이아웃 사용
-            flexDirection: 'column', // 아이템을 세로로 정렬
-        }}
-        >
-            <h3 style={{
-                margin: 0,
-                padding: '20px', // 헤더 패딩 증가
-                fontSize: '18px',
-                flexShrink: 0,     // 헤더는 줄어들지 않도록 설정
-            }}>
-                Anomaly List</h3>
-
-            {/* ✅ 스크롤 가능한 콘텐츠 영역 */}
-            <div style={{
-                overflowY: 'auto',      // 내용이 넘칠 경우 세로 스크롤 생성
-                flex: 1,
-                padding: '10px 15px',   // 안쪽 여백 (상하 10px, 좌우 15px)
-            }}
-                className="hide-scrollbar"
-            >
-                {anomalies.map(trip => {
-                    // ✅ 1. 현재 trip의 이상 타입에 맞는 색상을 가져옵니다.
-                    const [r, g, b] = getAnomalyColor(trip.anomaly?.type);
-                    const isSelected = selectedTripId === trip.id;
-
-                    return (
-                        <div
-                            key={trip.id}
-                            onClick={() => onCaseClick(trip)}
-                            style={{
-                                padding: '12px 15px',
-                                // border: `1px solid ${isSelected ? `rgb(${r}, ${g}, ${b})` : '#555'}`, // 선택 시 테두리 색상도 변경
-                                borderRadius: '12px',
-                                marginBottom: '10px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease-in-out',
-                            }}
-                            onMouseEnter={(e) => {
-                                if (!isSelected) {
-                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                    e.currentTarget.style.borderColor = '#777';
-                                }
-                            }}
-                            onMouseLeave={(e) => {
-                                if (!isSelected) {
-                                    e.currentTarget.style.background = 'transparent';
-                                    e.currentTarget.style.borderColor = '#555';
-                                }
-                            }}
-                        >
-                            {/* ✅ 2. 이상 타입 뱃지 스타일 적용 */}
-                            <div style={{
-                                display: 'inline-block', // 뱃지 크기가 내용에 맞게 조절되도록
-                                padding: '4px 10px',     // 뱃지 내부 여백
-                                background: `rgba(${r}, ${g}, ${b}, 0.1)`, // 투명도를 준 배경색
-                                color: `rgb(${r}, ${g}, ${b}, 0.8)`,
-                                borderRadius: '12px',      // 둥근 모서리 (Pill 모양)
-                                fontWeight: '600',
-                                fontSize: '13px',
-                                marginBottom: '10px',
-                            }}>
-                                {getAnomalyName(trip.anomaly?.type)}
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '4px' }}>
-                                {trip.from} → {trip.to}
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#ccc' }}>
-                                Product: {trip.product}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-};
-
 
 export const SupplyChainMap: React.FC = () => {
     const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
@@ -391,8 +79,9 @@ export const SupplyChainMap: React.FC = () => {
     });
 
     const [isPlaying, setIsPlaying] = useState(true);
-    const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [pulseRadius, setPulseRadius] = useState(0);
+
+    const [selectedObject, setSelectedObject] = useState<AnalyzedTrip | Node | null>(null);
 
     const staticLines = useMemo(() => {
         // 각 trip에서 시작 좌표와 끝 좌표를 추출합니다.
@@ -465,7 +154,7 @@ export const SupplyChainMap: React.FC = () => {
 
     const anomalyList = useMemo(() => analyzedTrips.filter(t => t.anomaly), [analyzedTrips]);
 
-    // ✨ 5. AnomalyList 항목 클릭 시 실행될 핸들러 함수 정의
+    // AnomalyList 항목 클릭 시 실행될 핸들러 함수 정의
     const handleCaseClick = (trip: AnalyzedTrip) => {
         // 1. 해당 경로의 중심으로 카메라 이동
         const [x1, y1] = trip.path[0];
@@ -485,7 +174,7 @@ export const SupplyChainMap: React.FC = () => {
         setViewState(newViewState);
 
         // 2. 해당 경로 하이라이트
-        setSelectedTripId(trip.id);
+        setSelectedObject(trip);
 
         // 3. 시간 슬라이더를 이벤트 발생 시점으로 이동
         setCurrentTime(trip.timestamps[0]);
@@ -512,7 +201,7 @@ export const SupplyChainMap: React.FC = () => {
             getTranslation: [0, 0, 50], // 모델의 바닥을 지면에 맞춤
             pickable: true,
             onHover: info => setHoverInfo(info),
-            // _lighting: 'phong',
+            onClick: info => setSelectedObject(info.object as Node),
             material
         });
     }).filter(Boolean);
@@ -530,6 +219,7 @@ export const SupplyChainMap: React.FC = () => {
             getTranslation: [0, 0, 50], // 건물 바닥을 지면에 맞춤 (지붕 높이: Z=100)
             pickable: true,
             onHover: info => setHoverInfo(info),
+            onClick: info => setSelectedObject(info.object as Node),
             material
         }),
     ];
@@ -558,19 +248,29 @@ export const SupplyChainMap: React.FC = () => {
             getTargetPosition: d => d.path[1],
             // anomalyType에 따라 색상 변경
             getColor: d => {
-                if (selectedTripId && d.id !== selectedTripId) return [128, 128, 128, 20]; // 선택된 것 외에는 더 흐리게
+                const isSelected = selectedObject && 'path' in selectedObject && selectedObject.id === d.id;
+                if (selectedObject && !isSelected) return [128, 128, 128, 20]; // 선택된 것 외에는 더 흐리게
+
                 switch (d.anomaly?.type) {
-                    case 'SPACE_JUMP': return [199, 21, 133, 255]; // 보라
-                    case 'CLONE': return [255, 215, 0, 255]; // 노랑
-                    case 'ORDER_ERROR': return [255, 140, 0, 255]; // 주황
-                    case 'PATH_FAKE': return [220, 20, 60, 255]; // 빨강
-                    default: return [128, 128, 128, 80]; // 정상
+                    case 'SPACE_JUMP':   // Vivid Purple (#722ed1)
+                        return [114, 46, 209];
+                    case 'CLONE':        // Lemon Yellow (#ffeb3b)
+                        return [255, 235, 59];
+                    case 'ORDER_ERROR':  // Strong Orange (#fa8c16)
+                        return [250, 140, 22];
+                    case 'PATH_FAKE':    // Alert Red (#cf1322)
+                        return [207, 19, 34];
+                    default:             // Light Lime Green (#90ee90)
+                        return [100, 100, 110];
                 }
             },
-            getWidth: d => (selectedTripId === d.id ? 5 : 2), // 선택된 선은 더 굵게
+            getWidth: d => {
+                const isSelected = selectedObject && 'path' in selectedObject && selectedObject.id === d.id;
+                return isSelected ? 5 : 2;
+            }, // 선택된 선은 더 굵게
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => setSelectedTripId((info.object as AnalyzedTrip).id),
+            onClick: info => setSelectedObject(info.object as AnalyzedTrip),
         }),
         // --- 5-2. 경로 위조 시 '예상 경로'를 보여주는 추가 LineLayer ---
         new LineLayer<AnalyzedTrip>({
@@ -586,11 +286,9 @@ export const SupplyChainMap: React.FC = () => {
             data: anomalyNodes,
             getPosition: d => d.coordinates,
             getRadius: pulseRadius,
-            getFillColor: [255, 0, 0, 255 - (pulseRadius / 1000) * 255], // 점점 투명해짐
+            getFillColor: [255, 99, 132, 255 - (pulseRadius / 1000) * 255], // 점점 투명해짐
             stroked: false,
             pickable: false,
-            // 펄스가 건물 아래에 깔리도록 렌더링 순서 조정
-            // (이 설정이 없다면, 다른 레이어들보다 뒤에 추가하여 렌더링 순서를 맞춥니다)
         }),
         // --- 5-4. 건물 및 굴뚝 레이어들 (이전과 동일) ---
         ...otherMeshLayers,
@@ -604,19 +302,22 @@ export const SupplyChainMap: React.FC = () => {
             // anomalyType에 따라 색상 변경
             getColor: d => {
                 switch (d.anomaly?.type) {
-                    case 'SPACE_JUMP': return [199, 21, 133, 255];
-                    case 'CLONE': return [255, 215, 0, 255];
-                    case 'ORDER_ERROR': return [255, 140, 0, 255];
-                    case 'PATH_FAKE': return [220, 20, 60, 255];
-                    default: return [0, 255, 128, 255]; // 정상은 밝은 민트색으로 변경하여 구분
+                    case 'SPACE_JUMP':   // Vivid Purple (#722ed1)
+                        return [114, 46, 209];
+                    case 'CLONE':        // Lemon Yellow (#ffeb3b)
+                        return [255, 235, 59];
+                    case 'ORDER_ERROR':  // Strong Orange (#fa8c16)
+                        return [250, 140, 22];
+                    case 'PATH_FAKE':    // Alert Red (#cf1322)
+                        return [207, 19, 34];
+                    default:             // Light Lime Green (#90ee90)
+                        return [144, 238, 144];
                 }
             },
             opacity: 0.8, widthMinPixels: 5, rounded: true,
             trailLength: 180, currentTime,
         }),
     ];
-
-
 
     return (
         <>
@@ -638,7 +339,7 @@ export const SupplyChainMap: React.FC = () => {
             <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
                 <DeckGL
                     layers={layers} viewState={viewState}
-                    onClick={info => !info.object && setSelectedTripId(null)}
+                    onClick={info => !info.object && setSelectedObject(null)}
                     onViewStateChange={({ viewState: newViewState }) => {
                         setViewState(newViewState);
                     }}
@@ -655,6 +356,7 @@ export const SupplyChainMap: React.FC = () => {
                             <Marker key={`marker-${node.name}`} longitude={node.coordinates[0]} latitude={node.coordinates[1]} pitchAlignment="viewport" rotationAlignment="map" altitude={getIconAltitude(node)}
                                 onClick={(e) => {
                                     e.originalEvent.stopPropagation();
+                                    setSelectedObject(node);
                                 }}
                             >
                                 <div className="map-marker">
@@ -671,7 +373,7 @@ export const SupplyChainMap: React.FC = () => {
 
                 <div style={{
                     position: 'absolute',
-                    top: '50px',
+                    top: '80px',
                     left: '20px',
                     width: '300px',
                     maxHeight: 'calc(100vh - 180px)', // 상하단 여백 50px씩 확보
@@ -687,9 +389,14 @@ export const SupplyChainMap: React.FC = () => {
                     <AnomalyList
                         anomalies={anomalyList}
                         onCaseClick={handleCaseClick}
-                        selectedTripId={selectedTripId}
+                        selectedObjectId={selectedObject?.id ?? null}
                     />
                 </div>
+
+                <DetailsPanel
+                    selectedObject={selectedObject}
+                    onClose={() => setSelectedObject(null)}
+                />
 
                 <MapLegend
                     onHover={setHoveredType}
@@ -706,6 +413,8 @@ export const SupplyChainMap: React.FC = () => {
                     isPlaying={isPlaying}
                     onChange={setCurrentTime}
                     onTogglePlay={() => setIsPlaying(prev => !prev)}
+                    anomalies={anomalyList}
+                    onMarkerClick={handleCaseClick}
                 />
             </div>
         </>

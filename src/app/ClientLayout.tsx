@@ -6,24 +6,20 @@ import Sidebar from "@/components/Sidebar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const [sidebarHovered, setSidebarHovered] = useState(false);
-    const sidebarWidth = sidebarHovered ? 208 : 64;
 
     return (
-        <div className="flex h-screen overflow-hidden">
-            <Sidebar hovered={sidebarHovered} setHovered={setSidebarHovered} />
+        <div className="bg-black">
+            <Header />
 
-            <div
-                className="flex flex-col flex-1"
-                style={{ width: `calc(100vw - ${sidebarWidth}px)` }}
-            >
-                <Header sidebarWidth={sidebarWidth} />
+            <div className="flex">
+                <Sidebar hovered={sidebarHovered} setHovered={setSidebarHovered} />
 
-                <main
-                    className="h-[calc(100vh-56px)] overflow-auto bg-white px-6 py-4"
-                    style={{ width: `calc(100vw - ${sidebarWidth}px)` }}
-                >
-                    {children}
+                <main className="flex-1 h-screen pt-20 overflow-hidden">
+                    <div className="w-full h-full"> {/* 내부 컨텐츠에 패딩 적용 */}
+                        {children}
+                    </div>
                 </main>
+
             </div>
         </div>
     );

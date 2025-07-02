@@ -1,3 +1,8 @@
+import { useState } from "react";
+
+import type { AnalyzedTrip } from "./data";
+import { getAnomalyColor, getAnomalyName } from "./colorUtils";
+
 const SIMULATION_START_DATE = new Date('2025-02-17T00:00:00Z');
 const TIME_UNIT_IN_HOURS = 1;
 
@@ -18,9 +23,51 @@ interface TimeSliderProps {
     isPlaying: boolean;
     onChange: (time: number) => void;
     onTogglePlay: () => void;
+    anomalies: AnalyzedTrip[];
+    onMarkerClick: (trip: AnalyzedTrip) => void;
 }
 
-const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, isPlaying, onChange, onTogglePlay }) => {
+type TooltipInfo = {
+    trip: AnalyzedTrip;
+    top: number;
+    left: number;
+};
+
+const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, isPlaying, onChange, onTogglePlay, anomalies,
+    onMarkerClick, }) => {
+    const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
+
+    const duration = maxTime - minTime;
+
+    const renderTooltip = () => {
+        if (!tooltip) return null;
+
+        const [r, g, b] = getAnomalyColor(tooltip.trip.anomaly?.type);
+        const mix = 0.7;
+        const pastelR = Math.round(r + (255 - r) * mix);
+        const pastelG = Math.round(g + (255 - g) * mix);
+        const pastelB = Math.round(b + (255 - b) * mix);
+
+        return (
+            <div style={{
+                position: 'fixed',
+                top: tooltip.top,
+                left: tooltip.left,
+                transform: 'translate(-50%, -120%)',
+                background: `rgba(${pastelR}, ${pastelG}, ${pastelB})`,
+                color: `rgb(${Math.round(r * 0.75)}, ${Math.round(g * 0.75)}, ${Math.round(b * 0.75)})`,
+                padding: '6px 10px',
+                borderRadius: '25px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                pointerEvents: 'none',
+                zIndex: 100,
+                whiteSpace: 'nowrap',
+            }}>
+                {getAnomalyName(tooltip.trip.anomaly?.type)}
+            </div>
+        );
+    };
     return (
         <>
             <style jsx global>{`
@@ -60,28 +107,69 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
             `}</style>
             <div style={{
                 position: 'absolute',
-                bottom: '40px',
-                left: '5%',
-                right: '5%', // 오른쪽 범례와 겹치지 않도록
+                bottom: '60px',
+                left: '1%',
+                right: '1%', // 오른쪽 범례와 겹치지 않도록
                 padding: '15px 20px',
                 color: 'white',
                 fontFamily: 'sans-serif',
                 zIndex: 2,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '20px'
+                gap: '20px',
+                background: 'rgba(40, 40, 40)', // 배경 추가
+                backdropFilter: 'blur(10px)',       // 블러 효과 추가
+                borderRadius: '25px',
             }}>
                 <button className="play-pause-btn" onClick={onTogglePlay}>
                     {isPlaying ? (
-                        // 일시정지 아이콘 (❚❚)
                         <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
                     ) : (
-                        // 재생 아이콘 (▶)
                         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
                     )}
                 </button>
-                {/* <h3 style={{ margin: 0, fontSize: '16px' }}>시간 제어</h3> */}
-                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+
+                {/* ✨ 5. 마커와 슬라이더를 담을 컨테이너 */}
+                <div style={{ flexGrow: 1, position: 'relative', height: '15px', display: 'flex', alignItems: 'center' }}>
+
+                    {/* ✨ 6. 마커들을 렌더링하는 부분 */}
+                    {anomalies.map(trip => {
+                        if (duration <= 0) return null;
+                        const positionPercent = ((trip.timestamps[0] - minTime) / duration) * 100;
+                        const [r, g, b] = getAnomalyColor(trip.anomaly?.type);
+                        const mix = 0.5;
+                        const pastelR = Math.round(r + (255 - r) * mix);
+                        const pastelG = Math.round(g + (255 - g) * mix);
+                        const pastelB = Math.round(b + (255 - b) * mix);
+                        return (
+                            <div
+                                key={trip.id}
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: `${positionPercent}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '12px',
+                                    height: '12px',
+                                    background: `rgba(${pastelR}, ${pastelG}, ${pastelB})`,
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                    zIndex: 1,
+                                }}
+                                onClick={() => onMarkerClick(trip)}
+                                onMouseEnter={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setTooltip({
+                                        trip,
+                                        top: rect.top,
+                                        left: rect.left + rect.width / 2,
+                                    });
+                                }}
+                                onMouseLeave={() => setTooltip(null)}
+                            />
+                        );
+                    })}
+
                     <input
                         type="range"
                         className="time-slider"
@@ -92,10 +180,12 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                         onChange={e => onChange(Number(e.target.value))}
                     />
                 </div>
-                    <div style={{ fontSize: '12px', color: '#ccc', textAlign: 'center' }}>
-                        <strong style={{ color: 'white' }}>{formatTimestamp(currentTime)}</strong>
-                    </div>
+                <div style={{ fontSize: '12px', color: '#ccc', textAlign: 'center', minWidth: '130px' }}>
+                    <strong style={{ color: 'white' }}>{formatTimestamp(currentTime)}</strong>
+                </div>
             </div>
+            {/* 툴팁 렌더링 함수 호출 */}
+            {renderTooltip()}
         </>
     );
 };

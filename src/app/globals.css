@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+html,
+body,
+#__next {
+  height: 100%;
+  overflow: hidden; /* ⭐⭐⭐ 최상위 레벨에서 스크롤을 원천 차단 */
+}
+
+.font-viga {
+  font-family: 'Viga', sans-serif;
+}
+
+.font-audio {
+  font-family: 'Audiowide';
+}
+
+.font-reem-kufi {
+  font-family: 'Reem Kufi',sans-serif;
+}
+
+.font-lato {
+  font-family: "Lato", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
