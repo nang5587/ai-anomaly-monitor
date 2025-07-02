@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DeckGL, { FlyToInterpolator } from 'deck.gl';
 
-
 import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
@@ -11,7 +10,6 @@ import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
 import Map, { Marker } from 'react-map-gl';
 import * as d3 from 'd3-ease';
-
 
 import type { PickingInfo } from '@deck.gl/core';
 

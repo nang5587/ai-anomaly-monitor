@@ -9,7 +9,7 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, change, changeType, icon }) => {
-    const changeColor = changeType === 'increase' ? 'text-green-500' : 'text-red-500';
+    const changeColor = changeType === 'increase' ? 'text-[#6EE7B7]' : 'text-[#FCA5A5]';
 
     return (
         <div className='flex items-center'>
@@ -25,9 +25,9 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, changeType, i
             <div className='flex flex-col pl-4'>
                 <h3 className="text-sm text-gray-300 mb-2">{title}</h3>
                 <div className='flex items-end gap-7'>
-                    <p className="text-4xl font-bold text-white font-lato">{value}</p>
+                    <p className="text-[50px] font-bold text-white font-lato">{value}</p>
                     {change && (
-                        <p className={`font-lato text-sm mt-1 ${changeColor}`}>
+                        <p className={`font-lato text-base mt-1 ${changeColor}`}>
                             {change}
                         </p>
                     )}

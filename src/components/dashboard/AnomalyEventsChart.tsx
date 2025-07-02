@@ -1,7 +1,6 @@
-'use client';
-
+'use client'
 import React from 'react';
-// ✨ Chart.js 관련 모듈을 import 합니다.
+
 import {
     LineChart,
     Line,
@@ -24,7 +23,7 @@ const data = [
 
 const AnomalyEventsChart: React.FC = () => {
     return (
-        <div className="bg-[rgba(40,40,40)] p-6 rounded-lg shadow-lg text-white h-[300px]">
+        <div className="bg-[rgba(40,40,40)] p-6 rounded-3xl shadow-lg text-white h-[300px]">
             <h3 className="text-xl font-semibold mb-4">월별 이상 이벤트 발생 추이</h3>
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart

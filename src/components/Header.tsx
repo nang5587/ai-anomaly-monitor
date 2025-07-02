@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { LogIn, LogOut , UserPlus } from 'lucide-react';
+import { LogIn, LogOut , UserPlus, ScanLine } from 'lucide-react';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -12,7 +12,7 @@ export default function Header() {
     <header
       className="fixed top-0 left-0 right-0 w-full bg-black px-12 py-3 shadow-sm flex items-center justify-between z-50 h-20"
     >
-      <h1 className="text-3xl text-white font-reem-kufi">FLOW LOGIC</h1>
+      <h1 className="flex justify-center items-center text-3xl text-white font-reem-kufi"><ScanLine />&nbsp;&nbsp;FLOW LOGIC</h1>
       <div className="flex items-center gap-4">
         {user ? (
           <>
