@@ -1,5 +1,5 @@
 'use client'
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import DeckGL from 'deck.gl';
 
 import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
@@ -13,6 +13,7 @@ import Map from 'react-map-gl';
 import { nodes, analyzedTrips, Node, AnalyzedTrip } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
 import { getNodeColor } from '../visual/colorUtils';
+import { useScroll } from 'framer-motion';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibmFuZzU1ODciLCJhIjoiY21jYnFnZ2RiMDhkNDJybmNwOGZ4ZmwxMCJ9.OBoc45r9z0yM1EpqNuffpQ';
 
@@ -46,16 +47,41 @@ const OTHER_MODEL_MAPPING: Record<string, any> = {
     Wholesaler: parsedCubeModel,
     Reseller: parsedCubeModel,
 };
-``
 
-// 컴포넌트 Props 정의
-interface SupplyChainMapWidgetProps {
-    currentTime: number;
-}
+type SupplyChainMapWidgetProps = {
+    minTime: number;
+    maxTime: number;
+    onWidgetClick: () => void;
+};
 
-export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ currentTime }) => {
-    // 위젯에서는 상태 관리가 거의 필요 없음 (viewState, currentTime 등)
-    // currentTime은 부모 컴포넌트(대시보드)에서 prop으로 받음
+export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minTime, maxTime, onWidgetClick }) => {
+    const [currentTime, setCurrentTime] = useState<number>(minTime)
+
+    useEffect(() => {
+        // 부모로부터 받은 minTime, maxTime이 유효하지 않으면 애니메이션을 시작하지 않음
+        if (minTime === Infinity || maxTime === -Infinity) return;
+
+        const DURATION = 5000; // 5초
+        const startTime = Date.now();
+        let animationFrame: number;
+
+        const animate = () => {
+            const elapsedTime = Date.now() - startTime;
+            const progress = Math.min(elapsedTime / DURATION, 1);
+            const newTime = minTime + (maxTime - minTime) * progress;
+            setCurrentTime(newTime);
+
+            if (progress < 1) {
+                animationFrame = requestAnimationFrame(animate);
+            }
+        };
+
+        setCurrentTime(minTime);
+        animationFrame = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationFrame);
+
+    }, [minTime, maxTime]);
 
     const staticLines = useMemo(() => {
         return analyzedTrips.map(trip => ({ ...trip, source: trip.path[0], target: trip.path[1] }));
@@ -63,7 +89,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ curr
 
     const factoryNodes = nodes.filter(node => node.type === 'Factory');
     const otherNodes = nodes.filter(node => node.type !== 'Factory');
-    
+
     // 메쉬 레이어들 (상호작용 제거)
     const otherMeshLayers = Object.keys(OTHER_MODEL_MAPPING).map(type => {
         const filteredNodes = otherNodes.filter(node => node.type === type);
@@ -154,7 +180,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ curr
     ];
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
+        <div onClick={onWidgetClick} style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
             <DeckGL
                 layers={layers}
                 initialViewState={WIDGET_VIEW_STATE}

@@ -1,73 +1,59 @@
-'use client'
-import React from 'react';
+'use client';
 
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import { getAnomalyColor } from '@/components/visual/colorUtils';
+import { AnomalyType } from '../visual/data';
 
-const data = [
-    { name: '4월', '이상 이벤트': 28 },
-    { name: '5월', '이상 이벤트': 35 },
-    { name: '6월', '이상 이벤트': 45 },
-    { name: '7월', '이상 이벤트': 42 },
-    { name: '8월', '이상 이벤트': 51 },
-    { name: '9월', '이상 이벤트': 58 },
-];
-
-const AnomalyEventsChart: React.FC = () => {
-    return (
-        <div className="bg-[rgba(40,40,40)] p-6 rounded-3xl shadow-lg text-white h-[300px]">
-            <h3 className="text-xl font-semibold mb-4">월별 이상 이벤트 발생 추이</h3>
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                    data={data}
-                    margin={{
-                        top: 5,
-                        right: 20,
-                        left: -10, // Y축 라벨 공간 확보
-                        bottom: 25, // 하단 제목 공간 확보
-                    }}
-                >
-                    {/* 어두운 테마에 맞는 그리드 스타일 */}
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.2)" />
-
-                    {/* X축: 월 표시, 틱(tick) 색상 및 라인 설정 */}
-                    <XAxis dataKey="name" stroke="rgba(255, 255, 255, 0.7)" tickLine={false} />
-
-                    {/* Y축: 건수 표시, 틱 색상 및 라인 설정 */}
-                    <YAxis stroke="rgba(255, 255, 255, 0.7)" tickLine={false} />
-
-                    {/* 툴팁: 마우스 호버 시 정보 표시, 어두운 테마에 맞게 스타일링 */}
-                    <Tooltip
-                        contentStyle={{
-                            backgroundColor: 'rgba(30, 30, 30, 0.8)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                        }}
-                        labelStyle={{ color: '#fff' }}
-                    />
-
-                    {/* 레전드(범례): 차트 하단에 위치 */}
-                    <Legend wrapperStyle={{ bottom: 0, left: 20 }} />
-
-                    {/* 라인: '이상 이벤트' 데이터를 기반으로 하며, 색상 및 두께 설정 */}
-                    <Line
-                        type="monotone"
-                        dataKey="이상 이벤트"
-                        stroke="#facc15" // 노란색 계열
-                        strokeWidth={2}
-                        activeDot={{ r: 8 }}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
-        </div>
-    );
+type AnomalyDataPoint = {
+    name: string;
+    count: number;
+    color?: string; // 바 색상을 위한 속성
 };
 
-export default AnomalyEventsChart;
+type AnomalyEventsChartProps = {
+    data: AnomalyDataPoint[];
+};
+
+export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): JSX.Element {
+    return (
+        <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <defs>
+                    {data.map((entry, index) => {
+                        const [r, g, b] = getAnomalyColor(entry.name as AnomalyType);
+                        const mix = 0.7;
+                        const pastelR = Math.round(r + (255 - r) * mix);
+                        const pastelG = Math.round(g + (255 - g) * mix);
+                        const pastelB = Math.round(b + (255 - b) * mix);
+
+                        const pastelColor = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0.8)`;  // 불투명한 쪽
+                        const transparentPastel = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0)`; // 투명한 쪽
+
+                        return (
+                            <linearGradient id={`colorGradient${index}`} key={index} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={pastelColor} />
+                                <stop offset="100%" stopColor={transparentPastel} />
+                            </linearGradient>
+                        );
+                    })}
+                </defs>
+
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                <XAxis dataKey="name" stroke="#888888" fontSize={12} />
+                <YAxis stroke="#888888" fontSize={12} allowDecimals={false} />
+                <Tooltip
+                    contentStyle={{
+                        backgroundColor: 'rgba(30, 30, 30, 0.8)',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        color: '#ffffff'
+                    }}
+                />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {data.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`url(#colorGradient${index})`} />
+                    ))}
+                </Bar>
+            </BarChart>
+        </ResponsiveContainer>
+    );
+}

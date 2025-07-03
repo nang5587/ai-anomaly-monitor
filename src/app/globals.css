@@ -4,7 +4,7 @@ html,
 body,
 #__next {
   height: 100%;
-  overflow: hidden; /* ⭐⭐⭐ 최상위 레벨에서 스크롤을 원천 차단 */
+  overflow: hidden;
 }
 
 .font-viga {
