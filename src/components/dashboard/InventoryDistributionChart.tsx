@@ -38,27 +38,37 @@ export default function InventoryDistributionChart({ data }: InventoryDistributi
                     paddingAngle={5}
                     stroke='none'
                 >
-                    <defs>
-                        {data.map((entry, index) => {
-                            // getNodeColor 함수를 사용하여 각 타입에 맞는 색상을 동적으로 적용
-                            const nodeType = entry.name as Node['type'];
-                            const [r, g, b, a] = getNodeColor(nodeType);
-                            const mix = 0.8;
-                            const pastelR = Math.round(r + (255 - r) * mix);
-                            const pastelG = Math.round(g + (255 - g) * mix);
-                            const pastelB = Math.round(b + (255 - b) * mix);
-                            const pastelColor = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0.8)`;  // 불투명한 쪽
-                            const transparentPastel = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0)`;
-
-                            return (
-                                <linearGradient id={`colorGradient${index}`} key={index} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={pastelColor} />
-                                    <stop offset="100%" stopColor={transparentPastel} />
-                                </linearGradient>
-                            );
-                        })}
-                    </defs>
+                    {data.map((entry, index) => (
+                        <Cell key={index} fill={`url(#colorGradient${index})`} />
+                    ))}
                 </Pie>
+                <defs>
+                    {data.map((entry, index) => {
+                        const nodeType = entry.name as Node['type'];
+                        const [r, g, b, a] = getNodeColor(nodeType);
+                        const mix = 0.8;
+                        const pastelR = Math.round(r + (255 - r) * mix);
+                        const pastelG = Math.round(g + (255 - g) * mix);
+                        const pastelB = Math.round(b + (255 - b) * mix);
+                        const pastelColor = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0.8)`;
+                        const transparentPastel = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0)`;
+
+                        return (
+                            <radialGradient
+                                key={index}
+                                id={`colorGradient${index}`}
+                                cx="50%"
+                                cy="50%"
+                                r="50%"
+                                fx="50%"
+                                fy="50%"
+                            >
+                                <stop offset="0%" stopColor={pastelColor} />
+                                <stop offset="100%" stopColor={transparentPastel} />
+                            </radialGradient>
+                        );
+                    })}
+                </defs>
             </PieChart>
         </ResponsiveContainer>
     );
