@@ -37,11 +37,11 @@ export default function Sidebar({ hovered, setHovered }: SidebarProps) {
             <Link
               key={menu.name}
               href={menu.href}
-              className="flex items-center gap-4 p-2 hover:bg-[rgba(40,40,40,1)] rounded-md"
+              className="flex items-center gap-4 py-2.5 px-4 hover:bg-[rgba(111,131,175,1)] rounded-4xl"
             >
               <menu.icon className="w-6 h-6 text-white flex-shrink-0" />
               {hovered && (
-                <span className="text-white whitespace-nowrap">
+                <span className="font-noto-400 text-white whitespace-nowrap">
                   {menu.name}
                 </span>
               )}

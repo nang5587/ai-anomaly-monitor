@@ -30,34 +30,37 @@ export interface Trip {
     product: string;
 }
 
-export type AnomalyType = 'SPACE_JUMP' | 'CLONE' | 'ORDER_ERROR' | 'PATH_FAKE';
+export type AnomalyType = 'jump' | 'evtOrderErr' | 'epcFake' | 'epcDup' | 'locErr';
 
 // 각 위변조 유형에 따른 추가 정보 타입 정의
-export interface SpaceJumpInfo {
-    type: 'SPACE_JUMP';
+export interface JumpInfo {
+    type: 'jump';
     travelTime: number; // 실제 이동 시간 (분)
     distance: number; // 실제 이동 거리 (km)
 }
-export interface CloneInfo {
-    type: 'CLONE';
-    cloneCount: number; // 몇 개로 복제되었는지
-    originalTripId: string; // 원본 Trip의 ID
-}
-export interface OrderErrorInfo {
-    type: 'ORDER_ERROR';
+export interface EvtOrderErrInfo {
+    type: 'evtOrderErr';
     previousEventTime: number; // 이전 이벤트 발생 시각
     currentEventTime: number; // 현재 이벤트 발생 시각
 }
-export interface PathFakeInfo {
-    type: 'PATH_FAKE';
+export interface EpcFakeInfo {
+    type: 'epcFake';
+    invalidRule: string; // 위반한 EPC 생성 규칙
+}
+export interface EpcDupInfo {
+    type: 'epcDup';
+    conflictingTripId: string; // 충돌이 발생한 다른 Trip의 ID
+}
+export interface LocErrInfo {
+    type: 'locErr';
     expectedPath: [[number, number], [number, number]]; // 예정 경로
     bypassedNode: { name: string; coordinates: [number, number] }; // 경유한 의심 지점
 }
 
-// AI 분석 결과를 포함하는 확장된 Trip 타입
+// ✨ AI 분석 결과를 포함하는 확장된 Trip 타입 (Anomaly 정보 타입 유니언 업데이트)
 export interface AnalyzedTrip extends Trip {
     id: string; // 각 Trip에 고유 ID 부여
-    anomaly?: SpaceJumpInfo | CloneInfo | OrderErrorInfo | PathFakeInfo; // 위변조 정보 (옵셔널)
+    anomaly?: JumpInfo | EvtOrderErrInfo | EpcFakeInfo | EpcDupInfo | LocErrInfo; // 위변조 정보 (옵셔널)
 }
 
 // --- 1. 노드 데이터 (모든 지점 포함) ---
@@ -252,6 +255,8 @@ export const trips: Trip[] = [
     { from: 'KN_WS3', to: 'KN_WS3_R1', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R1')!], timestamps: [570, 575], product: 'Product D' },
     { from: 'KN_WS3', to: 'KN_WS3_R2', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R2')!], timestamps: [580, 585], product: 'Product D' },
     { from: 'KN_WS3', to: 'KN_WS3_R3', path: [nodeCoords.get('KN_WS3')!, nodeCoords.get('KN_WS3_R3')!], timestamps: [590, 595], product: 'Product D' },
+
+    { from: 'SEL_WS3', to: 'SEL_WS3_R1', path: [nodeCoords.get('SEL_WS3')!, nodeCoords.get('SEL_WS3_R1')!], timestamps: [400, 405], product: 'Product F' },
 ];
 
 const baseTrips: Omit<AnalyzedTrip, 'anomaly'>[] = trips.map((trip, index) => ({
@@ -264,57 +269,120 @@ export const analyzedTrips: AnalyzedTrip[] = [...baseTrips];
 
 // --- 시나리오 적용 ---
 
-// 1. 시공간 점프 (Space Jump): 화성 -> 경남 허브
-// 가장 장거리인 경로를 선정하여, 비정상적으로 빠른 도착 시간으로 조작
-const spaceJumpTrip = analyzedTrips.find(t => t.from === 'HWS_WMS' && t.to === 'KN_Logi_HUB');
-if (spaceJumpTrip) {
-    spaceJumpTrip.timestamps = [60, 90]; // 도착 시간을 480 -> 90으로 극단적으로 단축
-    spaceJumpTrip.anomaly = {
-        type: 'SPACE_JUMP',
-        travelTime: 30, // 30 단위 시간 (30시간)
-        distance: 280 // 대략적인 거리 (km)
+// 1. 시공간 점프 (jump): 화성 -> 경남 허브
+const jumpTrip = analyzedTrips.find(t => t.from === 'HWS_WMS' && t.to === 'KN_Logi_HUB');
+if (jumpTrip) {
+    jumpTrip.timestamps = [60, 90]; // 도착 시간을 480 -> 90으로 극단적으로 단축
+    jumpTrip.anomaly = {
+        type: 'jump',
+        travelTime: 30,
+        distance: 280
     };
 }
 
-// 2. 경로 위조 (Path Fake): 구미 -> 전북 허브
-// 중간에 가상의 '의심 지역'을 경유하도록 실제 경로를 수정하고, 예정 경로 정보를 추가
-const pathFakeTrip = analyzedTrips.find(t => t.from === 'KUM_WMS' && t.to === 'JB_Logi_HUB');
-if (pathFakeTrip) {
-    const originalPath = pathFakeTrip.path;
-    const bypassedNodeCoords: [number, number] = [127.8, 36.0]; // 충북 영동군 어딘가
-    pathFakeTrip.path = [originalPath[0], bypassedNodeCoords]; // 실제 경로는 의심 지역까지
-    // 참고: 시각화를 위해선 의심지역->도착지 경로도 추가 데이터로 필요하지만, 여기선 개념만 표현
-    pathFakeTrip.anomaly = {
-        type: 'PATH_FAKE',
-        expectedPath: originalPath, // 원래 갔어야 할 경로
-        bypassedNode: { name: '미승인 경유지', coordinates: bypassedNodeCoords }
-    };
-}
-
-// 3. 이벤트 순서 오류 (Order Error): 전남 도매상 -> 리셀러
-// '도착'보다 '출발'이 늦게 일어난 것처럼 타임스탬프를 뒤집음
-const orderErrorTrip = analyzedTrips.find(t => t.from === 'JN_WS1' && t.to === 'JN_WS1_R1');
-if (orderErrorTrip) {
-    orderErrorTrip.timestamps = [150, 145]; // [140, 145] -> [150, 145]
-    orderErrorTrip.anomaly = {
-        type: 'ORDER_ERROR',
+// 2. 이벤트 순서 오류 (evtOrderErr): 전남 도매상 -> 리셀러
+const evtOrderErrTrip = analyzedTrips.find(t => t.from === 'JN_WS1' && t.to === 'JN_WS1_R1');
+if (evtOrderErrTrip) {
+    evtOrderErrTrip.timestamps = [150, 145]; // [140, 145] -> [150, 145]로 출발/도착 시간 역전
+    evtOrderErrTrip.anomaly = {
+        type: 'evtOrderErr',
         previousEventTime: 120, // 도매상 도착 시간
         currentEventTime: 150, // 리셀러로 출발한 시간 (오류)
     };
 }
 
-// 4. 복제 (Cloning): 경남 허브 -> 도매상들
-// 한 허브에서 여러 곳으로 가는 경로 중 일부를 '복제'된 것으로 가정
-const cloneTrips = analyzedTrips.filter(t => t.from === 'KN_Logi_HUB');
-if (cloneTrips.length > 1) {
-    const originalTripId = cloneTrips[0].id;
-    cloneTrips.forEach((trip, index) => {
-        if (index > 0) { // 첫 번째를 제외한 나머지를 복제품으로 처리
-            trip.anomaly = {
-                type: 'CLONE',
-                cloneCount: cloneTrips.length,
-                originalTripId: originalTripId
-            };
-        }
-    });
+// 3. 위조 (epcFake): 특정 제품에 EPC 생성 규칙 위반 정보 추가
+const epcFakeTrip = analyzedTrips.find(t => t.product === 'Product C');
+if (epcFakeTrip) {
+    epcFakeTrip.anomaly = {
+        type: 'epcFake',
+        invalidRule: 'Company Prefix Mismatch' // 위반한 규칙 내용
+    };
 }
+
+// 4. 복제 (epcDup): 거의 동일한 시간에 동일 제품이 다른 경로로 이동하는 경우
+const dupTrip1 = analyzedTrips.find(t => t.from === 'KN_Logi_HUB' && t.to === 'KN_WS1'); // Product D
+const dupTrip2 = analyzedTrips.find(t => t.from === 'KN_Logi_HUB' && t.to === 'KN_WS2'); // Product D
+if (dupTrip1 && dupTrip2) {
+    // KN_WS2로 가는 경로가 복제된 것으로 가정
+    dupTrip2.anomaly = {
+        type: 'epcDup',
+        conflictingTripId: dupTrip1.id // 어떤 트립과 충돌했는지 ID 명시
+    };
+}
+
+// 5. 경로 위조 (locErr): 구미 -> 전북 허브
+const locErrTrip = analyzedTrips.find(t => t.from === 'KUM_WMS' && t.to === 'JB_Logi_HUB');
+if (locErrTrip) {
+    const originalPath = locErrTrip.path;
+    const bypassedNodeCoords: [number, number] = [127.8, 36.0]; // 충북 영동군 어딘가
+    locErrTrip.path = [originalPath[0], bypassedNodeCoords]; // 실제 경로는 의심 지역까지만 간 것으로 표시
+    locErrTrip.anomaly = {
+        type: 'locErr',
+        expectedPath: originalPath, // 원래 갔어야 할 경로
+        bypassedNode: { name: '미승인 경유지', coordinates: bypassedNodeCoords }
+    };
+}
+
+const dupTripOriginal = analyzedTrips.find(t => t.from === 'JB_WS2' && t.to === 'JB_WS2_R1' && t.product === 'Product F'); // 전북에서 이동 중인 Product F
+const dupTripClone = analyzedTrips.find(t => t.from === 'SEL_WS3' && t.to === 'SEL_WS3_R1' && t.product === 'Product F'); // 수도권에서 "동시에" 이동 중인 Product F
+if (dupTripOriginal && dupTripClone) {
+    dupTripClone.anomaly = {
+        type: 'epcDup',
+        conflictingTripId: dupTripOriginal.id,
+    };
+}
+
+// ✨ SCENARIO 7: 마지막 배송 단계에서의 경로 위조 (locErr)
+// 최종 리셀러에게 배송되는 과정에서, 바로 옆의 미승인 창고로 빼돌리는 '라스트 마일' 위조.
+const lastMileLocErrTrip = analyzedTrips.find(t => t.from === 'KN_WS3' && t.to === 'KN_WS3_R1');
+if (lastMileLocErrTrip) {
+    const originalPath = lastMileLocErrTrip.path;
+    const unofficialStorageCoords: [number, number] = [128.695, 35.245]; // 원래 목적지 근처의 다른 위치
+    lastMileLocErrTrip.path = [originalPath[0], unofficialStorageCoords];
+    lastMileLocErrTrip.anomaly = {
+        type: 'locErr',
+        expectedPath: originalPath,
+        bypassedNode: { name: '미승인 개인 창고 B', coordinates: unofficialStorageCoords },
+    };
+}
+
+// ✨ SCENARIO 8: 교묘한 시공간 점프 (jump)
+// 아주 긴 거리는 아니지만, 상식적으로 불가능한 짧은 시간 내에 허브 간 이동이 완료된 경우.
+// 경북 허브(KB_Logi_HUB)에서 전북 도매상(JB_WS1)으로 가는 경로를 조작.
+const subtleJumpTrip = analyzedTrips.find(t => t.from === 'JB_Logi_HUB' && t.to === 'JB_WS1');
+if (subtleJumpTrip) {
+    subtleJumpTrip.timestamps = [320, 325]; // 기존 [320, 330] -> 5분만에 도착하는 것으로 조작
+    subtleJumpTrip.anomaly = {
+        type: 'jump',
+        travelTime: 5,
+        distance: 120, // 실제보다 짧게 표시될 수 있음
+    };
+}
+
+// ✨ SCENARIO 9: 연쇄적인 이벤트 순서 오류 (evtOrderErr)
+// A->B 도착 시간보다, B->C 출발 시간이 더 빠른 경우. 두 개의 트립에 걸친 오류.
+const arrivalAtWholesaler = analyzedTrips.find(t => t.to === 'SEL_WS2' && t.product === 'Product B'); // Product B가 SEL_WS2에 도착 (시간: 200)
+const departureFromWholesaler = analyzedTrips.find(t => t.from === 'SEL_WS2' && t.to === 'SEL_WS2_R1'); // SEL_WS2에서 리셀러로 출발
+if (arrivalAtWholesaler && departureFromWholesaler) {
+    // 도착(200)보다 빠른 시간(190)에 출발한 것으로 조작
+    departureFromWholesaler.timestamps = [190, 195]; 
+    departureFromWholesaler.anomaly = {
+        type: 'evtOrderErr',
+        previousEventTime: arrivalAtWholesaler.timestamps[1], // 200
+        currentEventTime: 190, // 오류 발생 시간
+    };
+}
+
+// ✨ SCENARIO 10: 특정 공장에서 생산된 제품 전체에 대한 위조 의심 (epcFake)
+// 양산(YGS)공장에서 출고된 'Product G'의 모든 유통 경로에 'EPC 생성규칙 위반' 플래그를 추가.
+// const ygsFakeTrips = analyzedTrips.filter(t => t.product === 'Product G');
+// ygsFakeTrips.forEach(trip => {
+//     // 이미 다른 anomaly가 할당되지 않은 경우에만 추가
+//     if (!trip.anomaly) {
+//         trip.anomaly = {
+//             type: 'epcFake',
+//             invalidRule: 'Batch checksum error',
+//         };
+//     }
+// });

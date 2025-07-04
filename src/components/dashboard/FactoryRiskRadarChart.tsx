@@ -19,12 +19,12 @@ export default function FactoryRiskRadarChart({ data }: FactoryRiskRadarChartPro
                 <PolarGrid stroke="rgba(255, 255, 255, 0.2)" />
                 <PolarAngleAxis dataKey="subject" stroke="#E0E0E0" fontSize={14} />
                 <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                <Radar name="위험도 점수" dataKey="A" stroke="rgba(111,131,175)" fill="rgba(111,131,175)" fillOpacity={0.6} />
+                <Radar name="위험도 점수" dataKey="A" stroke="rgba(111,131,175)" fill="rgba(111,131,175)" fillOpacity={1} />
                 <Legend
                     layout="vertical"
                     align="right"
                     verticalAlign="bottom"
-                    wrapperStyle={{ color: '#FFFFFF' }}
+                    wrapperStyle={{ color: '#E0E0E0' }}
                 />
             </RadarChart>
         </ResponsiveContainer>

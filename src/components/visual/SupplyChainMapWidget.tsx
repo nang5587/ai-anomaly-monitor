@@ -20,9 +20,9 @@ const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibmFuZzU1ODciLCJhIjoiY21jYnFnZ2RiMDhkNDJy
 // 위젯용 View State는 고정값으로 사용
 const WIDGET_VIEW_STATE = {
     longitude: 127.9,
-    latitude: 36.5,
-    zoom: 6, // 전체를 조망하기 좋게 살짝 더 줌아웃
-    pitch: 60,
+    latitude: 36,
+    zoom: 6.8, // 전체를 조망하기 좋게 살짝 더 줌아웃
+    pitch: 10,
     bearing: 0,
 };
 
@@ -134,11 +134,12 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
             getTargetPosition: d => d.path[1],
             getColor: d => { // anomalyType에 따른 색상만 유지
                 switch (d.anomaly?.type) {
-                    case 'SPACE_JUMP': return [114, 46, 209];
-                    case 'CLONE': return [255, 235, 59];
-                    case 'ORDER_ERROR': return [250, 140, 22];
-                    case 'PATH_FAKE': return [207, 19, 34];
-                    default: return [100, 100, 110, 150]; // 기본 선은 약간 투명하게
+                    case 'jump': return [223, 190, 239];
+                    case 'evtOrderErr': return [253, 220, 179];
+                    case 'epcFake': return [255, 192, 210];
+                    case 'epcDup': return [255, 248, 203];
+                    case 'locErr': return [202, 232, 255];
+                    default: return [220, 220, 228];
                 }
             },
             getWidth: 1, // 얇은 선으로 고정
@@ -147,7 +148,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
         // 경로 위조 '예상 경로' 레이어
         new LineLayer({
             id: 'widget-expected-path-lines',
-            data: staticLines.filter(d => d.anomaly?.type === 'PATH_FAKE'),
+            data: staticLines.filter(d => d.anomaly?.type === 'locErr'),
             getSourcePosition: d => (d.anomaly as any).expectedPath[0],
             getTargetPosition: d => (d.anomaly as any).expectedPath[1],
             getColor: [150, 150, 150, 200],
@@ -161,14 +162,15 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
             id: 'widget-trips-layer',
             data: analyzedTrips,
             getPath: d => d.path,
-            getTimestamps: d => d.anomaly?.type === 'ORDER_ERROR' ? [d.timestamps[1], d.timestamps[0]] : d.timestamps,
+            getTimestamps: d => d.anomaly?.type === 'evtOrderErr' ? [d.timestamps[1], d.timestamps[0]] : d.timestamps,
             getColor: d => {
                 switch (d.anomaly?.type) {
-                    case 'SPACE_JUMP': return [114, 46, 209];
-                    case 'CLONE': return [255, 235, 59];
-                    case 'ORDER_ERROR': return [250, 140, 22];
-                    case 'PATH_FAKE': return [207, 19, 34];
-                    default: return [144, 238, 144];
+                    case 'jump': return [114, 46, 209];
+                    case 'evtOrderErr': return [250, 140, 22];
+                    case 'epcFake': return [255, 7, 58];
+                    case 'epcDup': return [255, 235, 59];
+                    case 'locErr': return [24, 144, 255];
+                    default: return [144, 238, 144]; // 정상 이동
                 }
             },
             opacity: 0.8,

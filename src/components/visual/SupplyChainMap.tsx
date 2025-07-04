@@ -144,6 +144,7 @@ export const SupplyChainMap: React.FC = () => {
                         <div><strong>경로: {(object as AnalyzedTrip).product}</strong></div>
                         <div>출발: {(object as AnalyzedTrip).from}</div>
                         <div>도착: {(object as AnalyzedTrip).to}</div>
+                        {(object as AnalyzedTrip).anomaly && <div><strong>이상 유형: {(object as AnalyzedTrip).anomaly?.type}</strong></div>}
                     </>
                 )}
             </div>
@@ -250,16 +251,12 @@ export const SupplyChainMap: React.FC = () => {
                 if (selectedObject && !isSelected) return [128, 128, 128, 20]; // 선택된 것 외에는 더 흐리게
 
                 switch (d.anomaly?.type) {
-                    case 'SPACE_JUMP':   // Vivid Purple (#722ed1)
-                        return [114, 46, 209];
-                    case 'CLONE':        // Lemon Yellow (#ffeb3b)
-                        return [255, 235, 59];
-                    case 'ORDER_ERROR':  // Strong Orange (#fa8c16)
-                        return [250, 140, 22];
-                    case 'PATH_FAKE':    // Alert Red (#cf1322)
-                        return [207, 19, 34];
-                    default:             // Light Lime Green (#90ee90)
-                        return [100, 100, 110];
+                    case 'jump': return [223, 190, 239];
+                    case 'evtOrderErr': return [253, 220, 179];
+                    case 'epcFake': return [255, 192, 210];
+                    case 'epcDup': return [255, 248, 203];
+                    case 'locErr': return [202, 232, 255];
+                    default: return [220, 220, 228];
                 }
             },
             getWidth: d => {
@@ -273,7 +270,7 @@ export const SupplyChainMap: React.FC = () => {
         // --- 5-2. 경로 위조 시 '예상 경로'를 보여주는 추가 LineLayer ---
         new LineLayer<AnalyzedTrip>({
             id: 'expected-path-lines',
-            data: staticLines.filter(d => d.anomaly?.type === 'PATH_FAKE'),
+            data: staticLines.filter(d => d.anomaly?.type === 'locErr'),
             getSourcePosition: d => (d.anomaly as any).expectedPath[0],
             getTargetPosition: d => (d.anomaly as any).expectedPath[1],
             getColor: [150, 150, 150, 200],
@@ -296,20 +293,16 @@ export const SupplyChainMap: React.FC = () => {
             id: 'trips-layer',
             data: analyzedTrips, // 데이터 소스 변경
             getPath: d => d.path,
-            getTimestamps: d => d.anomaly?.type === 'ORDER_ERROR' ? [d.timestamps[1], d.timestamps[0]] : d.timestamps,
+            getTimestamps: d => d.anomaly?.type === 'evtOrderErr' ? [d.timestamps[1], d.timestamps[0]] : d.timestamps,
             // anomalyType에 따라 색상 변경
             getColor: d => {
                 switch (d.anomaly?.type) {
-                    case 'SPACE_JUMP':   // Vivid Purple (#722ed1)
-                        return [114, 46, 209];
-                    case 'CLONE':        // Lemon Yellow (#ffeb3b)
-                        return [255, 235, 59];
-                    case 'ORDER_ERROR':  // Strong Orange (#fa8c16)
-                        return [250, 140, 22];
-                    case 'PATH_FAKE':    // Alert Red (#cf1322)
-                        return [207, 19, 34];
-                    default:             // Light Lime Green (#90ee90)
-                        return [144, 238, 144];
+                    case 'jump': return [114, 46, 209];
+                    case 'evtOrderErr': return [250, 140, 22];
+                    case 'epcFake': return [255, 7, 58];
+                    case 'epcDup': return [255, 235, 59];
+                    case 'locErr': return [24, 144, 255];
+                    default: return [144, 238, 144]; // 정상 이동
                 }
             },
             opacity: 0.8, widthMinPixels: 5, rounded: true,
@@ -374,7 +367,7 @@ export const SupplyChainMap: React.FC = () => {
                     top: '80px',
                     left: '20px',
                     width: '300px',
-                    maxHeight: 'calc(100vh - 180px)', // 상하단 여백 50px씩 확보
+                    maxHeight: 'calc(100vh - 220px)', // 상하단 여백 50px씩 확보
                     zIndex: 3,
 
                     // Flexbox 레이아웃 설정

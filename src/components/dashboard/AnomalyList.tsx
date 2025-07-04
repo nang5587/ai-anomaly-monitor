@@ -2,28 +2,30 @@
 import React from 'react';
 import { AnalyzedTrip, Node } from '@/components/visual/data';
 import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
-import { Truck, AlertTriangle, GitFork, Shuffle } from 'lucide-react';
+import { Truck, Shuffle, ShieldAlert, Copy, MapPinOff } from 'lucide-react';
 
 type AnomalyListProps = {
     data: AnalyzedTrip[];
     nodeMap: Map<string, Node>;
 };
 
-const anomalyIconMap: { [key: string]: JSX.Element } = {
-    SPACE_JUMP: <Truck className="w-4 h-4" />,
-    CLONE: <GitFork className="w-4 h-4" />,
-    ORDER_ERROR: <Shuffle className="w-4 h-4" />,
-    PATH_FAKE: <AlertTriangle className="w-4 h-4" />,
+const anomalyIconMap: { [key:string]: JSX.Element } = {
+    jump: <Truck className="w-4 h-4" />,          // 시공간 점프
+    evtOrderErr: <Shuffle className="w-4 h-4" />, // 이벤트 순서 오류
+    epcFake: <ShieldAlert className="w-4 h-4" />, // 위조 (보안/인증 문제)
+    epcDup: <Copy className="w-4 h-4" />,         // 복제
+    locErr: <MapPinOff className="w-4 h-4" />,    // 경로 위조 (위치 이탈)
 };
 
 const getAnomalyDescription = (trip: AnalyzedTrip): string => {
     if (!trip.anomaly) return '정상';
     switch (trip.anomaly.type) {
-        case 'SPACE_JUMP': return `비정상적 이동: ${trip.anomaly.distance}km를 ${trip.anomaly.travelTime}분 만에 주파`;
-        case 'CLONE': return `원본(${trip.anomaly.originalTripId})에서 복제됨 (${trip.anomaly.cloneCount}개)`;
-        case 'ORDER_ERROR': return `출발(${trip.anomaly.currentEventTime})이 이전 이벤트(${trip.anomaly.previousEventTime})보다 빠름`;
-        case 'PATH_FAKE': return `미승인 지점(${trip.anomaly.bypassedNode.name}) 경유`;
-        default: return '알 수 없는 오류';
+        case 'jump':        return `비정상적 이동: ${trip.anomaly.distance}km를 ${trip.anomaly.travelTime}분 만에 주파`;
+        case 'evtOrderErr': return `출발(${trip.anomaly.currentEventTime})이 이전 이벤트(${trip.anomaly.previousEventTime})보다 빠름`;
+        case 'epcFake':     return `EPC 생성 규칙 위반: ${trip.anomaly.invalidRule}`;
+        case 'epcDup':      return `다른 경로와 충돌 발생 (ID: ${trip.anomaly.conflictingTripId})`;
+        case 'locErr':      return `미승인 지점(${trip.anomaly.bypassedNode.name}) 경유`;
+        default:            return '알 수 없는 오류';
     }
 };
 
@@ -68,12 +70,13 @@ export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.El
                 return (
                     // ✨ 4. React.Fragment로 각 행의 셀들을 그룹화하고, 부모 그리드에 연결합니다.
                     <React.Fragment key={trip.id}>
+                        {/* ✨ 바디 그리드도 컬럼 너비에 맞게 수정 */}
                         <div className={`col-start-1 col-span-5 grid grid-cols-subgrid gap-x-4 items-center text-center py-2 px-12 transition-colors cursor-pointer rounded-2xl group ${rowHoverStyle}`}>
-                            <div className="col-span-1 flex gap-2 items-center justify-center">
-                                <p className="text-xs text-[#E0E0E0]">{trip.id}</p>
+                            <div className="col-span-1 flex flex-col items-center justify-center">
                                 <p className="text-white font-medium">{trip.product}</p>
+                                <p className="text-xs text-[#a0a0a0]">{trip.id}</p>
                             </div>
-                            <div className="col-span-1 text-xs flex gap-2 justify-center items-center whitespace-nowrap">
+                            <div className="col-span-1 text-xs flex flex-col gap-1 justify-center items-center whitespace-nowrap">
                                 <p className="text-[#E0E0E0]">출발: {trip.timestamps[0]}</p>
                                 <p className="text-[#E0E0E0]">도착: {trip.timestamps[1]}</p>
                             </div>
@@ -82,12 +85,14 @@ export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.El
                                 <ArrowRight size={14} className="text-[#E0E0E0] shrink-0" />
                                 <span className="truncate">{toNode?.name || trip.to}</span>
                             </div>
-                            <div className="col-span-1 text-[#E0E0E0]">
+                            <div className="col-span-1 text-xs text-[#b0b0b0] break-words px-2">
                                 {getAnomalyDescription(trip)}
                             </div>
                             <div className="col-span-1">
                                 {anomalyType && (
-                                    <span style={{ ...tagStyle, width: '130px' }} className="inline-flex items-center justify-center gap-1.5 px-1 py-2 rounded-full text-sm font-bold">
+                                    // ✨ 3. 아이콘과 텍스트를 함께 표시하도록 UI 개선
+                                    <span style={tagStyle} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[rgba(255,255,255,0.05)] border border-current">
+                                        {anomalyIconMap[anomalyType]}
                                         {name}
                                     </span>
                                 )}

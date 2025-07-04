@@ -16,26 +16,24 @@ export const getNodeColor = (type: Node['type']): [number, number, number, numbe
 // 위변조 타입에 따른 색상을 반환하는 함수
 export const getAnomalyColor = (type?: AnomalyType): [number, number, number] => {
     switch (type) {
-        case 'SPACE_JUMP':   // Vivid Purple (#722ed1)
-            return [114, 46, 209];
-        case 'CLONE':        // Lemon Yellow (#ffeb3b)
-            return [255, 235, 59];
-        case 'ORDER_ERROR':  // Strong Orange (#fa8c16)
-            return [250, 140, 22];
-        case 'PATH_FAKE':    // Alert Red (#cf1322)
-            return [207, 19, 34];
-        default:             // Light Lime Green (#90ee90)
-            return [144, 238, 144];
+        case 'jump':        return [114, 46, 209]; // 시공간 점프 (Purple)
+        case 'evtOrderErr': return [250, 140, 22]; // 이벤트 순서 오류 (Orange)
+        case 'epcFake':     return [255, 7, 58];   // 위조 (Pink)
+        case 'epcDup':      return [255, 235, 59]; // 복제 (Yellow)
+        case 'locErr':      return [24, 144, 255];  // 경로 위조 (Red)
+        default:            return [180, 180, 180]; // 알 수 없음 또는 정상
+
     }
 };
 
 // 위변조 타입의 한글 이름을 반환하는 함수
 export const getAnomalyName = (type?: AnomalyType): string => {
     switch (type) {
-        case 'SPACE_JUMP': return '시공간 점프';
-        case 'CLONE': return '제품 복제';
-        case 'ORDER_ERROR': return '이벤트 순서 오류';
-        case 'PATH_FAKE': return '경로 위조';
-        default: return '알 수 없는 오류';
+        case 'jump':        return '시공간 점프';
+        case 'evtOrderErr': return '이벤트 순서 오류';
+        case 'epcFake':     return 'EPC 위조';
+        case 'epcDup':      return 'EPC 복제';
+        case 'locErr':      return '경로 위조';
+        default:            return '알 수 없는 유형';
     }
 };

@@ -1,75 +1,83 @@
 'use client';
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, PieLabelRenderProps } from 'recharts';
-import { Node } from '@/components/visual/data'; // Node 타입 import
-import { getNodeColor } from '@/components/visual/colorUtils';
+import { ResponsivePie } from '@nivo/pie';
 
+const pieData = [
+    {
+        id: 'Factory',
+        label: 'Factory',
+        value: 380,
+        color: '#6F83AF',
+    },
+    {
+        id: 'WMS',
+        label: 'WMS',
+        value: 90,
+        color: '#A0A0A0',
+    },
+    {
+        id: 'Logistics_HUB',
+        label: 'Logistics HUB',
+        value: 75,
+        color: '#C0C0C0',
+    },
+    {
+        id: 'W_Stock',
+        label: 'W Stock',
+        value: 60,
+        color: '#C8C8C8',
+    },
+    {
+        id: 'R_Stock',
+        label: 'R Stock',
+        value: 50,
+        color: '#D0D0D0',
+    },
+    {
+        id: 'POS_Sell',
+        label: 'POS Sell',
+        value: 35,
+        color: '#E0E0E0',
+    },
+];
 
-// ... (타입 정의 및 renderCustomizedLabel 함수는 동일)
-type InventoryDataPoint = { name: string; value: number; };
-type InventoryDistributionChartProps = { data: InventoryDataPoint[]; };
-// ...
-
-export default function InventoryDistributionChart({ data }: InventoryDistributionChartProps): JSX.Element {
+export default function InventoryDistributionChart() {
     return (
-        <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-                <Tooltip
-                    contentStyle={{
-                        backgroundColor: 'rgba(30, 30, 30, 0.8)',
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                    }}
-                />
-                <Legend
-                    iconSize={10}
-                    wrapperStyle={{ fontSize: '12px', color: 'rgba(255,255,255)', paddingLeft: '10px' }}
-                    verticalAlign="middle"
-                    align="right"
-                    layout="vertical"
-                />
-                <Pie
-                    data={data}
-                    cx="40%" // 범례 공간 확보를 위해 중앙에서 왼쪽으로 이동
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius="90%"
-                    innerRadius="50%"
-                    dataKey="value"
-                    paddingAngle={5}
-                    stroke='none'
-                >
-                    {data.map((entry, index) => (
-                        <Cell key={index} fill={`url(#colorGradient${index})`} />
-                    ))}
-                </Pie>
-                <defs>
-                    {data.map((entry, index) => {
-                        const nodeType = entry.name as Node['type'];
-                        const [r, g, b, a] = getNodeColor(nodeType);
-                        const mix = 0.8;
-                        const pastelR = Math.round(r + (255 - r) * mix);
-                        const pastelG = Math.round(g + (255 - g) * mix);
-                        const pastelB = Math.round(b + (255 - b) * mix);
-                        const pastelColor = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0.8)`;
-                        const transparentPastel = `rgba(${pastelR}, ${pastelG}, ${pastelB}, 0)`;
-
-                        return (
-                            <radialGradient
-                                key={index}
-                                id={`colorGradient${index}`}
-                                cx="50%"
-                                cy="50%"
-                                r="50%"
-                                fx="50%"
-                                fy="50%"
-                            >
-                                <stop offset="0%" stopColor={pastelColor} />
-                                <stop offset="100%" stopColor={transparentPastel} />
-                            </radialGradient>
-                        );
-                    })}
-                </defs>
-            </PieChart>
-        </ResponsiveContainer>
+        <div className="w-full h-full">
+            <ResponsivePie
+                data={pieData}
+                innerRadius={0.6}
+                padAngle={2}
+                cornerRadius={6}
+                activeOuterRadiusOffset={10}
+                colors={{ datum: 'data.color' }}
+                borderWidth={2}
+                borderColor={{ from: 'color', modifiers: [['darker', 0.5]] }}
+                enableArcLinkLabels={false}
+                arcLabelsSkipAngle={10}
+                arcLabelsTextColor="#FFFFFF"
+                arcLabel={(e) => `${e.label} (${e.value})`}
+                tooltip={({ datum }) => (
+                    <div style={{
+                        background: 'rgba(0,0,0,0.9)',
+                        padding: '8px 12px',
+                        color: 'white',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                    }}>
+                        <strong>{datum.label}</strong>: {datum.value}
+                    </div>
+                )}
+                theme={{
+                    background: 'transparent',
+                    labels: {
+                        text: {
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                        },
+                    },
+                }}
+            />
+        </div>
     );
 }

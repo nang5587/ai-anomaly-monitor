@@ -105,11 +105,12 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
     const getAnomalyDescription = (trip: AnalyzedTrip): string => {
         // ... (내부 로직은 동일)
         switch (trip.anomaly?.type) {
-            case 'SPACE_JUMP': return "물리적으로 불가능한 속도로 장거리 이동이 감지되었습니다. 중간 경로가 누락되었을 수 있습니다.";
-            case 'CLONE': return "동일한 제품 ID가 두 개 이상의 경로에서 동시에 이동 중입니다. 제품이 불법 복제되었을 가능성이 있습니다.";
-            case 'ORDER_ERROR': return "물류 이벤트의 순서가 비정상적입니다. 도착 이벤트가 출발 이벤트보다 먼저 기록되었습니다.";
-            case 'PATH_FAKE': return "예상된 경로와 다른 경로로 이동했습니다. 제품이 탈취되었거나 경로가 위조되었을 수 있습니다.";
-            default: return "세부 정보 없음";
+            case 'jump':        return "물리적으로 불가능한 속도로 장거리 이동이 감지되었습니다. 중간 경로가 누락되었을 수 있습니다.";
+            case 'evtOrderErr': return "물류 이벤트의 순서가 비정상적입니다. 도착 이벤트가 출발 이벤트보다 먼저 기록되었습니다.";
+            case 'epcFake':     return "제품의 EPC(Electronic Product Code)가 정해진 생성 규칙을 위반했습니다. 위조된 제품일 수 있습니다.";
+            case 'epcDup':      return "동일한 제품 ID가 두 개 이상의 경로에서 동시에 이동 중입니다. 제품이 불법 복제되었을 가능성이 있습니다.";
+            case 'locErr':      return "예상된 경로와 다른 경로로 이동했습니다. 제품이 탈취되었거나 경로가 위조되었을 수 있습니다.";
+            default:            return "세부 정보 없음";
         }
     }
 
@@ -166,7 +167,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
 
                         <TripTimeline trip={selectedObject as AnalyzedTrip} />
 
-                        {(selectedObject as AnalyzedTrip).anomaly?.type === 'PATH_FAKE' &&
+                        {(selectedObject as AnalyzedTrip).anomaly?.type === 'locErr' &&
                             <div style={{ marginTop: '20px', fontSize: '14px' }}>
                                 <strong>Expected Path:</strong> {((selectedObject as AnalyzedTrip).anomaly as any).expectedPath.join(' → ')}
                             </div>

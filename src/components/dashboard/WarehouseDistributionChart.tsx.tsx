@@ -37,7 +37,6 @@ const WarehouseDistributionChart: React.FC = () => {
                         <Pie
                             data={data}
                             cx="50%"
-                            // 👇 범례 공간 때문에 위로 살짝 올려서 중앙처럼 보이게 합니다.
                             cy="45%" 
                             innerRadius={60}
                             outerRadius={80}
