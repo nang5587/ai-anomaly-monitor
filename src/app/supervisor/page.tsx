@@ -12,7 +12,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import AnomalyList from '@/components/dashboard/AnomalyList';
 import { SupplyChainMapWidget } from '@/components/visual/SupplyChainMapWidget';
 import FactoryDetailView, { KpiData } from '@/components/dashboard/FactoryDetailView';
-
+import DataBuildingBlocksChart from '@/components/dashboard/DataBuildingBlocksChart';
 import { getAnomalyName, getAnomalyColor } from '@/components/visual/colorUtils';
 
 import dynamic from 'next/dynamic';
@@ -88,7 +88,6 @@ export default function SupervisorDashboard() {
   // }, [user, router]);
 
   const [activeFactory, setActiveFactory] = useState('전체');
-  const [kpiData, setKpiData] = useState<KpiData>({ totalEvents: 0, uniqueProducts: 0, anomalyCount: 0, anomalyRate: '0.00', avgLeadTime: 'N/A', salesRate: '0.0' });
   const [anomalyChartData, setAnomalyChartData] = useState<AnomalyDataPoint[]>([]);
   const [inventoryData, setInventoryData] = useState<InventoryDataPoint[]>([]);
   const [anomalyListData, setAnomalyListData] = useState<AnalyzedTrip[]>([]);
@@ -96,10 +95,20 @@ export default function SupervisorDashboard() {
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
   const [radarData, setRadarData] = useState<RadarDataPoint[]>([]);
 
+ const [kpiData, setKpiData] = useState<KpiData>({
+    totalEvents: 0,
+    uniqueProducts: 0,
+    anomalyCount: 0,
+    anomalyRate: 0, // string에서 number로 변경하는 것을 추천합니다 (FactoryDetailView와 일치)
+    anomalyChange: 0, // 더미 데이터
+    avgLeadTime: '0h',
+    salesRate: '0.0', // string으로 유지
+  });
+
+
   const nodeMap = useMemo(() => new Map<string, Node>(nodes.map(n => [n.id, n])), []);
 
   useEffect(() => {
-    // 선택된 탭에 따라 데이터 필터링
     const prefix = factoryPrefixMap[activeFactory];
     const filteredTrips = activeFactory === '전체'
       ? analyzedTrips
@@ -110,42 +119,26 @@ export default function SupervisorDashboard() {
     const uniqueProducts = new Set(filteredTrips.map(t => t.product)).size;
     const anomalyTrips = filteredTrips.filter(t => t.anomaly);
     const anomalyCount = anomalyTrips.length;
-    const anomalyRate = totalEvents > 0 ? ((anomalyCount / totalEvents) * 100).toFixed(2) : '0.00';
+    
+    // [타입 개선] anomalyRate를 숫자로 계산합니다. FactoryDetailView가 숫자를 기대할 수 있습니다.
+    const anomalyRate = totalEvents > 0 ? (anomalyCount / totalEvents) * 100 : 0;
 
-    // [가정] 평균 리드타임: 첫 이벤트와 마지막 이벤트 시간 차이
-    // 이 부분은 실제 데이터 구조에 맞게 수정 필요
     const leadTimes = filteredTrips.map(t => t.timestamps[1] - t.timestamps[0]);
     const avgLeadTimeRaw = leadTimes.length > 0 ? leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length : 0;
-    const avgLeadTime = `${(avgLeadTimeRaw / 60).toFixed(1)}h`; // 분 -> 시간
+    const avgLeadTime = `${(avgLeadTimeRaw / 60).toFixed(1)}h`;
 
-    // [더미] 판매율
     const salesRate = (Math.random() * (95 - 80) + 80).toFixed(1);
 
-    setKpiData({ totalEvents, uniqueProducts, anomalyCount, anomalyRate, avgLeadTime, salesRate });
-
-    // 2. 중앙 패널 차트 데이터 계산
-    const anomalyCounts = filteredTrips.reduce((acc: Record<string, number>, trip) => {
-      if (trip.anomaly) {
-        acc[trip.anomaly.type] = (acc[trip.anomaly.type] || 0) + 1;
-      }
-      return acc;
-    }, {}); // <-- 초기값은 그대로 {}
-    setAnomalyChartData(
-      Object.entries(anomalyCounts).map(([type, count]) => {
-        const anomalyType = type as AnomalyType; // 타입을 명확히 해줍니다.
-        const [r, g, b] = getAnomalyColor(anomalyType);
-
-        // 차트에 필요한 모든 정보를 여기서 만들어줍니다.
-        return {
-          name: getAnomalyName(anomalyType), // 한글 이름
-          type: anomalyType,                 // 원본 타입 (필요 시)
-          count: count,                      // 개수
-          // 차트용 그라데이션 색상을 미리 계산
-          color1: `rgba(${r + (255 - r) * 0.7}, ${g + (255 - g) * 0.7}, ${b + (255 - b) * 0.7}, 0.8)`,
-          color2: `rgba(${r + (255 - r) * 0.7}, ${g + (255 - g) * 0.7}, ${b + (255 - b) * 0.7}, 0.5)`,
-        };
-      })
-    );
+    // [수정] 2. 계산된 값들을 kpiData 상태에 저장합니다.
+    setKpiData({
+      totalEvents,
+      uniqueProducts,
+      anomalyCount,
+      anomalyRate,
+      anomalyChange: Math.random() * 2 - 1, // -1 ~ +1 사이의 더미 변화량
+      avgLeadTime,
+      salesRate,
+    });
 
     const inventoryCounts = filteredTrips.reduce((acc: Record<string, number>, trip) => {
       const destNode = nodeMap.get(trip.to);
@@ -256,7 +249,7 @@ export default function SupervisorDashboard() {
                   <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
                   <div className="flex-grow overflow-hidden h-[200px]">
                     {/* <DynamicInventoryChart data={inventoryData} /> */}
-                    <DynamicInventoryChart />
+                    <DataBuildingBlocksChart />
                   </div>
                 </div>
               </div>
