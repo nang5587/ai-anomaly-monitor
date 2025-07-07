@@ -22,11 +22,20 @@ const DynamicAnomalyChart = dynamic(
   { ssr: false }
 );
 const DynamicInventoryChart = dynamic(
-  () => import('@/components/dashboard/InventoryDistributionChart'),
+  () => import('@/components/dashboard/DataBalanceRadarChart'),
   { ssr: false }
 );
-const DynamicTimelineChart = dynamic(() => import('@/components/dashboard/AnomalyTimelineChart'), { ssr: false }); // 새로 추가
-const DynamicRadarChart = dynamic(() => import('@/components/dashboard/FactoryRiskRadarChart'), { ssr: false }); // 새로 추가
+const DynamicTimelineChart = dynamic(
+  () => import('@/components/dashboard/AnomalyTimelineChart'),
+  { ssr: false }); // 새로 추가
+
+const DynamicStageLollipopChart = dynamic(
+  () => import('@/components/dashboard/StageLollipopChart'),
+  { ssr: false }
+);
+
+// 2. ✨ import하는 데이터 타입도 해당 파일에서 가져오는지 확인합니다.
+import { StageBarDataPoint } from '@/components/dashboard/StageLollipopChart';
 
 import {
   AlertTriangle,
@@ -51,14 +60,10 @@ type AnomalyDataPoint = {
 type InventoryDataPoint = { name: string; value: number; };
 // type UserRole = 'ADMIN' | 'MANAGER';
 // type MockUser = { role: UserRole; factory: string; };
-type TimelineDataPoint = {
+
+type EventTimelineDataPoint = {
   time: string;
   count: number;
-};
-type RadarDataPoint = {
-  subject: string;
-  A: number;
-  fullMark: number;
 };
 
 const factoryPrefixMap: { [key: string]: string } = {
@@ -72,7 +77,6 @@ export type AnomalyListItem = {
   eventType: string;
   timestamp: string;
 };
-
 
 export default function SupervisorDashboard() {
   // const { user } = useAuth(); // 테스트 끝나면 주석 풀기
@@ -91,11 +95,10 @@ export default function SupervisorDashboard() {
   const [anomalyChartData, setAnomalyChartData] = useState<AnomalyDataPoint[]>([]);
   const [inventoryData, setInventoryData] = useState<InventoryDataPoint[]>([]);
   const [anomalyListData, setAnomalyListData] = useState<AnalyzedTrip[]>([]);
+  const [eventTimelineData, setEventTimelineData] = useState<EventTimelineDataPoint[]>([]);
+  const [stageChartData, setStageChartData] = useState<StageBarDataPoint[]>([]);
 
-  const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
-  const [radarData, setRadarData] = useState<RadarDataPoint[]>([]);
-
- const [kpiData, setKpiData] = useState<KpiData>({
+  const [kpiData, setKpiData] = useState<KpiData>({
     totalEvents: 0,
     uniqueProducts: 0,
     anomalyCount: 0,
@@ -119,7 +122,7 @@ export default function SupervisorDashboard() {
     const uniqueProducts = new Set(filteredTrips.map(t => t.product)).size;
     const anomalyTrips = filteredTrips.filter(t => t.anomaly);
     const anomalyCount = anomalyTrips.length;
-    
+
     // [타입 개선] anomalyRate를 숫자로 계산합니다. FactoryDetailView가 숫자를 기대할 수 있습니다.
     const anomalyRate = totalEvents > 0 ? (anomalyCount / totalEvents) * 100 : 0;
 
@@ -140,6 +143,54 @@ export default function SupervisorDashboard() {
       salesRate,
     });
 
+    const STAGES = [
+      { from: 'Factory', to: 'WMS' },
+      { from: 'WMS', to: 'LogiHub' },
+      { from: 'LogiHub', to: 'Wholesaler' },
+      { from: 'Wholesaler', to: 'Reseller' },
+    ];
+
+    // stageIndex가 필요 없는, 더 간단해진 데이터 가공
+    const newBarData = STAGES.map(stage => {
+      const stageAnomalies = anomalyTrips.filter(trip => {
+        const fromNode = nodeMap.get(trip.from);
+        const toNode = nodeMap.get(trip.to);
+        return fromNode?.type.startsWith(stage.from) && toNode?.type.startsWith(stage.to);
+      });
+
+      return {
+        stageName: `${stage.from}→${stage.to}`,
+        count: stageAnomalies.length,
+      };
+    });
+
+    setStageChartData(newBarData);
+
+    const timeIntervals: { [key: string]: number } = {
+      '00:00': 0, '03:00': 0, '06:00': 0, '09:00': 0,
+      '12:00': 0, '15:00': 0, '18:00': 0, '21:00': 0,
+    };
+
+    anomalyTrips.forEach(trip => {
+      // ✅ 시간대 랜덤 보정 (0~1439분)
+      const randomMinutes = Math.floor(Math.random() * 1440); // 0~1439분
+      const hour = Math.floor(randomMinutes / 60);
+      const interval = Math.floor(hour / 3) * 3;
+      const intervalKey = interval.toString().padStart(2, '0') + ':00';
+
+      if (timeIntervals.hasOwnProperty(intervalKey)) {
+        timeIntervals[intervalKey]++;
+      }
+    });
+
+    // ✅ 결과 변환
+    const newEventTimelineData = Object.entries(timeIntervals).map(([time, count]) => ({
+      time,
+      count,
+    }));
+    setEventTimelineData(newEventTimelineData);
+
+
     const inventoryCounts = filteredTrips.reduce((acc: Record<string, number>, trip) => {
       const destNode = nodeMap.get(trip.to);
       if (destNode) {
@@ -149,12 +200,41 @@ export default function SupervisorDashboard() {
     }, {}); // <-- 초기값은 그대로 {}
     setInventoryData(Object.entries(inventoryCounts).map(([name, value]) => ({ name, value })));
 
+    const anomalyCountsByType = anomalyTrips.reduce((acc, trip) => {
+      if (trip.anomaly) {
+        const type = trip.anomaly.type;
+        acc[type] = (acc[type] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<AnomalyType, number>);
+
+    const newAnomalyChartData = Object.entries(anomalyCountsByType)
+      .map(([type, count]) => {
+        const anomalyType = type as AnomalyType;
+
+        // getAnomalyColor가 [r, g, b] 배열을 반환한다고 가정
+        const rgbColor = getAnomalyColor(anomalyType); // [255, 64, 64]와 같은 배열을 받음
+
+        // 배열을 CSS 문자열로 변환
+        const colorString = `rgb(${rgbColor[0] * 0.7}, ${rgbColor[1] * 0.7}, ${rgbColor[2] * 0.7})`;
+
+        return {
+          type: anomalyType,
+          name: getAnomalyName(anomalyType),
+          count: count,
+          // color1과 color2에 동일한 색상을 할당하여 그라데이션 대신 단색으로 표시
+          color1: colorString,
+          color2: colorString,
+        };
+      });
+
+    setAnomalyChartData(newAnomalyChartData);
+
     // 3. 하단 리스트 데이터
     setAnomalyListData(anomalyTrips);
 
     // 4. 더미 데이터 (Timeline, Radar) - 이 부분도 실제 데이터로 교체 필요
-    setTimelineData([{ time: '00:00', count: Math.floor(Math.random() * 2) }, { time: '03:00', count: Math.floor(Math.random() * 3) }, { time: '06:00', count: Math.floor(Math.random() * 2) }, { time: '09:00', count: Math.floor(Math.random() * 4) }, { time: '12:00', count: Math.floor(Math.random() * 2) }, { time: '15:00', count: Math.floor(Math.random() * 5) }, { time: '18:00', count: Math.floor(Math.random() * 3) }, { time: '21:00', count: Math.floor(Math.random() * 2) },]);
-    setRadarData([{ subject: '경로 위조', A: Math.round(Math.random() * 50 + 70), fullMark: 150 }, { subject: '시공간 점프', A: Math.round(Math.random() * 50 + 60), fullMark: 150 }, { subject: '이벤트 오류', A: Math.round(Math.random() * 40 + 50), fullMark: 150 }, { subject: '재고 불일치', A: Math.round(Math.random() * 60 + 60), fullMark: 150 }, { subject: '제품 복제', A: Math.round(Math.random() * 40 + 50), fullMark: 150 }, { subject: '온도 이탈', A: Math.round(Math.random() * 30 + 40), fullMark: 150 },]);
+    // setTimelineData([{ time: '00:00', count: Math.floor(Math.random() * 2) }, { time: '03:00', count: Math.floor(Math.random() * 3) }, { time: '06:00', count: Math.floor(Math.random() * 2) }, { time: '09:00', count: Math.floor(Math.random() * 4) }, { time: '12:00', count: Math.floor(Math.random() * 2) }, { time: '15:00', count: Math.floor(Math.random() * 5) }, { time: '18:00', count: Math.floor(Math.random() * 3) }, { time: '21:00', count: Math.floor(Math.random() * 2) },]);
 
   }, [activeFactory, nodeMap]);
 
@@ -232,46 +312,72 @@ export default function SupervisorDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             {/* 1열: 공장 상세 뷰 */}
-            <motion.div variants={itemVariants} className="lg:col-span-3 h-[540px]">
+            <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
               <FactoryDetailView activeFactory={activeFactory} onTabClick={setActiveFactory} kpiData={kpiData} />
             </motion.div>
 
             {/* 2열: 중앙 분석 패널 */}
-            <motion.div variants={itemVariants} className="lg:col-span-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
-                  <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 탐지 유형별 건수</h3>
-                  <div className="flex-grow overflow-hidden h-[200px]">
-                    <DynamicAnomalyChart data={anomalyChartData} />
+            <motion.div variants={itemVariants} className="lg:col-span-6">
+              {/* 
+                - grid-cols-2: 전체 공간을 왼쪽, 오른쪽 두 개의 열로 나눕니다.
+                - gap-6: 두 열 사이에 간격을 줍니다.
+              */}
+              <div className="grid grid-cols-2 gap-6">
+
+                {/* --- 왼쪽 열 --- */}
+                {/* 
+                  - space-y-6: 이 열 안의 아이템들(차트) 사이에 수직 간격을 줍니다.
+                  - flex flex-col: 내부 아이템을 수직으로 쌓기 위해 추가할 수 있습니다.
+                */}
+                <div className="space-y-6">
+
+                  {/* 1. 이상 탐지 유형별 건수 */}
+                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[260px]) */}
+                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[380px] flex flex-col">
+                    <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 탐지 유형별 건수</h3>
+                    <div className="flex-grow overflow-hidden">
+                      <DynamicAnomalyChart data={anomalyChartData} />
+                    </div>
+                  </div>
+
+                  {/* 2. 시간대별 이상 발생 추이 */}
+                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[260px]) */}
+                  <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
+                    <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">시간대별 이상 발생 추이</h3>
+                    <div className="flex-grow overflow-hidden">
+                      <DynamicTimelineChart data={eventTimelineData} />
+                    </div>
                   </div>
                 </div>
-                <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
-                  <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
-                  <div className="flex-grow overflow-hidden h-[200px]">
-                    {/* <DynamicInventoryChart data={inventoryData} /> */}
-                    <DataBuildingBlocksChart />
+
+                {/* --- 오른쪽 열 --- */}
+                <div className="space-y-6">
+
+                  {/* 3. 위험 요소 분석 */}
+                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[360px]) */}
+                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
+                    <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트</h3>
+                    <div className="flex-grow overflow-hidden">
+                      <DynamicStageLollipopChart data={stageChartData} />
+                    </div>
+                  </div>
+
+                  {/* 3. 유형별 재고 분산 */}
+                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[360px]) */}
+                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[380px] flex flex-col">
+                    <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
+                    <div className="flex-grow overflow-hidden">
+                      <DynamicInventoryChart />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
-                  <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">위험 요소 분석</h3>
-                  <div className="flex-grow overflow-hidden h-[200px]">
-                    <DynamicRadarChart data={radarData} />
-                  </div>
-                </div>
-                <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
-                  <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">시간대별 이상 발생 추이</h3>
-                  <div className="flex-grow overflow-hidden h-[200px]">
-                    <DynamicTimelineChart data={timelineData} />
-                  </div>
-                </div>
+
               </div>
             </motion.div>
 
             {/* 3열: 지도 */}
             <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
-              <div className="w-full h-[540px] rounded-3xl overflow-hidden cursor-pointer" onClick={() => handleWidgetClick('/graph')}>
+              <div className="w-full h-full rounded-3xl overflow-hidden">
                 <SupplyChainMapWidget minTime={minTime} maxTime={maxTime} onWidgetClick={() => handleWidgetClick('/graph')} />
               </div>
             </motion.div>
@@ -279,7 +385,7 @@ export default function SupervisorDashboard() {
 
           {/* 하단 리스트 */}
           <motion.div variants={itemVariants}>
-            <h3 className="font-vietnam text-white text-xl mb-4">Anomaly List</h3>
+            <h3 className="font-vietnam text-white text-2xl mb-4">Anomaly List</h3>
             <div className="font-vietnam"><AnomalyList data={anomalyListData} nodeMap={nodeMap} /></div>
           </motion.div>
         </motion.div>

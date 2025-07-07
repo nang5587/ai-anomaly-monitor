@@ -2,6 +2,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import DeckGL from 'deck.gl';
 
+import { Maximize } from 'lucide-react'; 
+
 import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
@@ -182,11 +184,12 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
     ];
 
     return (
-        <div onClick={onWidgetClick} style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'auto' }}>
             <DeckGL
                 layers={layers}
                 initialViewState={WIDGET_VIEW_STATE}
                 controller={false} // 지도 컨트롤(줌, 이동) 비활성화
+                style={{ pointerEvents: 'none' }}
             >
                 <Map
                     mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
@@ -199,6 +202,33 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
                     }}
                 />
             </DeckGL>
+            <button
+                onClick={onWidgetClick}
+                style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    zIndex: 10,
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    pointerEvents: 'auto', // 이 버튼만 클릭 가능하도록 설정
+                }}
+                // 호버 효과를 위한 인라인 이벤트 핸들러 (선택사항)
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'}
+                aria-label="지도 확대"
+            >
+                <Maximize size={20} />
+            </button>
         </div>
     );
 };

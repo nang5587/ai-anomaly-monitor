@@ -107,7 +107,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
             `}</style>
             <div style={{
                 position: 'absolute',
-                bottom: '60px',
+                bottom: '30px',
                 left: '1%',
                 right: '1%', // 오른쪽 범례와 겹치지 않도록
                 padding: '15px 20px',

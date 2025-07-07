@@ -9,7 +9,7 @@ type AnomalyListProps = {
     nodeMap: Map<string, Node>;
 };
 
-const anomalyIconMap: { [key:string]: JSX.Element } = {
+const anomalyIconMap: { [key: string]: JSX.Element } = {
     jump: <Truck className="w-4 h-4" />,          // 시공간 점프
     evtOrderErr: <Shuffle className="w-4 h-4" />, // 이벤트 순서 오류
     epcFake: <ShieldAlert className="w-4 h-4" />, // 위조 (보안/인증 문제)
@@ -20,13 +20,28 @@ const anomalyIconMap: { [key:string]: JSX.Element } = {
 const getAnomalyDescription = (trip: AnalyzedTrip): string => {
     if (!trip.anomaly) return '정상';
     switch (trip.anomaly.type) {
-        case 'jump':        return `비정상적 이동: ${trip.anomaly.distance}km를 ${trip.anomaly.travelTime}분 만에 주파`;
+        case 'jump': return `비정상적 이동: ${trip.anomaly.distance}km를 ${trip.anomaly.travelTime}분 만에 주파`;
         case 'evtOrderErr': return `출발(${trip.anomaly.currentEventTime})이 이전 이벤트(${trip.anomaly.previousEventTime})보다 빠름`;
-        case 'epcFake':     return `EPC 생성 규칙 위반: ${trip.anomaly.invalidRule}`;
-        case 'epcDup':      return `다른 경로와 충돌 발생 (ID: ${trip.anomaly.conflictingTripId})`;
-        case 'locErr':      return `미승인 지점(${trip.anomaly.bypassedNode.name}) 경유`;
-        default:            return '알 수 없는 오류';
+        case 'epcFake': return `EPC 생성 규칙 위반: ${trip.anomaly.invalidRule}`;
+        case 'epcDup': return `다른 경로와 충돌 발생 (ID: ${trip.anomaly.conflictingTripId})`;
+        case 'locErr': return `미승인 지점(${trip.anomaly.bypassedNode.name}) 경유`;
+        default: return '알 수 없는 오류';
     }
+};
+
+const pastelColorMap: { [key: string]: string } = {
+    // '시공간 점프': 연한 라벤더 색상
+    'jump': '#D7BDE2',
+    // '이벤트 순서 오류': 부드러운 살구색
+    'evtOrderErr': '#FAD7A0',
+    // '위조': 매우 연한 핑크
+    'epcFake': '#F5B7B1',
+    // '복제': 부드러운 크림색
+    'epcDup': '#FCF3CF',
+    // '경로 위조': 매우 연한 하늘색
+    'locErr': '#A9CCE3',
+    // 기본값: 연한 회색
+    'default': '#E5E7E9',
 };
 
 export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.Element {
@@ -51,27 +66,21 @@ export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.El
                 const toNode = nodeMap.get(trip.to);
                 const anomalyType = trip.anomaly?.type;
 
+                // ✨ 2. 기존의 복잡한 색상 계산 로직을 모두 제거합니다.
+
+                // ✨ 3. 새로운 색상 맵에서 직접 색상을 가져옵니다.
+                const tagColor = (anomalyType && pastelColorMap[anomalyType])
+                    ? pastelColorMap[anomalyType]
+                    : pastelColorMap['default'];
+
+                const tagStyle = { color: tagColor };
+
                 const name = anomalyType ? getAnomalyName(anomalyType) : '';
-                let r = 180, g = 180, b = 180;
-                let tagStyle = {};
-
-                if (anomalyType) {
-                    [r, g, b] = getAnomalyColor(anomalyType);
-                    const mix = 0.7;
-                    const pastelR = Math.round(r + (255 - r) * mix);
-                    const pastelG = Math.round(g + (255 - g) * mix);
-                    const pastelB = Math.round(b + (255 - b) * mix);
-                    tagStyle = { color: `rgb(${pastelR}, ${pastelG}, ${pastelB})` };
-                }
-
-                // 각 행의 스타일
                 const rowHoverStyle = "group-hover:bg-[rgba(40,40,40,0.5)]";
 
                 return (
-                    // ✨ 4. React.Fragment로 각 행의 셀들을 그룹화하고, 부모 그리드에 연결합니다.
                     <React.Fragment key={trip.id}>
-                        {/* ✨ 바디 그리드도 컬럼 너비에 맞게 수정 */}
-                        <div className={`col-start-1 col-span-5 grid grid-cols-subgrid gap-x-4 items-center text-center py-2 px-12 transition-colors cursor-pointer rounded-2xl group ${rowHoverStyle}`}>
+                        <div className={`col-start-1 col-span-5 grid grid-cols-subgrid gap-x-4 items-center text-center py-2 px-12 transition-colors cursor-pointer rounded-2xl group font-noto-400 ${rowHoverStyle}`}>
                             <div className="col-span-1 flex flex-col items-center justify-center">
                                 <p className="text-white font-medium">{trip.product}</p>
                                 <p className="text-xs text-[#a0a0a0]">{trip.id}</p>
@@ -90,8 +99,8 @@ export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.El
                             </div>
                             <div className="col-span-1">
                                 {anomalyType && (
-                                    // ✨ 3. 아이콘과 텍스트를 함께 표시하도록 UI 개선
-                                    <span style={tagStyle} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[rgba(255,255,255,0.05)] border border-current">
+                                    // ✨ 4. style={tagStyle}을 적용하여 아이콘과 텍스트 색상을 변경합니다.
+                                    <span style={tagStyle} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold">
                                         {anomalyIconMap[anomalyType]}
                                         {name}
                                     </span>

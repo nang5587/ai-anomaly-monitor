@@ -6,31 +6,39 @@ import { AnomalyType } from '../visual/data';
 
 type AnomalyDataPoint = {
     name: string;
+    type: string; // AnomalyType
     count: number;
-    color1: string; // 그라데이션 시작 색
-    color2: string; // 그라데이션 끝 색
+    color1: string;
+    color2: string;
 };
 
 type AnomalyEventsChartProps = {
     data: AnomalyDataPoint[];
 };
 
+const pastelColorMap: { [key: string]: string } = {
+    // '시공간 점프': 연한 라벤더 색상
+    'jump': '#D7BDE2',
+    // '이벤트 순서 오류': 부드러운 살구색
+    'evtOrderErr': '#FAD7A0',
+    // '위조': 매우 연한 핑크
+    'epcFake': '#F5B7B1',
+    // '복제': 부드러운 크림색
+    'epcDup': '#FCF3CF',
+    // '경로 위조': 매우 연한 하늘색
+    'locErr': '#A9CCE3',
+    // 기본값: 연한 회색
+    'default': '#E5E7E9',
+};
+
+
 export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): JSX.Element {
     return (
         <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <defs>
-                    {data.map((entry, index) => (
-                        <linearGradient id={`colorGradient${index}`} key={index} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={entry.color1} />
-                            <stop offset="100%" stopColor={entry.color2} />
-                        </linearGradient>
-                    ))}
-                </defs>
-
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                 <XAxis dataKey="name" stroke="#E0E0E0" fontSize={12} tick={{ fill: '#E0E0E0' }} />
-                <YAxis stroke="#E0E0E0" fontSize={12} allowDecimals={false} tick={{ fill: '#E0E0E0' }}/>
+                <YAxis stroke="#E0E0E0" fontSize={12} allowDecimals={false} tick={{ fill: '#E0E0E0' }} />
                 <Tooltip
                     cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
                     content={({ payload, label }) => (
@@ -44,9 +52,9 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                         </div>
                     )}
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40}>
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={60}>
                     {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={`url(#colorGradient${index})`} />
+                        <Cell key={`cell-${index}`} fill={pastelColorMap[entry.type] || pastelColorMap['default']} />
                     ))}
                 </Bar>
             </BarChart>

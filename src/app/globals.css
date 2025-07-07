@@ -4,6 +4,8 @@ html,
 body,
 #__next {
   height: 100%;
+  width: 100%;
+  margin: 0;
   overflow: hidden;
 }
 
@@ -43,6 +45,10 @@ body,
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
+}
+
+.nivo-radar .radarWrapper path {
+  fill-opacity: 0.8 !important;
 }
 
 

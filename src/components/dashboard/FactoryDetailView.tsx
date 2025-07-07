@@ -3,7 +3,10 @@
 import React from 'react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { ListChecks, TrendingUp, TrendingDown, Package, AlertTriangle, Percent, Clock, Box, ShoppingCart } from 'lucide-react';
+import ConeWarningGauge from '@/components/dashboard/ConeWarningGauge';
 
+import NewTruckVisualizer from '@/components/dashboard/NewTruckVisualizer';
+import Image from 'next/image';
 // 개별 KPI를 보여줄 미니 카드
 const MiniStatCard = ({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) => (
     <div className="p-4 rounded-2xl flex flex-col items-center gap-4
@@ -46,7 +49,7 @@ const AnomalyGaugeChart = ({ rate, change }: { rate: number, change: number }) =
         <div className="w-full h-80 relative flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart
-                    cy="50%"
+                    cy="60%"
                     innerRadius="50%"
                     outerRadius="100%"
                     data={[{ name: 'anomaly', value: safeValue }]}
@@ -100,7 +103,7 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
             {/* --- KPI 그리드 --- */}
             <div className='flex flex-col justify-center gap-4 flex-grow min-h-0'>
                 {/* 1. 카드 그리드는 필요한 만큼의 공간을 차지합니다. */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-3 gap-4">
                     <MiniStatCard title="총 처리 건수" value={kpiData.totalEvents.toLocaleString()} icon={<ListChecks size={40} className="text-white" />} />
                     <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProducts.toLocaleString()} icon={<Package size={40} className="text-white" />} />
                     <MiniStatCard title="평균 리드타임" value={kpiData.avgLeadTime} icon={<Clock size={40} className="text-white" />} />
@@ -108,7 +111,12 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
 
                 {/* 2. [수정] 차트 컨테이너가 "남은 모든 공간"을 차지하도록 변경 */}
                 <div className="flex-grow w-full min-h-0"> {/* h-full 대신 flex-grow와 min-h-0 사용 */}
-                    <AnomalyGaugeChart rate={kpiData.anomalyRate} change={kpiData.anomalyChange} />
+                    <h3 className="font-noto-400 text-white text-xl pt-5 px-3 flex-shrink-0">이상 발생 비율</h3>
+                    <div className='flex items-center justify-center my-4'>
+                        {/* <NewTruckVisualizer percentage={kpiData.anomalyRate} /> */}
+                        {/* <ConeWarningGauge rate={kpiData.anomalyRate} /> */}
+                        <ConeWarningGauge />
+                    </div>
                 </div>
             </div>
         </div>

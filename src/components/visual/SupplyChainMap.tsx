@@ -16,6 +16,8 @@ import type { PickingInfo } from '@deck.gl/core';
 import { nodes, analyzedTrips, Node, AnalyzedTrip, AnomalyType } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
 
+import TutorialOverlay from './TutorialOverlay';
+
 import TimeSlider from './TimeSlider';
 
 import AnomalyList from './AnomalyList';
@@ -67,6 +69,8 @@ const material = {
 
 
 export const SupplyChainMap: React.FC = () => {
+    const [showTutorial, setShowTutorial] = useState(true);
+
     const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
     const [currentTime, setCurrentTime] = useState(minTime);
     const [hoverInfo, setHoverInfo] = useState<PickingInfo | null>(null);
@@ -89,6 +93,16 @@ export const SupplyChainMap: React.FC = () => {
             target: trip.path[1],
         }));
     }, [analyzedTrips]);
+
+    useEffect(() => {
+        // 5초 후에 튜토리얼을 자동으로 숨깁니다.
+        const timer = setTimeout(() => {
+            setShowTutorial(false);
+        }, 5000); // 5000ms = 5초
+
+        // 컴포넌트가 언마운트되거나, 이 useEffect가 다시 실행되기 전에 타이머를 정리합니다.
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         let animationFrame: number;
@@ -291,22 +305,38 @@ export const SupplyChainMap: React.FC = () => {
         // --- 5-5. 동적 이동 애니메이션 레이어 (TripsLayer) ---
         new TripsLayer<AnalyzedTrip>({
             id: 'trips-layer',
-            data: analyzedTrips, // 데이터 소스 변경
-            getPath: d => d.path,
-            getTimestamps: d => d.anomaly?.type === 'evtOrderErr' ? [d.timestamps[1], d.timestamps[0]] : d.timestamps,
-            // anomalyType에 따라 색상 변경
-            getColor: d => {
-                switch (d.anomaly?.type) {
-                    case 'jump': return [114, 46, 209];
-                    case 'evtOrderErr': return [250, 140, 22];
-                    case 'epcFake': return [255, 7, 58];
-                    case 'epcDup': return [255, 235, 59];
-                    case 'locErr': return [24, 144, 255];
-                    default: return [144, 238, 144]; // 정상 이동
+            data: analyzedTrips,
+
+            // ✅ 1. [데이터 방어] 경로 데이터가 유효한지 확인합니다.
+            //    path가 배열이고, 두 개의 좌표를 포함하는지 체크합니다.
+            getPath: d => (Array.isArray(d.path) && d.path.length === 2 ? d.path : []),
+
+            // ✅ 2. [핵심 수정] 타임스탬프 데이터가 유효한 숫자인지 확인하고 변환합니다.
+            //    문자열로 된 숫자가 들어와도 `Number()`로 변환하여 에러를 방지합니다.
+            getTimestamps: d => {
+                if (!d.timestamps || !Array.isArray(d.timestamps) || d.timestamps.length !== 2) {
+                    return [0, 0]; // 데이터가 잘못되면 렌더링하지 않음
                 }
+                // 항상 [시작, 종료] 순서를 유지하고 숫자로 변환
+                const start = Number(d.timestamps[0]);
+                const end = Number(d.timestamps[1]);
+                return start < end ? [start, end] : [end, start];
             },
-            opacity: 0.8, widthMinPixels: 5, rounded: true,
-            trailLength: 180, currentTime,
+
+            // ✅ 3. [데이터 방어] 색상 접근자 함수에도 방어 코드를 추가합니다.
+            getColor: d => {
+                if (d.anomaly && typeof d.anomaly === 'object' && 'type' in d.anomaly) {
+                    return getAnomalyColor(d.anomaly.type as AnomalyType) || [255, 0, 0];
+                }
+                return [0, 255, 127]; // 정상
+            },
+
+            opacity: 0.8,
+            widthMinPixels: 5,
+            rounded: true,
+            trailLength: 180,
+            currentTime,
+            // shadowEnabled: false,
         }),
     ];
 
@@ -327,7 +357,8 @@ export const SupplyChainMap: React.FC = () => {
                     justify-content: center;
                 }
             `}</style>
-            <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
                 <DeckGL
                     layers={layers} viewState={viewState}
                     onClick={info => !info.object && setSelectedObject(null)}
@@ -364,7 +395,7 @@ export const SupplyChainMap: React.FC = () => {
 
                 <div style={{
                     position: 'absolute',
-                    top: '80px',
+                    top: '10px',
                     left: '20px',
                     width: '300px',
                     maxHeight: 'calc(100vh - 220px)', // 상하단 여백 50px씩 확보
