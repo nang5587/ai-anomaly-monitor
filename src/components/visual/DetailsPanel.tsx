@@ -125,7 +125,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
     return (
         <div style={{
             position: 'absolute',
-            top: '80px',
+            top: '10px',
             right: '220px',
             width: '320px',
             maxHeight: 'calc(100vh - 180px)',

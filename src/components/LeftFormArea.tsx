@@ -141,7 +141,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
     return (
         <div className="w-full max-w-md px-8 space-y-4">
             <div className="text-center">
-                <p className="text-gray-500">"회사이름"과 함께 여정을 시작하세요!</p>
+                <p className="text-gray-500">FLOW LOGIC과 함께 여정을 시작하세요!</p>
             </div>
 
             <div className="h-[470px] overflow-hidden">
@@ -252,7 +252,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             </svg>
 
                             <h2 className="text-3xl font-bold text-gray-800 mb-2">회원가입 완료!</h2>
-                            <p className="text-gray-600 mb-8 pt-5">환영합니다!<br />가입 신청이 정상적으로 접수되었습니다.</p>
+                            <p className="text-gray-600 mb-8 pt-5">환영합니다! 가입 신청이 정상적으로 접수되었습니다.<br />가입 승인은 관리자 확인 후 메일로 안내드릴 예정이니 잠시만 기다려주세요.</p>
                         </div>
 
                         <button

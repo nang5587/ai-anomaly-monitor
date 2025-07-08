@@ -5,8 +5,6 @@ import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from '
 import { ListChecks, TrendingUp, TrendingDown, Package, AlertTriangle, Percent, Clock, Box, ShoppingCart } from 'lucide-react';
 import ConeWarningGauge from '@/components/dashboard/ConeWarningGauge';
 
-import NewTruckVisualizer from '@/components/dashboard/NewTruckVisualizer';
-import Image from 'next/image';
 // 개별 KPI를 보여줄 미니 카드
 const MiniStatCard = ({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) => (
     <div className="p-4 rounded-2xl flex flex-col items-center gap-4
@@ -20,20 +18,12 @@ const MiniStatCard = ({ title, value, icon }: { title: string, value: string, ic
 
 
 // KPI 데이터 타입 정의
-export type KpiData = {
-    totalEvents: number;
-    uniqueProducts: number;
-    anomalyCount: number;
-    anomalyRate: number; // string -> number
-    anomalyChange: number;
-    avgLeadTime: string;
-    salesRate: string;
-};
+import type { KpiSummary } from '../visual/data';
 
 type FactoryDetailViewProps = {
     activeFactory: string;
     onTabClick: (factory: string) => void;
-    kpiData: KpiData;
+    kpiData: KpiSummary;
 };
 
 const AnomalyGaugeChart = ({ rate, change }: { rate: number, change: number }) => {
@@ -103,9 +93,9 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
             {/* --- KPI 그리드 --- */}
             <div className='flex flex-col justify-center gap-4 flex-grow min-h-0'>
                 {/* 1. 카드 그리드는 필요한 만큼의 공간을 차지합니다. */}
-                <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-3 gap-4">
-                    <MiniStatCard title="총 처리 건수" value={kpiData.totalEvents.toLocaleString()} icon={<ListChecks size={40} className="text-white" />} />
-                    <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProducts.toLocaleString()} icon={<Package size={40} className="text-white" />} />
+                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <MiniStatCard title="총 처리 건수" value={kpiData.totalTripCount.toLocaleString()} icon={<ListChecks size={40} className="text-white" />} />
+                    <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={40} className="text-white" />} />
                     <MiniStatCard title="평균 리드타임" value={kpiData.avgLeadTime} icon={<Clock size={40} className="text-white" />} />
                 </div>
 

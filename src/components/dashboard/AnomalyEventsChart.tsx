@@ -52,7 +52,7 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                         </div>
                     )}
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={60}>
+                <Bar dataKey="count" barSize={60}>
                     {data.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={pastelColorMap[entry.type] || pastelColorMap['default']} />
                     ))}

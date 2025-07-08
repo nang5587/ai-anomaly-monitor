@@ -1,14 +1,16 @@
 import React from 'react';
-import { AnalyzedTrip, AnomalyType } from '../visual/data';
+
+import { type AnalyzedTrip, type AnomalyType, type Node } from '../visual/data';
 import { getAnomalyColor, getAnomalyName } from './colorUtils'; // ✨ 분리된 함수 import
 
 interface AnomalyListProps {
     anomalies: AnalyzedTrip[];
     onCaseClick: (trip: AnalyzedTrip) => void;
     selectedObjectId: string | null;
+    nodeMap: Map<string, Node>;
 }
 
-const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selectedObjectId }) => {
+const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selectedObjectId, nodeMap }) => {
     return (
         <div style={{
             flex: 1,
@@ -40,56 +42,45 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                 className="hide-scrollbar"
             >
                 {anomalies.map(trip => {
-                    const [r, g, b] = getAnomalyColor(trip.anomaly?.type);
-                    const mix = 0.7;
-                    const pastelR = Math.round(r + (255 - r) * mix);
-                    const pastelG = Math.round(g + (255 - g) * mix);
-                    const pastelB = Math.round(b + (255 - b) * mix);
+                    if (!trip.anomaly) return null;
+
+                    const [r, g, b] = getAnomalyColor(trip.anomaly);
+                    // 배경과 텍스트 색상을 더 명확하게 대비시킴
+                    const bgColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+                    const textColor = `rgb(${r}, ${g}, ${b})`;
+
                     const isSelected = selectedObjectId === trip.id;
+
+                    // ✨ 2. Node의 이름 필드를 scanLocation으로 변경
+                    const fromNodeName = nodeMap.get(trip.from)?.scanLocation || trip.from;
+                    const toNodeName = nodeMap.get(trip.to)?.scanLocation || trip.to;
 
                     return (
                         <div
                             key={trip.id}
                             onClick={() => onCaseClick(trip)}
-                            style={{
-                                // 원래 스타일로 복구
-                                background: isSelected ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                                padding: '12px 15px',
-                                borderRadius: '25px',
-                                marginBottom: '10px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease-in-out',
-                            }}
-                            onMouseEnter={(e) => {
-                                if (!isSelected) {
-                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                    e.currentTarget.style.borderColor = '#777';
-                                }
-                            }}
-                            onMouseLeave={(e) => {
-                                if (!isSelected) {
-                                    e.currentTarget.style.background = 'transparent';
-                                    e.currentTarget.style.borderColor = '#555';
-                                }
-                            }}
+                            className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >
-                            <div style={{
-                                display: 'inline-block',
-                                padding: '4px 10px',
-                                background: `rgba(${pastelR}, ${pastelG}, ${pastelB})`,
-                                color: `rgb(${Math.round(r * 0.75)}, ${Math.round(g * 0.75)}, ${Math.round(b * 0.75)})`,
-                                borderRadius: '25px',
-                                fontWeight: '600',
-                                fontSize: '13px',
-                                marginBottom: '10px',
-                            }}>
-                                {getAnomalyName(trip.anomaly?.type)}
+                            <div className="flex items-center justify-between mb-2">
+                                <span 
+                                    className="px-3 py-1 text-xs font-bold rounded-full"
+                                    style={{ backgroundColor: bgColor, color: textColor }}
+                                >
+                                    {getAnomalyName(trip.anomaly)}
+                                </span>
+                                <span className="text-xs text-neutral-500">
+                                    {trip.eventType}
+                                </span>
                             </div>
-                            <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '4px' }}>
-                                {trip.from} → {trip.to}
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#ccc' }}>
-                                Product: {trip.product}
+                            
+                            <p className="text-sm font-medium text-white mb-2">
+                                {trip.productName} {/* ✨ 3. product 대신 productName 표시 */}
+                            </p>
+
+                            <div className="text-xs text-neutral-400">
+                                <p>{fromNodeName} → {toNodeName}</p>
+                                {/* ✨ EPC 코드를 추가 정보로 표시 */}
+                                <p className="mt-1 opacity-70">EPC: {trip.epcCode}</p> 
                             </div>
                         </div>
                     );

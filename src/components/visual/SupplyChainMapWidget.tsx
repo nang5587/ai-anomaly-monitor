@@ -12,12 +12,11 @@ import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
 import Map from 'react-map-gl';
 
-import { nodes, analyzedTrips, Node, AnalyzedTrip } from './data';
+import { type Node, type AnalyzedTrip, type AnomalyType } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
-import { getNodeColor } from '../visual/colorUtils';
-import { useScroll } from 'framer-motion';
+import { getNodeColor, getAnomalyColor  } from '../visual/colorUtils';
 
-const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibmFuZzU1ODciLCJhIjoiY21jYnFnZ2RiMDhkNDJybmNwOGZ4ZmwxMCJ9.OBoc45r9z0yM1EpqNuffpQ';
+const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 // 위젯용 View State는 고정값으로 사용
 const WIDGET_VIEW_STATE = {
@@ -51,12 +50,14 @@ const OTHER_MODEL_MAPPING: Record<string, any> = {
 };
 
 type SupplyChainMapWidgetProps = {
+    nodes: Node[];
+    analyzedTrips: AnalyzedTrip[];
     minTime: number;
     maxTime: number;
     onWidgetClick: () => void;
 };
 
-export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minTime, maxTime, onWidgetClick }) => {
+export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ nodes, analyzedTrips, minTime, maxTime, onWidgetClick }) => {
     const [currentTime, setCurrentTime] = useState<number>(minTime)
 
     useEffect(() => {
@@ -87,14 +88,23 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
 
     const staticLines = useMemo(() => {
         return analyzedTrips.map(trip => ({ ...trip, source: trip.path[0], target: trip.path[1] }));
-    }, []);
+    }, [analyzedTrips]);
 
-    const factoryNodes = nodes.filter(node => node.type === 'Factory');
-    const otherNodes = nodes.filter(node => node.type !== 'Factory');
+    const factoryNodes = useMemo(() => nodes.filter(node => node.businessStep === 'Factory'), [nodes]);
+    const otherNodes = useMemo(() => nodes.filter(node => node.businessStep !== 'Factory'), [nodes]);
+
+    // ✨ 5. 데이터가 로드되지 않았을 경우를 대비한 로딩 상태 처리
+    if (nodes.length === 0 || analyzedTrips.length === 0) {
+        return (
+            <div className="w-full h-full rounded-3xl bg-neutral-900 flex items-center justify-center">
+                <p className="text-neutral-500">지도 로딩 중...</p>
+            </div>
+        );
+    }
 
     // 메쉬 레이어들 (상호작용 제거)
     const otherMeshLayers = Object.keys(OTHER_MODEL_MAPPING).map(type => {
-        const filteredNodes = otherNodes.filter(node => node.type === type);
+        const filteredNodes = otherNodes.filter(node => node.businessStep === type);
         if (filteredNodes.length === 0) return null;
 
         return new SimpleMeshLayer<Node>({
@@ -102,7 +112,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
             data: filteredNodes,
             mesh: OTHER_MODEL_MAPPING[type],
             getPosition: d => d.coordinates,
-            getColor: d => getNodeColor(d.type),
+            getColor: d => getNodeColor(d.businessStep),
             getOrientation: [-90, 0, 0],
             sizeScale: 50,
             getTranslation: [0, 0, 50],
@@ -117,7 +127,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
             data: factoryNodes,
             mesh: parsedFactoryBuildingModel,
             getPosition: d => d.coordinates,
-            getColor: d => getNodeColor(d.type),
+            getColor: d => getNodeColor(d.businessStep),
             getOrientation: [-90, 180, 0],
             sizeScale: 50,
             getTranslation: [0, 0, 50],
@@ -134,23 +144,14 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
             data: staticLines,
             getSourcePosition: d => d.path[0],
             getTargetPosition: d => d.path[1],
-            getColor: d => { // anomalyType에 따른 색상만 유지
-                switch (d.anomaly?.type) {
-                    case 'jump': return [223, 190, 239];
-                    case 'evtOrderErr': return [253, 220, 179];
-                    case 'epcFake': return [255, 192, 210];
-                    case 'epcDup': return [255, 248, 203];
-                    case 'locErr': return [202, 232, 255];
-                    default: return [220, 220, 228];
-                }
-            },
+            getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [220, 220, 228, 50],
             getWidth: 1, // 얇은 선으로 고정
             pickable: false, // 위젯에서는 클릭/호버 비활성화
         }),
         // 경로 위조 '예상 경로' 레이어
         new LineLayer({
             id: 'widget-expected-path-lines',
-            data: staticLines.filter(d => d.anomaly?.type === 'locErr'),
+            data: staticLines.filter(d => d.anomaly === 'locErr'),
             getSourcePosition: d => (d.anomaly as any).expectedPath[0],
             getTargetPosition: d => (d.anomaly as any).expectedPath[1],
             getColor: [150, 150, 150, 200],
@@ -164,17 +165,8 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ minT
             id: 'widget-trips-layer',
             data: analyzedTrips,
             getPath: d => d.path,
-            getTimestamps: d => d.anomaly?.type === 'evtOrderErr' ? [d.timestamps[1], d.timestamps[0]] : d.timestamps,
-            getColor: d => {
-                switch (d.anomaly?.type) {
-                    case 'jump': return [114, 46, 209];
-                    case 'evtOrderErr': return [250, 140, 22];
-                    case 'epcFake': return [255, 7, 58];
-                    case 'epcDup': return [255, 235, 59];
-                    case 'locErr': return [24, 144, 255];
-                    default: return [144, 238, 144]; // 정상 이동
-                }
-            },
+            getTimestamps: d => d.timestamps,
+            getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [144, 238, 144],
             opacity: 0.8,
             widthMinPixels: 4,
             rounded: true,
