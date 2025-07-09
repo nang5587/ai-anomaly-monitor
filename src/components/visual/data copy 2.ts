@@ -6,7 +6,7 @@ export interface Node {
     id: string;
     name: string;
     type: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller';
-    coordinates: [number, number];
+    coord: [number, number];
 }
 
 export interface Trip {

@@ -25,6 +25,7 @@ import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
 import { getAnomalyName, getAnomalyColor } from '@/components/visual/colorUtils';
 
 import dynamic from 'next/dynamic';
+import { v4 as uuidv4 } from 'uuid';
 
 const DynamicAnomalyChart = dynamic(
   () => import('@/components/dashboard/AnomalyEventsChart'),
@@ -43,7 +44,6 @@ const DynamicStageLollipopChart = dynamic(
   { ssr: false }
 );
 
-// 2. ✨ import하는 데이터 타입도 해당 파일에서 가져오는지 확인합니다.
 import { StageBarDataPoint } from '@/components/dashboard/StageLollipopChart';
 
 import {
@@ -75,6 +75,8 @@ type EventTimelineDataPoint = {
   count: number;
 };
 
+type TripWithId = AnalyzedTrip & { id: string };
+
 const factoryPrefixMap: { [key: string]: string } = {
   '화성공장': 'HWS', '인천공장': 'ICN', '구미공장': 'KUM', '양산공장': 'YGS',
 };
@@ -101,7 +103,8 @@ export default function SupervisorDashboard() {
   // }, [user, router]);
 
   const [nodes, setNodes] = useState<Node[]>([]);
-  const [anomalyTrips, setAnomalyTrips] = useState<AnalyzedTrip[]>([]); // 이상 징후 데이터만 저장
+  const [rawAnomalyTrips, setRawAnomalyTrips] = useState<AnalyzedTrip[]>([]);
+
   const [kpiData, setKpiData] = useState<KpiSummary | null>(null);
   const [inventoryData, setInventoryData] = useState<InventoryDataPoint[]>([]);
 
@@ -115,6 +118,11 @@ export default function SupervisorDashboard() {
   // 필터 상태
   const [activeFactory, setActiveFactory] = useState('전체');
 
+  const anomalyTrips: TripWithId[] = useMemo(() => {
+    if (!rawAnomalyTrips) return [];
+    return rawAnomalyTrips.map(trip => ({ ...trip, id: uuidv4() }));
+  }, [rawAnomalyTrips]);
+
   useEffect(() => {
     async function loadInitialData() {
       setIsLoading(true);
@@ -127,7 +135,7 @@ export default function SupervisorDashboard() {
         ]);
 
         setNodes(nodesData);
-        setAnomalyTrips(anomaliesData);
+        setRawAnomalyTrips(anomaliesData);
         setKpiData(kpiData);
         setInventoryData(inventoryResp.inventoryDistribution);
 
@@ -141,127 +149,113 @@ export default function SupervisorDashboard() {
   }, []);
 
   useEffect(() => {
-    // 초기 로딩 시에는 실행하지 않음
     if (isLoading) return;
-
     async function refetchData() {
-      // 선택된 공장에 따라 파라미터 생성
-      const params = activeFactory === '전체'
-        ? {}
-        : { factoryCode: factoryPrefixMap[activeFactory] };
-
-      // 필요한 API들을 다시 호출
-      const [kpiData, inventoryResp, anomaliesData] = await Promise.all([
-        getKpiSummary(params),
-        getInventoryDistribution(params),
-        getAnomalies(params), // 필터 적용된 이상 징후 목록
-      ]);
-
-      setKpiData(kpiData);
-      setInventoryData(inventoryResp.inventoryDistribution);
-      setAnomalyTrips(anomaliesData);
+      const params = activeFactory === '전체' ? {} : { factoryCode: factoryPrefixMap[activeFactory] };
+      try {
+        const [kpiData, inventoryResp, anomaliesData] = await Promise.all([
+          getKpiSummary(params), getInventoryDistribution(params), getAnomalies(params),
+        ]);
+        setKpiData(kpiData);
+        setInventoryData(inventoryResp.inventoryDistribution);
+        setRawAnomalyTrips(anomaliesData); // 원본 데이터 업데이트
+      } catch (error) {
+        console.error("Filtered data fetching failed:", error)
+      }
     }
     refetchData();
-  }, [activeFactory]);
-
-  const nodeMap = useMemo(() => new Map<string, Node>(nodes.map(n => [n.hubType, n])), [nodes]);
+  }, [activeFactory, isLoading]);
 
   useEffect(() => {
-    // isLoading이 true이거나, nodeMap이 아직 준비되지 않았으면 계산을 건너뜁니다.
-    if (isLoading || nodeMap.size === 0) {
-      // 데이터가 없는 경우, 차트 데이터를 빈 배열로 초기화할 수 있습니다.
+    if (isLoading || !nodes.length || !anomalyTrips.length) {
       setAnomalyChartData([]);
       setStageChartData([]);
       setEventTimelineData([]);
       return;
     }
 
-    // --- 1. 이상 탐지 유형별 건수 (도넛 차트용) ---
+    // 1. 이상 탐지 유형별 건수 (변경 필요 없음, anomalyTrips는 이미 ID 포함)
     const countsByType = anomalyTrips.reduce((acc, trip) => {
-      // anomaly 필드가 null이 아닌 경우에만 계산
       if (trip.anomaly) {
         acc[trip.anomaly] = (acc[trip.anomaly] || 0) + 1;
       }
       return acc;
     }, {} as Record<AnomalyType, number>);
-
-    const newAnomalyChartData = Object.entries(countsByType).map(([type, count]) => {
-      const anomalyType = type as AnomalyType;
-      const rgbColor = getAnomalyColor(anomalyType); // [r, g, b]
-      const colorString = `rgb(${rgbColor.join(', ')})`; // "rgb(255, 99, 132)"
-
-      return {
-        type: anomalyType,
-        name: getAnomalyName(anomalyType),
-        count: count,
-        color1: colorString, // 그라데이션 대신 단색으로 표시
-        color2: colorString,
-      };
-    });
+    const newAnomalyChartData = Object.entries(countsByType).map(([type, count]) => ({
+      type: type as AnomalyType,
+      name: getAnomalyName(type as AnomalyType),
+      count,
+      color1: `rgb(${getAnomalyColor(type as AnomalyType).join(', ')})`,
+      color2: `rgb(${getAnomalyColor(type as AnomalyType).join(', ')})`,
+    }));
     setAnomalyChartData(newAnomalyChartData);
 
-
-    // --- 2. 공급망 단계별 이상 이벤트 (롤리팝 차트용) ---
+    // 2. 공급망 단계별 이상 이벤트
+    const nodeMapByLocation = new Map<string, Node>(nodes.map(n => [n.businessStep, n]));
+    
     const STAGES = [
-      { from: 'Factory', to: 'WMS' },
-      { from: 'WMS', to: 'LogiHub' },
-      { from: 'LogiHub', to: 'Wholesaler' },
-      { from: 'Wholesaler', to: 'Reseller' },
+      { from: 'Factory', to: 'WMS', name: '공장 → 창고' },
+      { from: 'WMS', to: 'LogiHub', name: '창고 → 물류' },
+      { from: 'LogiHub', to: 'Wholesaler', name: '물류 → 도매' },
+      { from: 'Wholesaler', to: 'Reseller', name: '도매 → 소매' },
+      { from: 'Reseller', to: 'POS', name: '소매 → 판매' },
     ];
-
     const newStageChartData = STAGES.map(stage => {
       const stageAnomalies = anomalyTrips.filter(trip => {
-        // from과 to 노드가 모두 존재하고, businessStep이 일치하는지 확인
-        const fromNode = nodeMap.get(trip.from);
-        const toNode = nodeMap.get(trip.to);
+        const fromNode = nodeMapByLocation.get(trip.from.businessStep);
+        const toNode = nodeMapByLocation.get(trip.to.businessStep);
         return fromNode?.businessStep === stage.from && toNode?.businessStep === stage.to;
       });
       return {
-        stageName: `${stage.from}→${stage.to}`,
+        stageName: stage.name,
         count: stageAnomalies.length
       };
     });
     setStageChartData(newStageChartData);
 
-
-    // --- 3. 시간대별 이상 발생 추이 (타임라인 차트용) ---
+    // 3. 시간대별 이상 발생 추이 (변경 필요 없음)
     const timeIntervals: { [key: string]: number } = {
       '00:00': 0, '03:00': 0, '06:00': 0, '09:00': 0,
       '12:00': 0, '15:00': 0, '18:00': 0, '21:00': 0,
     };
-
     anomalyTrips.forEach(trip => {
-      // 실제 timestamps[0] (출발 시간)을 사용합니다.
-      const startTime = new Date(trip.timestamps[0] * 1000); // 초 단위를 밀리초로 변환
+      if (!trip.from || typeof trip.from.eventTime !== 'number') return;
+      const startTime = new Date(trip.from.eventTime * 1000);
       const hour = startTime.getHours();
       const interval = Math.floor(hour / 3) * 3;
       const intervalKey = interval.toString().padStart(2, '0') + ':00';
-
       if (timeIntervals.hasOwnProperty(intervalKey)) {
         timeIntervals[intervalKey]++;
       }
     });
-
-    const newEventTimelineData = Object.entries(timeIntervals).map(([time, count]) => ({
-      time,
-      count,
-    }));
+    const newEventTimelineData = Object.entries(timeIntervals).map(([time, count]) => ({ time, count }));
     setEventTimelineData(newEventTimelineData);
 
-  }, [anomalyTrips, nodeMap, isLoading]);
+  }, [anomalyTrips, nodes, isLoading]);
 
+
+  // minTime, maxTime 계산 (변경 필요 없음)
   const { minTime, maxTime } = useMemo(() => {
-    // anomalyTrips 데이터가 없으면 기본값 반환
-    if (anomalyTrips.length === 0) {
-      return { minTime: 0, maxTime: 1 }; // 0, 0 대신 0, 1로 하여 분모가 0이 되는 것을 방지
+    if (!anomalyTrips || anomalyTrips.length === 0) {
+      return { minTime: 0, maxTime: 1 };
     }
-
-    const startTimes = anomalyTrips.map(t => t.timestamps[0]);
-    const endTimes = anomalyTrips.map(t => t.timestamps[1]);
+    // timestamp가 없는 데이터를 필터링하여 안정성 확보
+    const validTimestamps = anomalyTrips.flatMap(trip => {
+    // 각 trip 객체에서 from.eventTime과 to.eventTime이 유효한 숫자인지 확인
+    const times = [];
+    if (trip.from && typeof trip.from.eventTime === 'number') {
+        times.push(trip.from.eventTime);
+    }
+    if (trip.to && typeof trip.to.eventTime === 'number') {
+        times.push(trip.to.eventTime);
+    }
+    return times;
+});
+    if (validTimestamps.length === 0) return { minTime: 0, maxTime: 1 };
 
     return {
-      minTime: Math.min(...startTimes),
-      maxTime: Math.max(...endTimes),
+      minTime: Math.min(...validTimestamps),
+      maxTime: Math.max(...validTimestamps),
     };
   }, [anomalyTrips]);
 
@@ -310,22 +304,22 @@ export default function SupervisorDashboard() {
   // }
 
   return (
-    <div className="h-screen grid grid-rows-[auto_1fr] bg-black">
+    <div className="h-screen grid grid-rows-[auto_1fr] bg-black overflow-y-auto hide-scrollbar">
 
       {/* --- 첫 번째 행: 상단 고정 영역 --- */}
       <motion.div
-        className="px-8 pb-6 space-y-4"
+        className="px-8 pb-6 space-y-4 "
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className='flex items-start justify-between'>
+        <div className='flex items-start justify-between '>
           <motion.h2 variants={itemVariants} className="font-vietnam text-white text-[50px] whitespace-nowrap">Supervisor<br />DashBoard</motion.h2>
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-4"
             variants={containerVariants} // 여기서 다시 container를 써서 카드들도 순차적으로 나타나게 합니다.
           >
-            <motion.div variants={itemVariants}><StatCard title="총 이상 이벤트(건)" value={kpiData.anomalyCount.toString()} changeType="increase" icon={<AlertTriangle className="text-[#E0E0E0]" />} /></motion.div>
+            <motion.div variants={itemVariants}><StatCard title="총 이상 이벤트(건)" value={kpiData.anomalyCount.toString()} icon={<AlertTriangle className="text-[#E0E0E0]" />} /></motion.div>
             <motion.div variants={itemVariants}><StatCard title="판매율(%)" value={kpiData.salesRate.toFixed(1)} icon={<TrendingUp className="text-[#E0E0E0]" />} /></motion.div>
             <motion.div variants={itemVariants}><StatCard title="출고율(%)" value={kpiData.dispatchRate.toFixed(1)} icon={<Truck className="text-[#E0E0E0]" />} /></motion.div>
             <motion.div variants={itemVariants}><StatCard title="전체 재고 비율(%)" value={kpiData.inventoryRate.toFixed(1)} icon={<Package className="text-[#E0E0E0]" />} /></motion.div>
@@ -338,7 +332,7 @@ export default function SupervisorDashboard() {
       </motion.div>
 
       {/* --- ✨ 2. 두 번째 행: 스크롤 가능한 메인 콘텐츠 영역 --- */}
-      <div className="overflow-y-auto hide-scrollbar px-8 pb-[120px]">
+      <div className="px-8 pb-[120px]">
         <motion.div
           className="space-y-4"
           variants={containerVariants}
@@ -392,7 +386,7 @@ export default function SupervisorDashboard() {
                 {/* --- 오른쪽 열 --- */}
                 <div className="space-y-6">
 
-                  {/* 3. 위험 요소 분석 */}
+                  {/* 3. 공급망 */}
                   {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[360px]) */}
                   <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
                     <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트</h3>
@@ -401,7 +395,7 @@ export default function SupervisorDashboard() {
                     </div>
                   </div>
 
-                  {/* 3. 유형별 재고 분산 */}
+                  {/* 4. 유형별 재고 분산 */}
                   {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[360px]) */}
                   <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[380px] flex flex-col">
                     <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
@@ -426,7 +420,7 @@ export default function SupervisorDashboard() {
           {/* 하단 리스트 */}
           <motion.div variants={itemVariants}>
             <h3 className="font-vietnam text-white text-2xl mb-4">Anomaly List</h3>
-            <div className="font-vietnam"><AnomalyList data={anomalyTrips} nodeMap={nodeMap} /></div>
+            <div className="font-vietnam"><AnomalyList anomalies={anomalyTrips} /></div>
           </motion.div>
         </motion.div>
       </div>

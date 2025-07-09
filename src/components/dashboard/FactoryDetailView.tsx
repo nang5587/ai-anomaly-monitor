@@ -26,54 +26,22 @@ type FactoryDetailViewProps = {
     kpiData: KpiSummary;
 };
 
-const AnomalyGaugeChart = ({ rate, change }: { rate: number, change: number }) => {
-    // parseFloat과 isNaN 검사가 더 이상 필요 없어집니다. 코드가 간결해져요.
-    const safeValue = isNaN(rate) ? 0 : rate;
-    const safeChange = isNaN(change) ? 0 : change;
+// 큰 숫자를 한국어 단위(천, 만, 억)에 맞춰 간결하게 포맷팅
+const formatNumberCompact = (num: number): string => {
+    if (isNaN(num)) return '0';
 
-    // const safeChange = isNaN(change) ? 0 : change;
-    const isPositiveChange = safeChange >= 0;
-    const changeColor = isPositiveChange ? '#4ade80' : '#f87171';
-
-    return (
-        <div className="w-full h-80 relative flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                    cy="60%"
-                    innerRadius="50%"
-                    outerRadius="100%"
-                    data={[{ name: 'anomaly', value: safeValue }]}
-                    startAngle={180}
-                    endAngle={0}
-                >
-                    <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                    <RadialBar background dataKey="value" angleAxisId={0}
-                        fill="#E0E0E0" cornerRadius={0} />
-                    <RadialBar dataKey="value" angleAxisId={0}
-                        fill="url(#gradient)" cornerRadius={0} />
-                    <defs>
-                        <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="rgba(111,131,175)" />
-                            <stop offset="100%" stopColor="rgba(111,131,175)" />
-                        </linearGradient>
-                    </defs>
-                </RadialBarChart>
-            </ResponsiveContainer>
-
-            <div className="absolute flex flex-col items-center justify-center">
-                <p className="text-4xl font-lato text-white">
-                    {safeValue.toFixed(2)}<span className="text-xl ml-1">%</span>
-                </p>
-            </div>
-        </div>
-    );
+    const formatter = new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        maximumFractionDigits: 1, // 소수점 최대 한 자리까지 표시
+    });
+    return formatter.format(num);
 };
-
-
 
 const factoryTabs = ['전체', '화성', '인천', '구미', '양산'];
 
 export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }: FactoryDetailViewProps) {
+    const anomalyPercentage = kpiData.anomalyRate * 100;
+
     return (
         <div className="bg-[rgba(40,40,40)] p-6 rounded-3xl shadow-lg h-full flex flex-col">
             {/* --- 탭 --- */}
@@ -94,7 +62,7 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
             <div className='flex flex-col justify-center gap-4 flex-grow min-h-0'>
                 {/* 1. 카드 그리드는 필요한 만큼의 공간을 차지합니다. */}
                 <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <MiniStatCard title="총 처리 건수" value={kpiData.totalTripCount.toLocaleString()} icon={<ListChecks size={40} className="text-white" />} />
+                    <MiniStatCard title="총 처리 건수" value={formatNumberCompact(kpiData.totalTripCount)} icon={<ListChecks size={40} className="text-white" />} />
                     <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={40} className="text-white" />} />
                     <MiniStatCard title="평균 리드타임" value={kpiData.avgLeadTime} icon={<Clock size={40} className="text-white" />} />
                 </div>
@@ -103,9 +71,7 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
                 <div className="flex-grow w-full min-h-0"> {/* h-full 대신 flex-grow와 min-h-0 사용 */}
                     <h3 className="font-noto-400 text-white text-xl pt-5 px-3 flex-shrink-0">이상 발생 비율</h3>
                     <div className='flex items-center justify-center my-4'>
-                        {/* <NewTruckVisualizer percentage={kpiData.anomalyRate} /> */}
-                        {/* <ConeWarningGauge rate={kpiData.anomalyRate} /> */}
-                        <ConeWarningGauge />
+                        <ConeWarningGauge rate={anomalyPercentage}/>
                     </div>
                 </div>
             </div>

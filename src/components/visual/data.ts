@@ -6,18 +6,22 @@
 export interface Node {
     hubType: string;
     scanLocation: string;
-    businessStep: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller';
-    coordinates: [number, number];
+    businessStep: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller' | 'POS';
+    coord: [number, number];
 }
 
 export type AnomalyType = 'jump' | 'evtOrderErr' | 'epcFake' | 'epcDup' | 'locErr';
 
+export interface TripEndpoint {
+    scanLocation: string;
+    coord: [number, number];
+    eventTime: number;
+    businessStep: string;
+}
+
 export interface AnalyzedTrip {
-    id: string;
-    from: string;
-    to: string;
-    path: [[number, number], [number, number]];
-    timestamps: [number, number];
+    from: TripEndpoint;
+    to: TripEndpoint;
     epcCode: string;
     productName: string;
     epcLot: string;
@@ -99,7 +103,8 @@ export async function getInventoryDistribution(params?: Record<string, any>): Pr
             { "businessStep": "WMS", "value": 25800 },
             { "businessStep": "LogiHub", "value": 17300 },
             { "businessStep": "Wholesaler", "value": 35100 },
-            { "businessStep": "Reseller", "value": 48200 }
+            { "businessStep": "Reseller", "value": 48200 },
+            { "businessStep": "POS", "value": 31540 }
         ]
     };
 }

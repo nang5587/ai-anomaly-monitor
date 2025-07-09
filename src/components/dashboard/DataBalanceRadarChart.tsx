@@ -53,7 +53,7 @@ export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartPro
         <div className="w-full h-full">
             <ResponsiveRadar
                 data={radarData}
-                keys={['value', 'average']} // 순서 변경: 실제 값을 위로, 평균을 아래로
+                keys={['average', 'value' ]} // 순서 변경: 실제 값을 위로, 평균을 아래로
                 indexBy="businessStep" // ✨ subject 대신 businessStep 사용
                 maxValue={Math.max(...radarData.map(d => d.value)) * 1.2} // ✨ 동적 최대값 계산
                 margin={{ top: 70, right: 80, bottom: 40, left: 80 }}
@@ -62,18 +62,19 @@ export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartPro
                         ticks: { text: { fill: '#E0E0E0', fontSize: 11 } },
                         legend: { text: { fill: '#FFFFFF' } }
                     },
-                    grid: { line: { stroke: 'rgba(255, 255, 255, 0.2)', strokeDasharray: '4 4' } },
+                    grid: { line: { stroke: 'rgba(255, 255, 255, 0.3)', strokeDasharray: '4 4' } },
                     tooltip: { container: { background: 'rgba(0, 0, 0, 0.85)', color: '#FFFFFF', borderRadius: '6px' } },
                     legends: { text: { fill: '#999' } }
                 }}
-                colors={['rgba(111, 131, 175, 1)', '#E0E0E0']} // 순서에 맞게 색상 변경
+                colors={['#E0E0E0', 'rgba(111, 131, 175, 1)' ]} // 순서에 맞게 색상 변경
+                fillOpacity={0.4}
                 borderColor={{ from: 'color' }}
                 borderWidth={2}
                 gridLabelOffset={30}
                 dotSize={6}
                 dotColor={{ from: 'color' }}
                 dotBorderWidth={2}
-                blendMode="multiply" // 색상이 겹칠 때 더 잘 보이도록
+                // blendMode="multiply"
                 motionConfig="wobbly"
                 legends={[
                     {
@@ -89,7 +90,7 @@ export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartPro
                         symbolShape: 'circle',
                         data: [
                             { id: 'value', label: 'Actual', color: 'rgba(111, 131, 175, 1)' },
-                            { id: 'average', label: `Average (${averageValue.toFixed(0)})`, color: '#E0E0E0' }
+                            { id: 'average', label: `Average (${averageValue.toFixed(0)})`, color: '#E0E0E0' },
                         ],
                         effects: [{ on: 'hover', style: { itemTextColor: '#fff' } }],
                     },

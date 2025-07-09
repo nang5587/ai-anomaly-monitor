@@ -17,7 +17,7 @@ const ANIMATION_SPEED = 10;
 
 // Trip 데이터 타입 정의 (기존과 동일)
 interface Waypoint {
-    coordinates: [number, number]; timestamp: number; read_point: string;
+    coord: [number, number]; timestamp: number; read_point: string;
     event_type: string; product_name: string;
 }
 interface Trip { product_serial: number; waypoints: Waypoint[]; }
@@ -72,7 +72,7 @@ export default function LogisticsMap({ data }: LogisticsMapProps) {
     const tripsLayer = new TripsLayer<Trip>({
         id: 'trips-layer',
         data,
-        getPath: d => d.waypoints.map(p => p.coordinates),
+        getPath: d => d.waypoints.map(p => p.coord),
         getTimestamps: d => d.waypoints.map(p => p.timestamp),
         getColor: d => [(d.product_serial * 50) % 255, (d.product_serial * 90) % 255, (d.product_serial * 130) % 255],
         opacity: 0.8,

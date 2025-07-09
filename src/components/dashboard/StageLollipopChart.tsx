@@ -48,6 +48,10 @@ const StageStandardLineChart: React.FC<StandardChartProps> = ({ data }) => {
                     axisLine={false}
                     tick={{ fill: '#E0E0E0', fontSize: 12 }}
                     interval={0}
+                    angle={-30}
+                    textAnchor='end'
+                    height={80}
+                    dy={10}
                 />
                 <YAxis
                     axisLine={false}

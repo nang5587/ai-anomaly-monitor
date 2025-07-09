@@ -16,6 +16,8 @@ const formatTimestamp = (time: number): string => {
     }).replace(/\. /g, '-').replace('.', '');
 };
 
+type TripWithId = AnalyzedTrip & { id: string };
+
 interface TimeSliderProps {
     minTime: number;
     maxTime: number;
@@ -23,14 +25,23 @@ interface TimeSliderProps {
     isPlaying: boolean;
     onChange: (time: number) => void;
     onTogglePlay: () => void;
-    anomalies: AnalyzedTrip[];
-    onMarkerClick: (trip: AnalyzedTrip) => void;
+    anomalies: TripWithId[];
+    onMarkerClick: (trip: TripWithId) => void;
 }
 
 type TooltipInfo = {
     trip: AnalyzedTrip;
     top: number;
     left: number;
+};
+
+const pastelColorMap: { [key: string]: string } = {
+    'jump': '#D7BDE2',      // 연한 라벤더
+    'evtOrderErr': '#FAD7A0', // 부드러운 살구
+    'epcFake': '#F5B7B1',     // 매우 연한 핑크
+    'epcDup': '#FCF3CF',      // 부드러운 크림
+    'locErr': '#A9CCE3',      // 매우 연한 하늘색
+    'default': '#E5E7E9',     // 연한 회색
 };
 
 const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, isPlaying, onChange, onTogglePlay, anomalies,
@@ -42,11 +53,10 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
     const renderTooltip = () => {
         if (!tooltip) return null;
 
-        const [r, g, b] = getAnomalyColor(tooltip.trip.anomaly?.type);
-        const mix = 0.7;
-        const pastelR = Math.round(r + (255 - r) * mix);
-        const pastelG = Math.round(g + (255 - g) * mix);
-        const pastelB = Math.round(b + (255 - b) * mix);
+        const anomalyType = tooltip.trip.anomaly || 'default';
+        const pastel = pastelColorMap[anomalyType] || pastelColorMap['default'];
+        const bgColor = `${pastel}26`; // 배경색 (투명도 15% 적용)
+        const textColor = pastel;
 
         return (
             <div style={{
@@ -54,17 +64,19 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 top: tooltip.top,
                 left: tooltip.left,
                 transform: 'translate(-50%, -120%)',
-                background: `rgba(${pastelR}, ${pastelG}, ${pastelB})`,
-                color: `rgb(${Math.round(r * 0.75)}, ${Math.round(g * 0.75)}, ${Math.round(b * 0.75)})`,
-                padding: '6px 10px',
-                borderRadius: '25px',
+                backgroundColor: bgColor,
+                color: textColor,
+                padding: '4px 12px',
+                borderRadius: '12px',
                 fontSize: '12px',
                 fontWeight: 'bold',
                 pointerEvents: 'none',
                 zIndex: 100,
                 whiteSpace: 'nowrap',
+                border: `1px solid ${pastel}80`, // 테두리 추가로 가시성 확보
+                backdropFilter: 'blur(4px)',
             }}>
-                {getAnomalyName(tooltip.trip.anomaly?.type)}
+                {getAnomalyName(tooltip.trip.anomaly || undefined)}
             </div>
         );
     };
@@ -135,12 +147,10 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     {/* ✨ 6. 마커들을 렌더링하는 부분 */}
                     {anomalies.map(trip => {
                         if (duration <= 0) return null;
-                        const positionPercent = ((trip.timestamps[0] - minTime) / duration) * 100;
-                        const [r, g, b] = getAnomalyColor(trip.anomaly?.type);
-                        const mix = 0.5;
-                        const pastelR = Math.round(r + (255 - r) * mix);
-                        const pastelG = Math.round(g + (255 - g) * mix);
-                        const pastelB = Math.round(b + (255 - b) * mix);
+                        const positionPercent = ((trip.from.eventTime - minTime) / duration) * 100;
+                        const anomalyType = trip.anomaly || 'default';
+                        const pastel = pastelColorMap[anomalyType] || pastelColorMap['default'];
+                        const textColor = pastel;
                         return (
                             <div
                                 key={trip.id}
@@ -151,7 +161,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                                     transform: 'translate(-50%, -50%)',
                                     width: '12px',
                                     height: '12px',
-                                    background: `rgba(${pastelR}, ${pastelG}, ${pastelB})`,
+                                    background: `${textColor}`,
                                     borderRadius: '50%',
                                     cursor: 'pointer',
                                     zIndex: 1,
@@ -184,7 +194,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     <strong style={{ color: 'white' }}>{formatTimestamp(currentTime)}</strong>
                 </div>
             </div>
-            {/* 툴팁 렌더링 함수 호출 */}
+
             {renderTooltip()}
         </>
     );

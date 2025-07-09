@@ -86,8 +86,9 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
 
     }, [minTime, maxTime]);
 
-    const staticLines = useMemo(() => {
-        return analyzedTrips.map(trip => ({ ...trip, source: trip.path[0], target: trip.path[1] }));
+    const validTrips = useMemo(() => {
+        if (!analyzedTrips) return [];
+        return analyzedTrips.filter(trip => trip && trip.from?.coord && trip.to?.coord);
     }, [analyzedTrips]);
 
     const factoryNodes = useMemo(() => nodes.filter(node => node.businessStep === 'Factory'), [nodes]);
@@ -111,7 +112,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             id: `widget-mesh-layer-${type}`,
             data: filteredNodes,
             mesh: OTHER_MODEL_MAPPING[type],
-            getPosition: d => d.coordinates,
+            getPosition: d => d.coord,
             getColor: d => getNodeColor(d.businessStep),
             getOrientation: [-90, 0, 0],
             sizeScale: 50,
@@ -126,7 +127,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             id: 'widget-factory-building-layer',
             data: factoryNodes,
             mesh: parsedFactoryBuildingModel,
-            getPosition: d => d.coordinates,
+            getPosition: d => d.coord,
             getColor: d => getNodeColor(d.businessStep),
             getOrientation: [-90, 180, 0],
             sizeScale: 50,
@@ -141,9 +142,9 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
         // 정적 연결선 레이어 (선택 하이라이트 로직 제거)
         new LineLayer({
             id: 'widget-static-supply-lines',
-            data: staticLines,
-            getSourcePosition: d => d.path[0],
-            getTargetPosition: d => d.path[1],
+            data: validTrips,
+            getSourcePosition: d => d.from.coord,
+            getTargetPosition: d => d.to.coord,
             getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [220, 220, 228, 50],
             getWidth: 1, // 얇은 선으로 고정
             pickable: false, // 위젯에서는 클릭/호버 비활성화
@@ -151,7 +152,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
         // 경로 위조 '예상 경로' 레이어
         new LineLayer({
             id: 'widget-expected-path-lines',
-            data: staticLines.filter(d => d.anomaly === 'locErr'),
+            data: validTrips.filter(d => d.anomaly === 'locErr'),
             getSourcePosition: d => (d.anomaly as any).expectedPath[0],
             getTargetPosition: d => (d.anomaly as any).expectedPath[1],
             getColor: [150, 150, 150, 200],
@@ -163,9 +164,9 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
         // 동적 이동 애니메이션 레이어
         new TripsLayer<AnalyzedTrip>({
             id: 'widget-trips-layer',
-            data: analyzedTrips,
-            getPath: d => d.path,
-            getTimestamps: d => d.timestamps,
+            data: validTrips,
+            getPath: d => [d.from.coord, d.to.coord],
+            getTimestamps: d => [d.from.eventTime, d.to.eventTime],
             getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [144, 238, 144],
             opacity: 0.8,
             widthMinPixels: 4,
@@ -212,7 +213,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'background 0.2s',
-                    pointerEvents: 'auto', // 이 버튼만 클릭 가능하도록 설정
+                    pointerEvents: 'none', // 이 버튼만 클릭 가능하도록 설정
                 }}
                 // 호버 효과를 위한 인라인 이벤트 핸들러 (선택사항)
                 onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}

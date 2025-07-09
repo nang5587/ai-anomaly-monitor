@@ -1,12 +1,13 @@
 // src/components/dashboard/AnomalyList.tsx
 import React from 'react';
-import { AnalyzedTrip, Node } from '@/components/visual/data';
+import { type AnalyzedTrip, type Node } from '@/components/visual/data';
 import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
 import { Truck, Shuffle, ShieldAlert, Copy, MapPinOff } from 'lucide-react';
 
+type TripWithId = AnalyzedTrip & { id: string };
+
 type AnomalyListProps = {
-    data: AnalyzedTrip[];
-    nodeMap: Map<string, Node>;
+    anomalies: TripWithId[];
 };
 
 const anomalyIconMap: { [key: string]: JSX.Element } = {
@@ -15,18 +16,6 @@ const anomalyIconMap: { [key: string]: JSX.Element } = {
     epcFake: <ShieldAlert className="w-4 h-4" />, // 위조 (보안/인증 문제)
     epcDup: <Copy className="w-4 h-4" />,         // 복제
     locErr: <MapPinOff className="w-4 h-4" />,    // 경로 위조 (위치 이탈)
-};
-
-const getAnomalyDescription = (trip: AnalyzedTrip): string => {
-    if (!trip.anomaly) return '정상';
-    switch (trip.anomaly.type) {
-        case 'jump': return `비정상적 이동: ${trip.anomaly.distance}km를 ${trip.anomaly.travelTime}분 만에 주파`;
-        case 'evtOrderErr': return `출발(${trip.anomaly.currentEventTime})이 이전 이벤트(${trip.anomaly.previousEventTime})보다 빠름`;
-        case 'epcFake': return `EPC 생성 규칙 위반: ${trip.anomaly.invalidRule}`;
-        case 'epcDup': return `다른 경로와 충돌 발생 (ID: ${trip.anomaly.conflictingTripId})`;
-        case 'locErr': return `미승인 지점(${trip.anomaly.bypassedNode.name}) 경유`;
-        default: return '알 수 없는 오류';
-    }
 };
 
 const pastelColorMap: { [key: string]: string } = {
@@ -44,27 +33,60 @@ const pastelColorMap: { [key: string]: string } = {
     'default': '#E5E7E9',
 };
 
-export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.Element {
+const formatUnixTimestamp = (timestamp: number | string): string => {
+    // 유효하지 않은 타임스탬프는 'N/A'로 처리
+    if (!timestamp || timestamp === 0) return 'N/A';
+
+    // Unix 타임스탬프(초 단위)는 밀리초로 변환해야 함 ( * 1000 )
+    const date = new Date(Number(timestamp) * 1000);
+
+    // 'sv-SE' 로케일은 YYYY-MM-DD 형식에 가장 가까워 편리함
+    const formatter = new Intl.DateTimeFormat('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false, // 24시간 표기법 사용
+    });
+
+    return formatter.format(date);
+};
+
+export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Element {
+    if (anomalies === undefined) {
+        return (
+            <div className="flex items-center justify-center h-full text-gray-500">
+                이상 데이터 로딩 중...
+            </div>
+        );
+    }
+
+    if (anomalies.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-full text-gray-500">
+                표시할 이상 데이터가 없습니다.
+            </div>
+        );
+    }
+
     return (
         // ✨ 1. 여기가 전체를 감싸는 단일 그리드 컨테이너입니다.
-        <div className="grid grid-cols-[2fr_1fr_3fr_3fr_1fr] gap-x-4 min-w-full text-sm">
+        <div className="w-full">
 
-            {/* --- Table Header --- */}
             {/* ✨ 2. 헤더 셀들은 이제 부모 그리드의 첫 번째 행을 구성합니다. */}
-            <div className="col-start-1 col-span-5 grid grid-cols-subgrid gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
-                <div className="col-span-1">Trip ID / 제품명</div>
+            <div className="hidden sm:grid grid-cols-[2fr_1fr_3fr_3fr_1fr] gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
+                <div className="col-span-1">상품명 / EPC</div>
                 <div className="col-span-1">시간</div>
-                <div className="col-span-1">경로 (출발 → 도착)</div>
+                <div className="col-span-1 text-left">경로 (출발 → 도착)</div>
                 <div className="col-span-1">상세 내용</div>
                 <div className="col-span-1">이상 유형</div>
             </div>
 
             {/* --- Table Body --- */}
             {/* ✨ 3. map 함수가 각 셀들을 직접 반환합니다. */}
-            {data.map((trip) => {
-                const fromNode = nodeMap.get(trip.from);
-                const toNode = nodeMap.get(trip.to);
-                const anomalyType = trip.anomaly?.type;
+            {anomalies.map((trip) => {
+                const anomalyType = trip.anomaly;
 
                 // ✨ 2. 기존의 복잡한 색상 계산 로직을 모두 제거합니다.
 
@@ -75,39 +97,44 @@ export default function AnomalyList({ data, nodeMap }: AnomalyListProps): JSX.El
 
                 const tagStyle = { color: tagColor };
 
-                const name = anomalyType ? getAnomalyName(anomalyType) : '';
+                const anomalyName = anomalyType ? getAnomalyName(anomalyType) : '';
                 const rowHoverStyle = "group-hover:bg-[rgba(40,40,40,0.5)]";
 
                 return (
-                    <React.Fragment key={trip.id}>
-                        <div className={`col-start-1 col-span-5 grid grid-cols-subgrid gap-x-4 items-center text-center py-2 px-12 transition-colors cursor-pointer rounded-2xl group font-noto-400 ${rowHoverStyle}`}>
-                            <div className="col-span-1 flex flex-col items-center justify-center">
-                                <p className="text-white font-medium">{trip.product}</p>
-                                <p className="text-xs text-[#a0a0a0]">{trip.id}</p>
-                            </div>
-                            <div className="col-span-1 text-xs flex flex-col gap-1 justify-center items-center whitespace-nowrap">
-                                <p className="text-[#E0E0E0]">출발: {trip.timestamps[0]}</p>
-                                <p className="text-[#E0E0E0]">도착: {trip.timestamps[1]}</p>
-                            </div>
-                            <div className="col-span-1 text-[#E0E0E0] flex justify-center items-center gap-2">
-                                <span className="truncate">{fromNode?.name || trip.from}</span>
-                                <ArrowRight size={14} className="text-[#E0E0E0] shrink-0" />
-                                <span className="truncate">{toNode?.name || trip.to}</span>
-                            </div>
-                            <div className="col-span-1 text-xs text-[#b0b0b0] break-words px-2">
-                                {getAnomalyDescription(trip)}
-                            </div>
-                            <div className="col-span-1">
-                                {anomalyType && (
-                                    // ✨ 4. style={tagStyle}을 적용하여 아이콘과 텍스트 색상을 변경합니다.
-                                    <span style={tagStyle} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold">
-                                        {anomalyIconMap[anomalyType]}
-                                        {name}
-                                    </span>
-                                )}
-                            </div>
+                    <div
+                        key={trip.id}
+                        className={`group font-noto-400 border-b border-b-[#e0e0e034] transition-colors cursor-pointer 
+                                    sm:grid sm:grid-cols-[2fr_1fr_3fr_3fr_1fr] sm:gap-x-4 sm:items-center sm:text-center
+                                    flex flex-col gap-2 py-4 px-6 sm:px-12 ${rowHoverStyle}`}
+                    >
+                        <div className="sm:col-span-1 text-white flex flex-col sm:items-center sm:justify-center text-left">
+                            <p className="font-medium">{trip.productName}</p>
+                            <p className="text-xs text-[#a0a0a0]">{trip.epcCode}</p>
                         </div>
-                    </React.Fragment>
+                        <div className="sm:col-span-1 text-xs flex flex-col gap-1 justify-center sm:items-center text-[#E0E0E0]">
+                            <p>출발: {formatUnixTimestamp(trip.from.eventTime)}</p>
+                            <p>도착: {formatUnixTimestamp(trip.to.eventTime)}</p>
+                        </div>
+                        <div className="sm:col-span-1 text-[#E0E0E0] flex items-center gap-2">
+                            <span className="truncate">{trip.from.scanLocation}</span>
+                            <ArrowRight size={14} className="shrink-0 text-[#E0E0E0]" />
+                            <span className="truncate">{trip.to.scanLocation}</span>
+                        </div>
+                        <div className="sm:col-span-1 text-xs text-[#E0E0E0]">
+                            {trip.anomalyDescription}
+                        </div>
+                        <div className="sm:col-span-1">
+                            {anomalyType && (
+                                <span
+                                    style={tagStyle}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                                >
+                                    {anomalyIconMap[anomalyType]}
+                                    {anomalyName}
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 );
             })}
         </div>
