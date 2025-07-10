@@ -103,7 +103,6 @@ const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ no
                     {relatedAnomalies.map(trip => (
                         <div key={trip.id} style={{ fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}>
                             <div style={{ fontWeight: 'bold', color: `rgb(${getAnomalyColor(trip.anomaly || undefined).join(',')})` }}>{getAnomalyName(trip.anomaly || undefined)}</div>
-                            {/* ✨ 3. nodeMap을 사용해 이름 변환 */}
                             <div>{trip.from.scanLocation} → {trip.to.scanLocation}</div>
                             <div>상품명: {trip.productName}</div>
                         </div>

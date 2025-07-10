@@ -366,8 +366,8 @@ export default function SupervisorDashboard() {
 
                   {/* 1. 이상 탐지 유형별 건수 */}
                   {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[260px]) */}
-                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[380px] flex flex-col">
-                    <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 탐지 유형별 건수</h3>
+                  <div className="bg-[#E0E0E0] p-4 rounded-2xl shadow h-[380px] flex flex-col">
+                    <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 탐지 유형별 건수</h3>
                     <div className="flex-grow overflow-hidden">
                       <DynamicAnomalyChart data={anomalyChartData} />
                     </div>
@@ -419,7 +419,7 @@ export default function SupervisorDashboard() {
 
           {/* 하단 리스트 */}
           <motion.div variants={itemVariants}>
-            <h3 className="font-vietnam text-white text-2xl mb-4">Anomaly List</h3>
+            <h3 className="font-noto-400 text-white text-2xl mb-4">이상 탐지 리스트</h3>
             <div className="font-vietnam"><AnomalyList anomalies={anomalyTrips} /></div>
           </motion.div>
         </motion.div>

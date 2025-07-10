@@ -124,19 +124,19 @@ export default function UserManagementClient() {
 
     return (
         <div>
-            <div className="flex space-x-2 border-b mb-4">
-                <Button
-                    variant={activeTab === 'pending' ? 'secondary' : 'ghost'}
-                    onClick={() => setActiveTab('pending')}
+            <div className="flex space-x-2 mb-4">
+                <button
+                    onClick={() => handleTabChange('pending')}
+                    className='text-sm rounded-2xl px-6 py-3 bg-[#f6f6f6]'
                 >
                     승인 대기
-                </Button>
-                <Button
-                    variant={activeTab === 'active' ? 'secondary' : 'ghost'}
-                    onClick={() => setActiveTab('active')}
+                </button>
+                <button
+                    onClick={() => handleTabChange('active')}
+                    className='text-sm rounded-2xl px-6 py-3 bg-[#f6f6f6]'
                 >
                     활성 사용자
-                </Button>
+                </button>
             </div>
 
             {isLoading ? (
@@ -144,42 +144,47 @@ export default function UserManagementClient() {
             ) : (
                 <>
                     {users.length === 0 ? (
-                        <p className="text-center text-[#E0E0E0] py-8">해당하는 사용자가 없습니다.</p>
+                        <p className="text-center text-[rgba(40,40,40)] py-8">해당하는 사용자가 없습니다.</p>
                     ) : (
-                        // 이 코드를 UserManagementClient.tsx의 테이블 렌더링 부분에 붙여넣으세요.
-                        <div className="border rounded-lg overflow-hidden border-neutral-800">
-                            <table className="w-full text-sm text-left text-neutral-300">
-                                <thead className="bg-neutral-900">
+                        <div className="rounded-lg overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-[#f6f6f6]">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-xs text-center font-semibold uppercase tracking-wider text-neutral-400">
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
                                             이름
                                         </th>
-                                        <th scope="col" className="px-6 py-3 text-xs text-center font-semibold uppercase tracking-wider text-neutral-400">
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
                                             이메일
                                         </th>
-                                        <th scope="col" className="px-6 py-3 text-xs text-center font-semibold uppercase tracking-wider text-neutral-400">
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
                                             가입 신청일
                                         </th>
-                                        <th scope="col" className="px-6 py-3 text-xs text-center font-semibold uppercase tracking-wider text-neutral-400">
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
                                             처리
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-neutral-800">
+                                <tbody className="divide-y divide-[#f6f6f6]">
                                     {users.map((user) => (
                                         <tr key={user.userId} className="bg-white hover:bg-white/90 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-white text-center">
+                                            <td className="px-6 py-3 whitespace-nowrap font-semibold text-black text-center">
                                                 {user.userName}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <td className="px-6 py-3 whitespace-nowrap text-center text-black">
                                                 {user.email}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                {new Date(user.requestedAt).toLocaleDateString()}
+                                            <td className="px-6 py-3 whitespace-nowrap text-center text-[rgba(40,40,40,0.7)]">
+                                                {new Date(user.requestedAt).toLocaleString('ko-KR', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
                                             </td>
-                                            <td className="px-6 py-4 text-center space-x-2">
-                                                <Button size="sm" onClick={() => handleApproveClick(user)}>승인</Button>
-                                                <Button size="sm" variant="destructive" onClick={() => handleRejectClick(user)}>거절</Button>
+                                            <td className="px-6 py-3 text-center whitespace-nowrap">
+                                                <button onClick={() => handleApproveClick(user)} className='text-[rgba(40,40,40)] font-noto-500 bg-[#cbffd865] border border-[#cbffd8] px-5 py-2 rounded-2xl cursor-pointer mr-2 sm:mb-2'>승인</button>
+                                                <button onClick={() => handleRejectClick(user)} className='text-[rgba(40,40,40)] font-noto-500 bg-[#ffcbcb65] border border-[#ffcbcb] px-5 py-2 rounded-2xl cursor-pointer mr-2'>거절</button>
                                             </td>
                                         </tr>
                                     ))}

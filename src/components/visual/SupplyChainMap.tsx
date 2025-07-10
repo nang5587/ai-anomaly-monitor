@@ -227,9 +227,62 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     // 이상 탐지된 트립만 필터링
     const anomalyList = useMemo(() => validTrips.filter(t => t.anomaly), [validTrips]);
 
+    useEffect(() => {
+        // 선택된 객체가 없으면 아무것도 하지 않고 종료합니다.
+        if (!selectedObject) return;
+
+        // 1. 선택된 객체가 'Trip' 타입일 경우 (from, to 속성으로 확인)
+        if ('from' in selectedObject && 'to' in selectedObject) {
+            const trip = selectedObject;
+            // 출발지와 도착지 좌표가 유효한지 확인
+            if (!trip.from?.coord || !trip.to?.coord) return;
+
+            const [x1, y1] = trip.from.coord;
+            const [x2, y2] = trip.to.coord;
+
+            // 두 지점의 중간 지점을 계산합니다.
+            const longitude = (x1 + x2) / 2;
+            const latitude = (y1 + y2) / 2;
+
+            // setViewState를 호출하여 카메라를 이동시킵니다.
+            setViewState((currentViewState: any) => ({
+                ...currentViewState,
+                longitude,
+                latitude,
+                zoom: 10, // trip을 보여주기에 적절한 줌 레벨 (조정 가능)
+                pitch: 45,
+                transitionDuration: 1500, // 1.5초 동안 부드럽게 이동
+                transitionInterpolator: new FlyToInterpolator(), // 날아가는 효과
+            }));
+        }
+        // 2. 선택된 객체가 'Node' 타입일 경우 (coord 속성으로 확인)
+        else if ('coord' in selectedObject) {
+            const node = selectedObject;
+            // setViewState를 호출하여 카메라를 이동시킵니다.
+            setViewState((currentViewState: any) => ({
+                ...currentViewState,
+                longitude: node.coord[0],
+                latitude: node.coord[1],
+                zoom: 13, // node를 보여주기에 적절한 줌 레벨 (조정 가능)
+                pitch: 60,
+                transitionDuration: 1500,
+                transitionInterpolator: new FlyToInterpolator(),
+            }));
+        }
+
+    }, [selectedObject]);
+
     // AnomalyList 항목 클릭 시 해당 경로를 중앙에 보여주는 함수
+    // 
     const handleCaseClick = (trip: TripWithId) => {
-        // 1. 해당 경로의 중심으로 카메라 이동
+        // 1. 상세 보기 패널 업데이트 (이 부분은 유지)
+        onObjectSelect(trip);
+
+        // 2. 시간 슬라이더를 이벤트 발생 시점으로 이동 (이 부분은 유지)
+        setCurrentTime(trip.from.eventTime);
+
+        // 3. 카메라 이동 로직은 위에서 추가한 useEffect가 처리하므로, 여기서는 제거해도 됩니다.
+        /*
         const [x1, y1] = trip.from.coord;
         const [x2, y2] = trip.to.coord;
         const newViewState = {
@@ -241,14 +294,8 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
             transitionDuration: 1500,
             transitionInterpolator: new FlyToInterpolator(),
         };
-
         setViewState(newViewState);
-
-        // 2. 상세 보기 패널
-        onObjectSelect(trip);
-
-        // 3. 시간 슬라이더를 이벤트 발생 시점으로 이동
-        setCurrentTime(trip.from.eventTime);
+        */
     };
 
     // 노드 분류

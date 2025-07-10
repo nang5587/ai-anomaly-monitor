@@ -122,6 +122,19 @@ body,
   display: none;
 }
 
+/* FilterPanel.tsx 드롭다운 메뉴 배경색 변경 */
+.custom-select option {
+  background-color: #2A2A2A; /* 부모 컴포넌트의 배경색과 유사하게 */
+  color: #FFFFFF;
+}
+
+/* FilterPanel.tsx 달력 변경 */
+.custom-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* 아이콘 색상을 반전시켜 흰색으로 보이게 함 */
+  cursor: pointer;
+  color: #FFFFFF;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

@@ -54,6 +54,14 @@ export interface InventoryDistributionResponse {
     inventoryDistribution: InventoryDataPoint[];
 }
 
+export interface FilterOptions {
+    scanLocations: string[];
+    eventTimeRange: { min: number; max: number };
+    businessSteps: string[];
+    productNames: string[];
+    eventTypes: string[];
+    anomalyTypes: { code: string; name: string }[];
+}
 
 // --- 2. "가짜" API 호출 함수들 (더미 데이터 사용) ---
 // 컴포넌트는 이 함수들을 실제 API처럼 호출합니다.
@@ -109,34 +117,84 @@ export async function getInventoryDistribution(params?: Record<string, any>): Pr
     };
 }
 
-
+export async function getFilterOptions(): Promise<FilterOptions> {
+    const response = await fetch('/api/filter.json');
+    if (!response.ok) throw new Error('Failed to fetch filter options');
+    return response.json();
+}
 /**
- * 이상 징후 Trip 목록을 가져옵니다. (더미)
- * @returns {Promise<AnalyzedTrip[]>}
+ * 필터링된 이상 징후 Trip 목록을 가져옵니다.
+ * @param params 필터 조건
  */
 export async function getAnomalies(params?: Record<string, any>): Promise<AnalyzedTrip[]> {
     console.log('Fetching Anomalies with params:', params);
-    const response = await fetch('/api/anomalies.json'); // public/api/anomalies.json
-    if (!response.ok) {
-        throw new Error('Failed to fetch anomalies');
+    const response = await fetch('/api/anomalies.json');
+    if (!response.ok) throw new Error('Failed to fetch anomalies');
+    
+    let allAnomalies: AnalyzedTrip[] = await response.json();
+
+    // 더미 필터링 로직
+    if (params && Object.keys(params).length > 0) {
+        allAnomalies = allAnomalies.filter(trip => {
+            return Object.entries(params).every(([key, value]) => {
+                if (!value) return true; // 값이 없는 필터는 건너뜀
+                switch (key) {
+                    case 'fromScanLocation': return trip.from.scanLocation === value;
+                    case 'toScanLocation': return trip.to.scanLocation === value;
+                    case 'min': return trip.from.eventTime >= Number(value);
+                    case 'max': return trip.to.eventTime <= Number(value);
+                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
+                    case 'epcCode': return trip.epcCode.includes(String(value));
+                    case 'productName': return trip.productName === value;
+                    case 'epcLot': return trip.epcLot.includes(String(value));
+                    case 'eventType': return trip.eventType === value;
+                    case 'anomaly': return trip.anomaly === value;
+                    default: return true;
+                }
+            });
+        });
     }
-    return response.json();
+    return allAnomalies;
 }
 
 /**
- * 전체 Trip 목록을 필터링하여 가져옵니다. (더미, 페이지네이션 흉내)
- * @returns {Promise<PaginatedTripsResponse>}
+ * 필터링 및 페이지네이션된 전체 Trip 목록을 가져옵니다.
+ * @param params 필터 조건 및 페이지네이션 커서
  */
 export async function getTrips(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
     console.log('Fetching Trips with params:', params);
-    const response = await fetch('/api/trips.json'); // public/api/trips.json
-    if (!response.ok) {
-        throw new Error('Failed to fetch trips');
-    }
-    const allTrips: AnalyzedTrip[] = await response.json();
+    const response = await fetch('/api/trips.json');
+    if (!response.ok) throw new Error('Failed to fetch trips');
+    
+    let allTrips: AnalyzedTrip[] = await response.json();
 
-    // 간단한 더미 페이지네이션 로직
-    const limit = params?.limit ? Number(params.limit) : 10;
+    // 더미 필터링 로직
+    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
+    
+    if (filterKeys.length > 0) {
+        allTrips = allTrips.filter(trip => {
+            return filterKeys.every(key => {
+                const value = params![key];
+                if (!value) return true;
+                switch (key) {
+                    case 'fromScanLocation': return trip.from.scanLocation === value;
+                    case 'toScanLocation': return trip.to.scanLocation === value;
+                    case 'min': return trip.from.eventTime >= Number(value);
+                    case 'max': return trip.to.eventTime <= Number(value);
+                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
+                    case 'epcCode': return trip.epcCode.includes(String(value));
+                    case 'productName': return trip.productName === value;
+                    case 'epcLot': return trip.epcLot.includes(String(value));
+                    case 'eventType': return trip.eventType === value;
+                    case 'anomaly': return trip.anomaly === value;
+                    default: return true;
+                }
+            });
+        });
+    }
+
+    // 페이지네이션 로직
+    const limit = 10; // 페이지당 10개로 고정
     const startIndex = params?.cursor ? Number(params.cursor) : 0;
     const paginatedData = allTrips.slice(startIndex, startIndex + limit);
     const nextCursor = (startIndex + limit < allTrips.length) ? (startIndex + limit).toString() : null;

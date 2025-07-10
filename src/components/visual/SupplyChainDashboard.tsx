@@ -1,22 +1,30 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { v4 as uuidv4 } from 'uuid';
+
+import { Filter } from 'lucide-react';
 
 import {
     getNodes,
     getAnomalies,
-    getTrips, // '전체 이력' 조회를 위해 새로 추가
+    getTrips,
+    getFilterOptions,
     type Node,
     type AnalyzedTrip,
+    type FilterOptions,
 } from './data';
 
 import { SupplyChainMap } from './SupplyChainMap'; // 리팩토링된 맵 컴포넌트
 import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
+import FilterPanel from './FilterPanel';
+import TripList from './TripList';
 
 // 탭 타입 정의
 type Tab = 'anomalies' | 'all';
+
+
 
 // 탭 버튼 스타일
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
@@ -43,6 +51,13 @@ export const SupplyChainDashboard: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedObject, setSelectedObject] = useState<TripWithId | Node | null>(null);
 
+    // --- 필터 ---
+    const [isFetchingMore, setIsFetchingMore] = useState(false); // '더 보기' 버튼 로딩 상태
+    const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null); // 필터 옵션 목록
+    const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({}); // 현재 적용된 필터
+    const [nextCursor, setNextCursor] = useState<string | null>(null); // 다음 페이지 커서
+    const [showFilterPanel, setShowFilterPanel] = useState(false);
+
     const trips: TripWithId[] = useMemo(() => {
         if (!rawTrips) return [];
         // 원본 데이터 배열을 순회하며 각 객체에 고유 id를 추가
@@ -55,27 +70,27 @@ export const SupplyChainDashboard: React.FC = () => {
     // --- 데이터 로딩 ---
     // 1. 노드 데이터는 처음에 한 번만 로드합니다.
     useEffect(() => {
-        getNodes()
-            .then(setNodes)
-            .catch(error => console.error("노드 데이터 로딩 실패:", error));
+        getNodes().then(setNodes).catch(error => console.error("노드 데이터 로딩 실패:", error));
+        getFilterOptions().then(setFilterOptions).catch(error => console.error("필터 옵션 로딩 실패:", error));
     }, []);
 
-    // 2. 탭이 변경될 때마다 해당 탭에 맞는 Trip 데이터를 로드합니다.
+    // 2. 탭이 바뀌거나 필터가 적용될 때마다 해당 탭에 맞는 Trip 데이터를 로드합니다.
     useEffect(() => {
-        setIsLoading(true);
-        setSelectedObject(null);
-        setRawTrips([]); // 원본 데이터 초기화
-        // setNextCursor(null);
-
         const fetchData = async () => {
+            setIsLoading(true);
+            setSelectedObject(null);
+            setRawTrips([]); // 새 검색이므로 기존 목록 초기화
+            setNextCursor(null); // 커서 초기화
+
             try {
                 if (activeTab === 'anomalies') {
-                    const anomalyData = await getAnomalies();
+                    // 이상 징후 탭도 필터를 적용할 수 있도록 수정
+                    const anomalyData = await getAnomalies(appliedFilters);
                     setRawTrips(anomalyData);
                 } else {
-                    const allTripsResponse = await getTrips(); // 첫 페이지 로드
-                    setRawTrips(allTripsResponse.data);
-                    // setNextCursor(allTripsResponse.nextCursor);
+                    const response = await getTrips(appliedFilters);
+                    setRawTrips(response.data);
+                    setNextCursor(response.nextCursor);
                 }
             } catch (error) {
                 console.error("데이터 로딩 실패:", error);
@@ -83,12 +98,28 @@ export const SupplyChainDashboard: React.FC = () => {
                 setIsLoading(false);
             }
         };
-
         fetchData();
-    }, [activeTab]);
+    }, [activeTab, appliedFilters]);
 
-    // --- 파생 데이터 (자식 컴포넌트에 prop으로 전달) ---
-    const nodeMap = useMemo(() => new Map<string, Node>(nodes.map(n => [n.hubType, n])), [nodes]);
+    const handleLoadMore = useCallback(async () => {
+        if (!nextCursor || isFetchingMore) return; // 다음 페이지가 없거나 로딩 중이면 실행 안함
+
+        setIsFetchingMore(true);
+        try {
+            // 현재 필터 값과 다음 페이지 커서를 함께 API에 전달
+            const params = { ...appliedFilters, cursor: nextCursor };
+            const response = await getTrips(params);
+
+            // 새로 받아온 데이터를 기존 목록 뒤에 추가
+            setRawTrips(prev => [...prev, ...response.data]);
+            setNextCursor(response.nextCursor);
+        } catch (error) {
+            console.error("추가 데이터 로딩 실패:", error);
+        } finally {
+            setIsFetchingMore(false);
+        }
+    }, [nextCursor, appliedFilters, isFetchingMore]);
+
     const anomalyList = useMemo(() => trips.filter(t => t.anomaly), [trips]);
 
     return (
@@ -107,46 +138,101 @@ export const SupplyChainDashboard: React.FC = () => {
                 onObjectSelect={setSelectedObject}
             />
 
-            {/* 왼쪽 패널 컨테이너 */}
+            {/* ✨ 필터 패널: showFilterPanel 상태에 따라 나타나거나 사라짐 */}
             <div style={{
-                position: 'absolute', top: '0px', left: '20px', width: '300px',
+                position: 'absolute',
+                top: '20px',
+                left: '30px',
+                width: '320px',
                 height: 'calc(100vh - 200px)',
-                zIndex: 3, display: 'flex', flexDirection: 'column', gap: '15px',
+                zIndex: 4, // 리스트 패널보다 위에 위치
+                transform: showFilterPanel ? 'translateX(-6%)' : 'translateX(-120%)',
+                transition: 'transform 0.3s ease-in-out',
+                display: activeTab === 'all' ? 'block' : 'none', // '전체' 탭에서만 활성화
+            }}>
+                <FilterPanel
+                    options={filterOptions}
+                    onApplyFilters={(filters) => {
+                        setAppliedFilters(filters);
+                        // 필터 적용 후 자동으로 닫아주는 UX 개선
+                        setShowFilterPanel(false);
+                    }}
+                    isFiltering={isLoading}
+                    onClose={() => setShowFilterPanel(false)}
+                />
+            </div>
+
+            <div style={{
+                position: 'absolute',
+                top: '0px',
+                width: '300px',
+                left: '20px',
+                height: 'calc(100vh - 200px)',
+                zIndex: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '15px'
             }}>
                 {/* 탭 UI */}
-                <div style={{ display: 'flex', flexShrink: 0 }} className='bg-[#000000] rounded-b-3xl'>
-                    <button style={tabButtonStyle(activeTab === 'anomalies')} className='whitespace-nowrap' onClick={() => setActiveTab('anomalies')}>
-                        이상 징후 분석
-                    </button>
-                    <button style={tabButtonStyle(activeTab === 'all')} className='whitespace-nowrap' onClick={() => setActiveTab('all')}>
-                        전체 이력 추적
-                    </button>
+                <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px] pr-4'>
+                    <div className='flex whitespace-nowrap'>
+                        <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 징후 분석</button>
+                        <button style={tabButtonStyle(activeTab === 'all')} onClick={() => setActiveTab('all')}>전체 이력 추적</button>
+                    </div>
+                    {activeTab === 'all' && (
+                        <button
+                            onClick={() => setShowFilterPanel(prev => !prev)}
+                            className="px-4 cursor-pointer"
+                            aria-label="필터 열기/닫기"
+                        >
+                            <Filter className="w-5 h-5 text-white" />
+                        </button>
+                    )}
                 </div>
 
-                {/* '이상 징후 분석' 탭일 때만 AnomalyList 표시 */}
-                {activeTab === 'anomalies' && (
-                    // 이 div가 남는 공간을 모두 차지하도록 설정
-                    <div style={{ flex: 1, minHeight: 0 }}>
+                {/* 2. 리스트 콘텐츠 영역 */}
+                <div style={{
+                    flex: 1, // 남은 공간을 모두 차지
+                    minHeight: 0,
+                    background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    borderRadius: '25px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
+                    {activeTab === 'anomalies' && (
                         <AnomalyList
                             anomalies={anomalyList}
                             onCaseClick={(trip) => setSelectedObject(trip)}
-                            selectedObjectId={selectedObject ? ('id' in selectedObject ? selectedObject.id : null) : null}
+                            selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
                         />
-                    </div>
-                )}
+                    )}
 
-                {/* 👇 '전체 이력 추적' 탭 */}
-                {activeTab === 'all' && (
-                    // 이 div도 남는 공간을 모두 차지하도록 설정
-                    <div style={{ flex: 1, minHeight: 0, padding: '10px', color: 'white' }}>
-                        {/* 여기에 "더 보기" 버튼 등이 들어갑니다. */}
-                        <p>현재 {trips.length}개의 경로를 보고 있습니다.</p>
-                        {/* 더 보기 버튼 로직을 다시 추가해야 합니다. */}
-                    </div>
-                )}
+                    {activeTab === 'all' && (
+                        <>
+                            {/* 리스트 본문 */}
+                            <div style={{ flex: 1, minHeight: 0 }}>
+                                <TripList
+                                    trips={trips}
+                                    onCaseClick={(trip) => setSelectedObject(trip)}
+                                    selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                                />
+                            </div>
+
+                            {/* '더 보기' 버튼 (푸터) */}
+                            <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
+                                <p className="mb-2">현재 {trips.length}개의 경로 표시 중</p>
+                                {nextCursor && (
+                                    <button onClick={handleLoadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
+                                        {isFetchingMore ? '로딩 중...' : '더 보기'}
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
-            {/* 상세 패널은 공통으로 사용 */}
             <DetailsPanel
                 selectedObject={selectedObject}
                 onClose={() => setSelectedObject(null)}

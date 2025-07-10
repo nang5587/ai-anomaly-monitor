@@ -75,10 +75,10 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
         <div className="w-full">
 
             {/* ✨ 2. 헤더 셀들은 이제 부모 그리드의 첫 번째 행을 구성합니다. */}
-            <div className="hidden sm:grid grid-cols-[2fr_1fr_3fr_3fr_1fr] gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
+            <div className="whitespace-nowrap hidden sm:grid grid-cols-[2fr_1fr_3fr_3fr_1fr] gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
                 <div className="col-span-1">상품명 / EPC</div>
                 <div className="col-span-1">시간</div>
-                <div className="col-span-1 text-left">경로 (출발 → 도착)</div>
+                <div className="col-span-1">경로 (출발 → 도착)</div>
                 <div className="col-span-1">상세 내용</div>
                 <div className="col-span-1">이상 유형</div>
             </div>
@@ -87,10 +87,6 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
             {/* ✨ 3. map 함수가 각 셀들을 직접 반환합니다. */}
             {anomalies.map((trip) => {
                 const anomalyType = trip.anomaly;
-
-                // ✨ 2. 기존의 복잡한 색상 계산 로직을 모두 제거합니다.
-
-                // ✨ 3. 새로운 색상 맵에서 직접 색상을 가져옵니다.
                 const tagColor = (anomalyType && pastelColorMap[anomalyType])
                     ? pastelColorMap[anomalyType]
                     : pastelColorMap['default'];
@@ -115,7 +111,7 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                             <p>출발: {formatUnixTimestamp(trip.from.eventTime)}</p>
                             <p>도착: {formatUnixTimestamp(trip.to.eventTime)}</p>
                         </div>
-                        <div className="sm:col-span-1 text-[#E0E0E0] flex items-center gap-2">
+                        <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
                             <span className="truncate">{trip.from.scanLocation}</span>
                             <ArrowRight size={14} className="shrink-0 text-[#E0E0E0]" />
                             <span className="truncate">{trip.to.scanLocation}</span>

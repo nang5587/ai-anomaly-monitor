@@ -17,7 +17,7 @@ export default function ConeWarningGauge({rate}:ConeWarningGaugeProps) {
     const pieData = Array.from({ length: totalSegments }, (_, i) => ({
         name: `seg-${i}`,
         value: 1, // 모든 분절의 각도 동일
-        fill: i < filledSegments ? 'rgba(121,141,185)' : '#e5e7eb', // 조건부 색상
+        fill: i < filledSegments ? 'rgba(121,141,185)' : '#ffffff', // 조건부 색상
     }));
     return (
         <div className="relative w-64 h-64">

@@ -8,8 +8,7 @@ import ConeWarningGauge from '@/components/dashboard/ConeWarningGauge';
 // 개별 KPI를 보여줄 미니 카드
 const MiniStatCard = ({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) => (
     <div className="p-4 rounded-2xl flex flex-col items-center gap-4
-                bg-[rgba(111,131,175)]
-                shadow-inner shadow-black/40">
+                bg-[rgba(111,131,175)]">
         <div className="p-3">{icon}</div>
         <p className="font-noto-400 text-sm/5 text-white">{title}</p>
         <p className="text-4xl text-white font-lato">{value}</p>
@@ -50,7 +49,7 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
                     <button
                         key={tab}
                         onClick={() => onTabClick(tab)}
-                        className={`w-full py-2.5 text-sm font-medium font-noto-400 leading-5 rounded-full transition-colors
+                        className={`w-full py-2.5 text-base font-medium font-noto-400 leading-5 rounded-full transition-colors
                             ${activeFactory === tab ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-300 hover:bg-white/[0.12] hover:text-white'}`}
                     >
                         {tab}
@@ -61,7 +60,7 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
             {/* --- KPI 그리드 --- */}
             <div className='flex flex-col justify-center gap-4 flex-grow min-h-0'>
                 {/* 1. 카드 그리드는 필요한 만큼의 공간을 차지합니다. */}
-                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3 gap-4 ">
                     <MiniStatCard title="총 처리 건수" value={formatNumberCompact(kpiData.totalTripCount)} icon={<ListChecks size={40} className="text-white" />} />
                     <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={40} className="text-white" />} />
                     <MiniStatCard title="평균 리드타임" value={kpiData.avgLeadTime} icon={<Clock size={40} className="text-white" />} />
