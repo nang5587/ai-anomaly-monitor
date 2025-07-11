@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { ListChecks, TrendingUp, TrendingDown, Package, AlertTriangle, Percent, Clock, Box, ShoppingCart } from 'lucide-react';
+import { ListChecks, TrendingUp, TrendingDown, Package, AlertTriangle, Percent, Clock, Barcode   } from 'lucide-react';
 import ConeWarningGauge from '@/components/dashboard/ConeWarningGauge';
 
 // 개별 KPI를 보여줄 미니 카드
@@ -60,17 +60,18 @@ export default function FactoryDetailView({ activeFactory, onTabClick, kpiData }
             {/* --- KPI 그리드 --- */}
             <div className='flex flex-col justify-center gap-4 flex-grow min-h-0'>
                 {/* 1. 카드 그리드는 필요한 만큼의 공간을 차지합니다. */}
-                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3 gap-4 ">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-2 gap-4 ">
                     <MiniStatCard title="총 처리 건수" value={formatNumberCompact(kpiData.totalTripCount)} icon={<ListChecks size={40} className="text-white" />} />
-                    <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={40} className="text-white" />} />
                     <MiniStatCard title="평균 리드타임" value={kpiData.avgLeadTime} icon={<Clock size={40} className="text-white" />} />
+                    <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={40} className="text-white" />} />
+                    <MiniStatCard title="총 생산 EPC" value={formatNumberCompact(kpiData.codeCount)} icon={<Barcode size={40} className="text-white" />} />
                 </div>
 
                 {/* 2. [수정] 차트 컨테이너가 "남은 모든 공간"을 차지하도록 변경 */}
                 <div className="flex-grow w-full min-h-0"> {/* h-full 대신 flex-grow와 min-h-0 사용 */}
                     <h3 className="font-noto-400 text-white text-xl pt-5 px-3 flex-shrink-0">이상 발생 비율</h3>
                     <div className='flex items-center justify-center my-4'>
-                        <ConeWarningGauge rate={anomalyPercentage}/>
+                        <ConeWarningGauge rate={anomalyPercentage} />
                     </div>
                 </div>
             </div>

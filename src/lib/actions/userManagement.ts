@@ -5,7 +5,7 @@ export type User = {
     userId: string;
     userName: string;
     email: string;
-    requestedAt: string;
+    createdAt: string;
     // ... 기타 필요한 필드
 };
 

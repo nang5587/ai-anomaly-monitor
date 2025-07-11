@@ -15,7 +15,8 @@ import {
   type AnalyzedTrip,
   type KpiSummary,
   type InventoryDataPoint,
-  type AnomalyType
+  type AnomalyType,
+  type PaginatedTripsResponse,
 } from '@/components/visual/data'
 
 import StatCard from '@/components/dashboard/StatCard';
@@ -103,7 +104,11 @@ export default function SupervisorDashboard() {
   // }, [user, router]);
 
   const [nodes, setNodes] = useState<Node[]>([]);
-  const [rawAnomalyTrips, setRawAnomalyTrips] = useState<AnalyzedTrip[]>([]);
+
+  const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
+
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
 
   const [kpiData, setKpiData] = useState<KpiSummary | null>(null);
   const [inventoryData, setInventoryData] = useState<InventoryDataPoint[]>([]);
@@ -118,53 +123,64 @@ export default function SupervisorDashboard() {
   // 필터 상태
   const [activeFactory, setActiveFactory] = useState('전체');
 
-  const anomalyTrips: TripWithId[] = useMemo(() => {
-    if (!rawAnomalyTrips) return [];
-    return rawAnomalyTrips.map(trip => ({ ...trip, id: uuidv4() }));
-  }, [rawAnomalyTrips]);
-
   useEffect(() => {
-    async function loadInitialData() {
+    async function loadData() {
+      // 필터가 변경될 때마다 로딩 상태를 true로 설정하고, 기존 목록을 비웁니다.
       setIsLoading(true);
+      setAnomalyTrips([]);
+      setNextCursor(null);
+
+      const params = activeFactory === '전체' ? {} : { factoryCode: factoryPrefixMap[activeFactory] };
+
       try {
-        const [nodesData, anomaliesData, kpiData, inventoryResp] = await Promise.all([
+        // KPI, 인벤토리, 노드 데이터와 "첫 페이지"의 이상 징후 데이터를 함께 요청합니다.
+        const [kpiRes, inventoryRes, nodesRes, anomaliesRes] = await Promise.all([
+          getKpiSummary(params),
+          getInventoryDistribution(params),
           getNodes(),
-          getAnomalies(), // 초기에는 필터 없이 이상 징후 전체 로드
-          getKpiSummary(),
-          getInventoryDistribution(),
+          getAnomalies({ ...params, limit: 50, cursor: null }) // 첫 페이지는 50개 로드
         ]);
 
-        setNodes(nodesData);
-        setRawAnomalyTrips(anomaliesData);
-        setKpiData(kpiData);
-        setInventoryData(inventoryResp.inventoryDistribution);
+        setKpiData(kpiRes);
+        setInventoryData(inventoryRes.inventoryDistribution);
+        setNodes(nodesRes);
+
+        // 첫 페이지 데이터 설정
+        const tripsWithId = anomaliesRes.data.map(trip => ({ ...trip, id: uuidv4() }));
+        setAnomalyTrips(tripsWithId);
+        setNextCursor(anomaliesRes.nextCursor);
 
       } catch (error) {
-        console.error("대시보드 초기 데이터 로딩 실패:", error);
+        console.error("대시보드 데이터 로딩 실패:", error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadInitialData();
-  }, []);
+    loadData();
+  }, [activeFactory]);
 
-  useEffect(() => {
-    if (isLoading) return;
-    async function refetchData() {
-      const params = activeFactory === '전체' ? {} : { factoryCode: factoryPrefixMap[activeFactory] };
-      try {
-        const [kpiData, inventoryResp, anomaliesData] = await Promise.all([
-          getKpiSummary(params), getInventoryDistribution(params), getAnomalies(params),
-        ]);
-        setKpiData(kpiData);
-        setInventoryData(inventoryResp.inventoryDistribution);
-        setRawAnomalyTrips(anomaliesData); // 원본 데이터 업데이트
-      } catch (error) {
-        console.error("Filtered data fetching failed:", error)
-      }
+  const handleLoadMore = useCallback(async () => {
+    if (!nextCursor || isFetchingMore) return;
+
+    setIsFetchingMore(true);
+    const params = {
+      ...(activeFactory === '전체' ? {} : { factoryCode: factoryPrefixMap[activeFactory] }),
+      limit: 50,
+      cursor: nextCursor,
+    };
+
+    try {
+      const response = await getAnomalies(params);
+      const newTripsWithId = response.data.map(trip => ({ ...trip, id: uuidv4() }));
+
+      setAnomalyTrips(prev => [...prev, ...newTripsWithId]);
+      setNextCursor(response.nextCursor);
+    } catch (error) {
+      console.error("추가 데이터 로딩 실패:", error);
+    } finally {
+      setIsFetchingMore(false);
     }
-    refetchData();
-  }, [activeFactory, isLoading]);
+  }, [activeFactory, nextCursor, isFetchingMore]);
 
   useEffect(() => {
     if (isLoading || !nodes.length || !anomalyTrips.length) {
@@ -192,7 +208,7 @@ export default function SupervisorDashboard() {
 
     // 2. 공급망 단계별 이상 이벤트
     const nodeMapByLocation = new Map<string, Node>(nodes.map(n => [n.businessStep, n]));
-    
+
     const STAGES = [
       { from: 'Factory', to: 'WMS', name: '공장 → 창고' },
       { from: 'WMS', to: 'LogiHub', name: '창고 → 물류' },
@@ -241,16 +257,16 @@ export default function SupervisorDashboard() {
     }
     // timestamp가 없는 데이터를 필터링하여 안정성 확보
     const validTimestamps = anomalyTrips.flatMap(trip => {
-    // 각 trip 객체에서 from.eventTime과 to.eventTime이 유효한 숫자인지 확인
-    const times = [];
-    if (trip.from && typeof trip.from.eventTime === 'number') {
+      // 각 trip 객체에서 from.eventTime과 to.eventTime이 유효한 숫자인지 확인
+      const times = [];
+      if (trip.from && typeof trip.from.eventTime === 'number') {
         times.push(trip.from.eventTime);
-    }
-    if (trip.to && typeof trip.to.eventTime === 'number') {
+      }
+      if (trip.to && typeof trip.to.eventTime === 'number') {
         times.push(trip.to.eventTime);
-    }
-    return times;
-});
+      }
+      return times;
+    });
     if (validTimestamps.length === 0) return { minTime: 0, maxTime: 1 };
 
     return {
@@ -259,7 +275,7 @@ export default function SupervisorDashboard() {
     };
   }, [anomalyTrips]);
 
-  if (isLoading) {
+  if (isLoading && anomalyTrips.length === 0) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
         <p className="text-xl">데이터를 불러오는 중입니다...</p>
@@ -420,7 +436,20 @@ export default function SupervisorDashboard() {
           {/* 하단 리스트 */}
           <motion.div variants={itemVariants}>
             <h3 className="font-noto-400 text-white text-2xl mb-4">이상 탐지 리스트</h3>
-            <div className="font-vietnam"><AnomalyList anomalies={anomalyTrips} /></div>
+            <div className="font-vietnam">
+              <AnomalyList anomalies={anomalyTrips} />
+              {nextCursor && (
+                <div className="mt-4 text-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={isFetchingMore}
+                    className="bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155,1)] text-white font-bold py-2 px-6 rounded-full transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                  >
+                    {isFetchingMore ? '로딩 중...' : '더 보기'}
+                  </button>
+                </div>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       </div>

@@ -38,6 +38,7 @@ export interface PaginatedTripsResponse {
 export interface KpiSummary {
     totalTripCount: number;
     uniqueProductCount: number;
+    codeCount: number;
     anomalyCount: number;
     anomalyRate: number;
     salesRate: number;
@@ -88,8 +89,9 @@ export async function getKpiSummary(params?: Record<string, any>): Promise<KpiSu
     // 실제 API라면 params를 사용해 필터링하겠지만, 지금은 더미 데이터를 반환합니다.
     console.log('Fetching KPI Summary with params:', params); // 파라미터 확인용 로그
     return {
-        totalTripCount: 85432,
+        totalTripCount: 854320000,
         uniqueProductCount: 128,
+        codeCount: 2000000,
         anomalyCount: 125,
         anomalyRate: 0.0146,
         salesRate: 92.5,
@@ -126,7 +128,7 @@ export async function getFilterOptions(): Promise<FilterOptions> {
  * 필터링된 이상 징후 Trip 목록을 가져옵니다.
  * @param params 필터 조건
  */
-export async function getAnomalies(params?: Record<string, any>): Promise<AnalyzedTrip[]> {
+export async function getAnomalies(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
     console.log('Fetching Anomalies with params:', params);
     const response = await fetch('/api/anomalies.json');
     if (!response.ok) throw new Error('Failed to fetch anomalies');
@@ -134,10 +136,13 @@ export async function getAnomalies(params?: Record<string, any>): Promise<Analyz
     let allAnomalies: AnalyzedTrip[] = await response.json();
 
     // 더미 필터링 로직
-    if (params && Object.keys(params).length > 0) {
+    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
+    
+    if (filterKeys.length > 0) {
         allAnomalies = allAnomalies.filter(trip => {
-            return Object.entries(params).every(([key, value]) => {
-                if (!value) return true; // 값이 없는 필터는 건너뜀
+            return filterKeys.every(key => {
+                const value = params![key];
+                if (!value) return true;
                 switch (key) {
                     case 'fromScanLocation': return trip.from.scanLocation === value;
                     case 'toScanLocation': return trip.to.scanLocation === value;
@@ -154,9 +159,19 @@ export async function getAnomalies(params?: Record<string, any>): Promise<Analyz
             });
         });
     }
-    return allAnomalies;
-}
 
+    // [중요] 페이지네이션 로직을 여기에 추가합니다. (getTrips에서 가져옴)
+    const limit = params?.limit || 50; // 기본값을 50으로 설정
+    const startIndex = params?.cursor ? Number(params.cursor) : 0;
+    const paginatedData = allAnomalies.slice(startIndex, startIndex + limit);
+    const nextCursor = (startIndex + limit < allAnomalies.length) ? (startIndex + limit).toString() : null;
+
+    // [중요] 반환 형식을 { data, nextCursor } 객체로 변경합니다.
+    return {
+        data: paginatedData,
+        nextCursor,
+    };
+}
 /**
  * 필터링 및 페이지네이션된 전체 Trip 목록을 가져옵니다.
  * @param params 필터 조건 및 페이지네이션 커서
@@ -194,7 +209,7 @@ export async function getTrips(params?: Record<string, any>): Promise<PaginatedT
     }
 
     // 페이지네이션 로직
-    const limit = 10; // 페이지당 10개로 고정
+    const limit = params?.limit || 50;
     const startIndex = params?.cursor ? Number(params.cursor) : 0;
     const paginatedData = allTrips.slice(startIndex, startIndex + limit);
     const nextCursor = (startIndex + limit < allTrips.length) ? (startIndex + limit).toString() : null;

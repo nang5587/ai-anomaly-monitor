@@ -1,8 +1,7 @@
 'use client'
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import { v4 as uuidv4 } from 'uuid';
-
 import { Filter } from 'lucide-react';
 
 import {
@@ -13,6 +12,7 @@ import {
     type Node,
     type AnalyzedTrip,
     type FilterOptions,
+    type PaginatedTripsResponse,
 } from './data';
 
 import { SupplyChainMap } from './SupplyChainMap'; // 리팩토링된 맵 컴포넌트
@@ -47,7 +47,9 @@ export const SupplyChainDashboard: React.FC = () => {
     // --- 상태 관리 ---
     const [activeTab, setActiveTab] = useState<Tab>('anomalies');
     const [nodes, setNodes] = useState<Node[]>([]);
-    const [rawTrips, setRawTrips] = useState<AnalyzedTrip[]>([]);
+
+    const [trips, setTrips] = useState<TripWithId[]>([]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [selectedObject, setSelectedObject] = useState<TripWithId | Node | null>(null);
 
@@ -58,14 +60,10 @@ export const SupplyChainDashboard: React.FC = () => {
     const [nextCursor, setNextCursor] = useState<string | null>(null); // 다음 페이지 커서
     const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-    const trips: TripWithId[] = useMemo(() => {
-        if (!rawTrips) return [];
-        // 원본 데이터 배열을 순회하며 각 객체에 고유 id를 추가
-        return rawTrips.map(trip => ({
-            ...trip,
-            id: uuidv4(),
-        }));
-    }, [rawTrips]);
+    useEffect(() => {
+        getNodes().then(setNodes).catch(error => console.error("노드 데이터 로딩 실패:", error));
+        getFilterOptions().then(setFilterOptions).catch(error => console.error("필터 옵션 로딩 실패:", error));
+    }, []);
 
     // --- 데이터 로딩 ---
     // 1. 노드 데이터는 처음에 한 번만 로드합니다.
@@ -79,21 +77,25 @@ export const SupplyChainDashboard: React.FC = () => {
         const fetchData = async () => {
             setIsLoading(true);
             setSelectedObject(null);
-            setRawTrips([]); // 새 검색이므로 기존 목록 초기화
-            setNextCursor(null); // 커서 초기화
+
+            // 탭에 따라 사용할 API 함수를 동적으로 결정
+            const fetchFunction: (params?: Record<string, any>) => Promise<PaginatedTripsResponse> =
+                activeTab === 'anomalies' ? getAnomalies : getTrips;
+
+            // 페이지네이션 파라미터 설정 (초기 로딩 시 50개)
+            const params = { ...appliedFilters, limit: 50, cursor: null };
 
             try {
-                if (activeTab === 'anomalies') {
-                    // 이상 징후 탭도 필터를 적용할 수 있도록 수정
-                    const anomalyData = await getAnomalies(appliedFilters);
-                    setRawTrips(anomalyData);
-                } else {
-                    const response = await getTrips(appliedFilters);
-                    setRawTrips(response.data);
-                    setNextCursor(response.nextCursor);
-                }
+                const response = await fetchFunction(params);
+                // 데이터를 받자마자 고유 ID를 부여
+                const tripsWithId = response.data.map(trip => ({ ...trip, id: uuidv4() }));
+
+                setTrips(tripsWithId);
+                setNextCursor(response.nextCursor);
             } catch (error) {
-                console.error("데이터 로딩 실패:", error);
+                console.error(`${activeTab} 데이터 로딩 실패:`, error);
+                setTrips([]); // 에러 발생 시 목록 비우기
+                setNextCursor(null);
             } finally {
                 setIsLoading(false);
             }
@@ -102,25 +104,28 @@ export const SupplyChainDashboard: React.FC = () => {
     }, [activeTab, appliedFilters]);
 
     const handleLoadMore = useCallback(async () => {
-        if (!nextCursor || isFetchingMore) return; // 다음 페이지가 없거나 로딩 중이면 실행 안함
+        if (!nextCursor || isFetchingMore) return;
 
         setIsFetchingMore(true);
         try {
-            // 현재 필터 값과 다음 페이지 커서를 함께 API에 전달
-            const params = { ...appliedFilters, cursor: nextCursor };
-            const response = await getTrips(params);
+            const fetchFunction: (params?: Record<string, any>) => Promise<PaginatedTripsResponse> =
+                activeTab === 'anomalies' ? getAnomalies : getTrips;
+
+            // 페이지네이션 파라미터 설정 (더 보기 시 50개)
+            const params = { ...appliedFilters, cursor: nextCursor, limit: 50 };
+            const response = await fetchFunction(params);
+
+            const newTripsWithId = response.data.map(trip => ({ ...trip, id: uuidv4() }));
 
             // 새로 받아온 데이터를 기존 목록 뒤에 추가
-            setRawTrips(prev => [...prev, ...response.data]);
+            setTrips(prev => [...prev, ...newTripsWithId]);
             setNextCursor(response.nextCursor);
         } catch (error) {
             console.error("추가 데이터 로딩 실패:", error);
         } finally {
             setIsFetchingMore(false);
         }
-    }, [nextCursor, appliedFilters, isFetchingMore]);
-
-    const anomalyList = useMemo(() => trips.filter(t => t.anomaly), [trips]);
+    }, [nextCursor, appliedFilters, isFetchingMore, activeTab]);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
@@ -201,11 +206,21 @@ export const SupplyChainDashboard: React.FC = () => {
                     flexDirection: 'column',
                 }}>
                     {activeTab === 'anomalies' && (
-                        <AnomalyList
-                            anomalies={anomalyList}
-                            onCaseClick={(trip) => setSelectedObject(trip)}
-                            selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
-                        />
+                        <>
+                            <AnomalyList
+                                anomalies={trips}
+                                onCaseClick={(trip) => setSelectedObject(trip)}
+                                selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                            />
+                            <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
+                                <p className="mb-2">현재 {trips.length}개의 이상 징후 표시 중</p>
+                                {nextCursor && (
+                                    <button onClick={handleLoadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
+                                        {isFetchingMore ? '로딩 중...' : '더 보기'}
+                                    </button>
+                                )}
+                            </div>
+                        </>
                     )}
 
                     {activeTab === 'all' && (

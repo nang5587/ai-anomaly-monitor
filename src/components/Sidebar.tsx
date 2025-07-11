@@ -37,7 +37,7 @@ export default function Sidebar({ hovered, setHovered }: SidebarProps) {
             <Link
               key={menu.name}
               href={menu.href}
-              className="flex items-center gap-4 py-2.5 px-4 hover:bg-[rgba(111,131,175,1)] rounded-4xl"
+              className="flex items-center gap-4 py-2.5 px-4 hover:bg-[rgba(111,131,175,1)] rounded-2xl"
             >
               <menu.icon className="w-6 h-6 text-white flex-shrink-0" />
               {hovered && (

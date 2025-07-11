@@ -13,6 +13,7 @@
     "@deck.gl/geo-layers": "^9.0.0",
     "@deck.gl/layers": "^9.0.0",
     "@deck.gl/react": "^9.0.0",
+    "@heroicons/react": "^2.2.0",
     "@loaders.gl/obj": "^4.3.4",
     "@nivo/core": "^0.99.0",
     "@nivo/pie": "^0.99.0",

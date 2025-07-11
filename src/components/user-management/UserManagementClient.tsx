@@ -1,190 +1,216 @@
-// components/features/user-management/UserManagementClient.tsx
-
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ApprovalModal } from './ApprovalModal';
-// import { getUsers, rejectUser, approveUser, User } from '@/lib/actions/userManagement';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { UserPlusIcon, UserMinusIcon, ArchiveBoxXMarkIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
-import { dummyPendingUsers, dummyActiveUsers, type User } from './dummyData';
+import { dummyAllUsers, type User, type UserStatus, type UserRole } from './dummyData';
 
-// ApproveModal에서 전달받을 데이터 타입
-export type ApprovalFormData = {
-    role: 'MANAGER' | 'UNAUTH';
-    factoryCode?: string;
+const FACTORY_NAME_MAP: { [key: string]: string } = {
+    '1': '인천공장',
+    '2': '화성공장',
+    '3': '양산공장',
+    '4': '구미공장',
 };
 
+const StatusToggle = ({ isActive, onClick }: { isActive: boolean; onClick: () => void; }) => {
+    return (
+        <button
+            onClick={onClick}
+            className={`cursor-pointer relative inline-flex items-center h-6 rounded-full p-1 w-11 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgba(111,131,175)]`}
+        >
+            <span className="sr-only">Toggle Status</span>
+            <span
+                className={`${isActive ? 'bg-[rgba(111,131,175)]' : 'bg-gray-500'} absolute inset-0 rounded-full`}
+                aria-hidden="true"
+            />
+            <span
+                className={`${isActive ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`}
+                aria-hidden="true"
+            />
+        </button>
+    );
+};
+
+type ActiveTab = 'pending' | 'active' | 'rejected' | 'deleted';
+
 export default function UserManagementClient() {
-    const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending');
-    // const [users, setUsers] = useState<User[]>([]); 🔴 백엔드 연결 시 주석 풀고 아래줄 삭제
-    const [users, setUsers] = useState<User[]>(dummyPendingUsers);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    // const [isLoading, startTransition] = useTransition(); 🔴 백엔드 연결 시 주석 풀기
+    const [activeTab, setActiveTab] = useState<ActiveTab>('pending');
+    const [allUsers, setAllUsers] = useState<User[]>(dummyAllUsers);
 
-    // 현재 탭의 사용자 목록을 불러오는 함수
-    // const fetchUsers = async (tab: 'pending' | 'active') => {
-    //     startTransition(async () => {
-    //         try {
-    //             const fetchedUsers = await getUsers({ status: tab });
-    //             setUsers(fetchedUsers);
-    //         } catch (error) {
-    //             toast.error('사용자 목록을 불러오는 데 실패했습니다.');
-    //             setUsers([]); // 에러 발생 시 목록 비우기
-    //         }
-    //     });
-    // };
-
-    // 컴포넌트 마운트 시 및 탭 변경 시 데이터 로드
-    // useEffect(() => {
-    //     fetchUsers(activeTab);
-    // }, [activeTab]);
-    const handleApproveClick = (user: User) => {
-        setSelectedUser(user);
-        setIsModalOpen(true);
-    };
-    // const handleRejectClick = async (user: User) => {
-    //     if (confirm(`정말로 '${user.userName}'님의 가입 요청을 거절하시겠습니까?`)) {
-    //         startTransition(async () => {
-    //             try {
-    //                 await rejectUser(user.userId);
-    //                 toast.success('사용자 요청을 거절했습니다.');
-    //                 fetchUsers(activeTab); // 목록 새로고침
-    //             } catch (error) {
-    //                 toast.error('처리 중 오류가 발생했습니다.');
-    //             }
-    //         });
-    //     }
-    // };
-
-    // // ApprovalModal에서 '최종 승인' 클릭 시 실행될 함수
-    // const handleApprovalConfirm = async (formData: ApprovalFormData) => {
-    //     if (!selectedUser) return;
-
-    //     startTransition(async () => {
-    //         try {
-    //             await approveUser({
-    //                 userId: selectedUser.userId,
-    //                 role: formData.role,
-    //                 factoryCode: formData.factoryCode ? Number(formData.factoryCode) : undefined,
-    //             });
-    //             toast.success('사용자가 승인되었습니다.');
-    //             setIsModalOpen(false); // 모달 닫기
-    //             fetchUsers(activeTab); // 목록 새로고침
-    //         } catch (error) {
-    //             toast.error('승인 처리 중 오류가 발생했습니다.');
-    //         }
-    //     });
-    // };
-
-    // *️⃣-----------------------백앤드 연결 시 삭제-------------------------
     const [isLoading, setIsLoading] = useState(false);
-    const handleTabChange = (tab: 'pending' | 'active') => {
-        setActiveTab(tab);
+
+    // API 연동 시 사용할 함수들 (현재는 주석 처리)
+    /*
+    const [isProcessing, startTransition] = useTransition();
+
+    const fetchAllUsers = async () => {
         setIsLoading(true);
-        // 실제 네트워크처럼 보이게 하려고 약간의 딜레이를 줍니다.
-        setTimeout(() => {
-            if (tab === 'pending') {
-                setUsers(dummyPendingUsers);
-            } else {
-                setUsers(dummyActiveUsers);
-            }
+        try {
+            // const response = await getUsers(); // GET /admin/users
+            // setAllUsers(response.users);
+        } catch (error) {
+            toast.error('사용자 목록을 불러오는 데 실패했습니다.');
+        } finally {
             setIsLoading(false);
-        }, 300); // 0.3초 딜레이
-    };
-    const handleRejectClick = (user: User) => {
-        if (confirm(`정말로 '${user.userName}'님의 가입 요청을 거절하시겠습니까?`)) {
-            setIsLoading(true);
-            setTimeout(() => {
-                toast.success(`'${user.userName}'님의 요청을 거절했습니다.`);
-                // 화면에서만 해당 유저를 제거합니다.
-                setUsers(prev => prev.filter(u => u.userId !== user.userId));
-                setIsLoading(false);
-            }, 500);
         }
     };
-    const handleApprovalConfirm = (formData: ApprovalFormData) => {
-        if (!selectedUser) return;
 
+    useEffect(() => {
+        fetchAllUsers();
+    }, []);
+
+    const updateUserStatus = async (userId: string, status: UserStatus) => {
+        startTransition(async () => {
+            try {
+                // await patchUserStatus(userId, status); // PATCH /admin/users/{userId}
+                toast.success('사용자 상태가 변경되었습니다.');
+                await fetchAllUsers(); // 목록 새로고침
+            } catch (error) {
+                toast.error('처리 중 오류가 발생했습니다.');
+            }
+        });
+    };
+    */
+
+    // *️⃣--- 더미 데이터용 로직 (백엔드 연결 시 위 로직으로 교체) ---*️⃣
+    const updateUser = (userId: string, newStatus: UserStatus, newRole?: User['role']) => {
         setIsLoading(true);
         setTimeout(() => {
-            toast.success(
-                `'${selectedUser.userName}'님이 '${formData.role}' 역할로 승인되었습니다.` +
-                (formData.role === 'MANAGER' ? ` (공장 코드: ${formData.factoryCode})` : '')
+            setAllUsers(prevUsers =>
+                prevUsers.map(user =>
+                    user.userId === userId
+                        ? { ...user, status: newStatus, role: newRole || user.role }
+                        : user
+                )
             );
-            // 화면에서만 해당 유저를 제거합니다.
-            setUsers(prev => prev.filter(u => u.userId !== selectedUser.userId));
-            setIsModalOpen(false);
+            toast.success('사용자 정보가 업데이트되었습니다.');
             setIsLoading(false);
-        }, 500);
+        }, 300);
     };
-    // *️⃣------------------------------------------------------------
+
+    const handleApprove = (user: User) => { if (confirm(`'${user.userName}'님을 승인하시겠습니까?`)) { updateUser(user.userId, 'active', 'MANAGER'); } };
+    const handleReject = (user: User) => { if (confirm(`'${user.userName}'님의 요청을 거절하시겠습니까?`)) { updateUser(user.userId, 'rejected'); } };
+    const handleToggleActive = (user: User) => {
+        const newStatus = user.status === 'active' ? 'inactive' : 'active';
+        const actionText = newStatus === 'inactive' ? '비활성화' : '활성화';
+        if (confirm(`'${user.userName}'님을 ${actionText}하시겠습니까?`)) { updateUser(user.userId, newStatus); }
+    };
+    const handleDelete = (user: User) => { if (confirm(`'${user.userName}'님을 삭제 처리하시겠습니까? (복구 가능)`)) { updateUser(user.userId, 'del'); } };
+    const handleRestore = (user: User) => { if (confirm(`'${user.userName}'님을 '승인 대기' 상태로 복구하시겠습니까?`)) { updateUser(user.userId, 'pending', 'UNAUTH'); } };
+
+
+    // 현재 탭에 따라 보여줄 사용자를 필터링
+    const filteredUsers = useMemo(() => {
+        if (isLoading) return [];
+        switch (activeTab) {
+            case 'pending':
+                return allUsers.filter(u => u.status === 'pending');
+            // '사용자 관리' 탭은 'active' 상태로 대표됩니다.
+            case 'active':
+                return allUsers.filter(u => u.status === 'active' || u.status === 'inactive');
+            // '처리된 요청' 탭은 'rejected'와 'deleted' 상태로 대표됩니다.
+            case 'rejected':
+            case 'deleted':
+                return allUsers.filter(u => u.status === 'rejected' || u.status === 'del');
+            default:
+                return [];
+        }
+    }, [activeTab, allUsers, isLoading]);
+
+    // 각 탭에 맞는 테이블 헤더와 버튼을 렌더링
+    const renderTableHeader = () => {
+        let actionHeader = '관리';
+        if (activeTab === 'pending') actionHeader = '승인 / 거절';
+        if (activeTab === 'active') actionHeader = '상태 / 삭제';
+        if (activeTab === 'rejected' || activeTab === 'deleted') actionHeader = '복구';
+
+        return (
+            <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">
+                {actionHeader}
+            </th>
+        );
+    };
+
+    const renderActionButtons = (user: User) => {
+        switch (activeTab) {
+            case 'pending':
+                return (
+                    <>
+                        <button onClick={() => handleApprove(user)} className="p-2 text-gray-300 cursor-pointer mx-1 hover:text-green-200" title="승인"><UserPlusIcon className='w-5 h-5' /></button>
+                        <button onClick={() => handleReject(user)} className='p-2 text-gray-300 cursor-pointer mx-1 hover:text-red-200' title="거절"><UserMinusIcon className='w-5 h-5' /></button>
+                    </>
+                );
+            case 'active':
+                return (
+                    <div className="flex items-center justify-center gap-4">
+                        <StatusToggle isActive={user.status === 'active'} onClick={() => handleToggleActive(user)} />
+                        <button onClick={() => handleDelete(user)} className='p- text-gray-300 cursor-pointer mx-1 hover:text-red-400' title="삭제"><TrashIcon className='w-5 h-5' /></button>
+                    </div>
+                );
+            case 'rejected':
+            case 'deleted':
+                return (
+                    <button onClick={() => handleRestore(user)} className="p-2 text-gray-300 cursor-pointer mx-1 hover:text-blue-400" title="복구"><ArrowPathIcon className='w-5 h-5' /></button>
+                );
+            default:
+                return null;
+        }
+    };
+
+    const TABS: { id: ActiveTab; label: string }[] = [
+        { id: 'pending', label: '승인 대기' },
+        { id: 'active', label: '사용자 관리' },
+        { id: 'rejected', label: '처리된 요청' },
+    ];
 
     return (
-        <div>
-            <div className="flex space-x-2 mb-4">
-                <button
-                    onClick={() => handleTabChange('pending')}
-                    className='text-sm rounded-2xl px-6 py-3 bg-[#f6f6f6]'
-                >
-                    승인 대기
-                </button>
-                <button
-                    onClick={() => handleTabChange('active')}
-                    className='text-sm rounded-2xl px-6 py-3 bg-[#f6f6f6]'
-                >
-                    활성 사용자
-                </button>
+        <div className='bg-[rgba(30,30,30)] p-4 sm:p-6 rounded-2xl w-full'>
+            <div className="mb-6 inline-flex items-center rounded-2xl bg-[rgba(30,30,30)] p-1">
+                {TABS.map(tab => (
+                    <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                        className={`px-6 py-2 text-base font-medium transition-colors ${activeTab === tab.id ? 'text-[rgba(111,131,175)] font-noto-500 border-b-2 border-b-[rgba(111,131,175)]' : 'text-gray-500 hover:text-gray-400 font-noto-500'}`}>
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             {isLoading ? (
-                <p>로딩 중...</p>
+                <p className='text-gray-300 p-4 text-center'>처리 중...</p>
             ) : (
                 <>
-                    {users.length === 0 ? (
-                        <p className="text-center text-[rgba(40,40,40)] py-8">해당하는 사용자가 없습니다.</p>
+                    {filteredUsers.length === 0 ? (
+                        <p className="text-center text-gray-500 py-8">해당하는 사용자가 없습니다.</p>
                     ) : (
-                        <div className="rounded-lg overflow-hidden">
+                        <div className="rounded-lg overflow-x-auto">
                             <table className="w-full text-sm text-left">
-                                <thead className="bg-[#f6f6f6]">
+                                <thead className="text-white bg-[rgba(20,20,20)]/50">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
-                                            이름
-                                        </th>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
-                                            이메일
-                                        </th>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
-                                            가입 신청일
-                                        </th>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider text-[rgba(40,40,40)]">
-                                            처리
-                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">이름</th>
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">이메일</th>
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider whitespace-nowrap">소속 공장</th>
+                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">상태</th>
+                                        {renderTableHeader()}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#f6f6f6]">
-                                    {users.map((user) => (
-                                        <tr key={user.userId} className="bg-white hover:bg-white/90 transition-colors">
-                                            <td className="px-6 py-3 whitespace-nowrap font-semibold text-black text-center">
-                                                {user.userName}
-                                            </td>
-                                            <td className="px-6 py-3 whitespace-nowrap text-center text-black">
-                                                {user.email}
-                                            </td>
-                                            <td className="px-6 py-3 whitespace-nowrap text-center text-[rgba(40,40,40,0.7)]">
-                                                {new Date(user.requestedAt).toLocaleString('ko-KR', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                })}
+                                <tbody className="divide-y divide-gray-100/10">
+                                    {filteredUsers.map((user) => (
+                                        <tr key={user.userId} className="hover:bg-[rgba(20,20,20)]/40 transition-colors">
+                                            <td className="px-6 py-3 text-sm whitespace-nowrap text-white text-center">{user.userName}</td>
+                                            <td className="px-6 py-3 whitespace-nowrap text-center text-gray-300 font-vietnam">{user.email}</td>
+                                            <td className="px-6 py-3 whitespace-nowrap text-center text-gray-300">{FACTORY_NAME_MAP[user.locationId] || '미지정'}</td>
+                                            <td className="px-6 py-3 whitespace-nowrap text-center text-gray-300 font-vietnam">
+                                                <span className={`px-3 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                    ${user.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                        user.status === 'inactive' ? 'bg-gray-200 text-gray-800' :
+                                                            user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                'bg-red-100 text-red-800'}`}>
+                                                    {user.status}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-3 text-center whitespace-nowrap">
-                                                <button onClick={() => handleApproveClick(user)} className='text-[rgba(40,40,40)] font-noto-500 bg-[#cbffd865] border border-[#cbffd8] px-5 py-2 rounded-2xl cursor-pointer mr-2 sm:mb-2'>승인</button>
-                                                <button onClick={() => handleRejectClick(user)} className='text-[rgba(40,40,40)] font-noto-500 bg-[#ffcbcb65] border border-[#ffcbcb] px-5 py-2 rounded-2xl cursor-pointer mr-2'>거절</button>
+                                                {renderActionButtons(user)}
                                             </td>
                                         </tr>
                                     ))}
@@ -194,14 +220,6 @@ export default function UserManagementClient() {
                     )}
                 </>
             )}
-
-            <ApprovalModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                user={selectedUser}
-                onConfirm={handleApprovalConfirm} // ⬅️ 승인 처리 함수를 prop으로 전달
-                isSubmitting={isLoading} // ⬅️ 로딩 상태 전달
-            />
         </div>
     );
 }
