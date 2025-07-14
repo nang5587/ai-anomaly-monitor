@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import DeckGL from 'deck.gl';
 
-import { Maximize } from 'lucide-react'; 
+import { Maximize } from 'lucide-react';
 
 import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
@@ -14,7 +14,7 @@ import Map from 'react-map-gl';
 
 import { type Node, type AnalyzedTrip, type AnomalyType } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
-import { getNodeColor, getAnomalyColor  } from '../visual/colorUtils';
+import { getNodeColor, getAnomalyColor } from '../visual/colorUtils';
 
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
@@ -149,15 +149,6 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             getWidth: 1, // 얇은 선으로 고정
             pickable: false, // 위젯에서는 클릭/호버 비활성화
         }),
-        // 경로 위조 '예상 경로' 레이어
-        new LineLayer({
-            id: 'widget-expected-path-lines',
-            data: validTrips.filter(d => d.anomaly === 'locErr'),
-            getSourcePosition: d => (d.anomaly as any).expectedPath[0],
-            getTargetPosition: d => (d.anomaly as any).expectedPath[1],
-            getColor: [150, 150, 150, 200],
-            getWidth: 1,
-        }),
         // 건물 및 굴뚝 레이어
         ...otherMeshLayers,
         ...factoryLayers,
@@ -170,19 +161,19 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [144, 238, 144],
             opacity: 0.8,
             widthMinPixels: 4,
-            rounded: true,
+            capRounded: true,
+            jointRounded: true,
             trailLength: 180,
             currentTime, // 부모로부터 받은 currentTime 사용
         }),
     ];
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'auto' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
             <DeckGL
                 layers={layers}
                 initialViewState={WIDGET_VIEW_STATE}
                 controller={false} // 지도 컨트롤(줌, 이동) 비활성화
-                style={{ pointerEvents: 'none' }}
             >
                 <Map
                     mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
@@ -190,8 +181,20 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
                     // 배경을 완전히 검게 만들어 DeckGL과 자연스럽게 어울리게 함
                     onLoad={e => {
                         const map = e.target;
-                        map.setPaintProperty('background', 'background-color', '#000000');
-                        map.setPaintProperty('water', 'fill-color', '#000000');
+
+                        const setCustomColors = () => {
+                            // 레이어가 존재하는지 한번 더 확인하여 에러를 원천 봉쇄합니다.
+                            if (map.getLayer('background')) {
+                                map.setPaintProperty('background', 'background-color', '#000000');
+                            }
+                            if (map.getLayer('water')) {
+                                map.setPaintProperty('water', 'fill-color', '#000000');
+                            }
+                        };
+
+                        // 맵이 완전히 유휴 상태가 되면(모든 소스 로드 및 렌더링 완료) 이벤트를 실행합니다.
+                        // 'once'를 사용하여 이 리스너가 단 한 번만 실행되도록 보장합니다.
+                        map.once('idle', setCustomColors);
                     }}
                 />
             </DeckGL>
@@ -213,9 +216,9 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'background 0.2s',
-                    pointerEvents: 'none', // 이 버튼만 클릭 가능하도록 설정
+                    pointerEvents: 'auto',
                 }}
-                // 호버 효과를 위한 인라인 이벤트 핸들러 (선택사항)
+
                 onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
                 onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'}
                 aria-label="지도 확대"

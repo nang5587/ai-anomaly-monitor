@@ -7,29 +7,39 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, type Variants } from 'framer-motion';
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function Home() {
   const router = useRouter();
+  // const { user } = useAuth(); // ℹ️ 연결 시 주석 풀기
+  
+  // ⚠️ 백엔드랑 연결 시 삭제
+  const user = {
+    role:"ADMIN",
+    factoryCode: 0
+  };
+
   const [isLoading, setIsLoading] = useState(true);
 
   function LoadingScreen() {
     return (
       <div className="flex items-center justify-center w-full h-screen">
         <p className="text-lg">불러오는 중...</p>
-        {/* 여기에 스피너 아이콘 등을 추가할 수 있습니다. */}
       </div>
     );
   }
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-
-    if (token) {
-      router.replace('/dashboard');
-    }
-    else {
+    if (user) {
+      if (user.factoryCode === 0) {
+        router.replace('/supervisor');
+      } else if (typeof user.factoryCode === 'number') {
+        router.replace('/manager');
+      }
+    } else {
       setIsLoading(false);
     }
-  }, [router]);
+  }, [user, router]);
 
   if (isLoading) {
     return <LoadingScreen />;

@@ -8,21 +8,31 @@ import {
   UserIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useMemo } from 'react';
 
 const menus = [
   { name: "대시보드", icon: HomeIcon, href: "/" },
   { name: "분석 리포트", icon: BarChartIcon, href: "/report" },
   { name: "알림", icon: BellIcon, href: "/alerts" },
   { name: "설정", icon: SettingsIcon, href: "/settings" },
-  { name: "사용자", icon: UserIcon, href: "/users" },
+  { name: "사용자 관리", icon: UserIcon, href: "/supervisor/management", requiredRole: "ADMIN" },
 ];
 
 interface SidebarProps {
   hovered: boolean;
   setHovered: React.Dispatch<React.SetStateAction<boolean>>;
+  userRole: 'ADMIN' | 'MANAGER';
 }
 
-export default function Sidebar({ hovered, setHovered }: SidebarProps) {
+export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps) {
+  const visibleMenus = useMemo(() => {
+    return menus.filter(menu => {
+      if (!menu.requiredRole) {
+        return true;
+      }
+      return menu.requiredRole === userRole;
+    });
+  }, [userRole]);
 
   return (
     <div
@@ -33,7 +43,7 @@ export default function Sidebar({ hovered, setHovered }: SidebarProps) {
     >
       <div className="flex-1 overflow-auto px-2 py-4">
         <div className="flex flex-col space-y-4">
-          {menus.map((menu) => (
+          {visibleMenus.map((menu) => (
             <Link
               key={menu.name}
               href={menu.href}

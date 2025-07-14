@@ -61,7 +61,7 @@ const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
         <>
             <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', marginBottom: '24px' }}>
                 <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
-                    {trip.anomalyDescription || "세부 정보 없음" }
+                    {trip.anomalyDescription || "세부 정보 없음"}
                 </p>
             </div>
             <div style={{ fontSize: '14px', color: '#a0a0a0', marginBottom: '8px' }}>
@@ -126,9 +126,10 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
     const [allAnomalies, setAllAnomalies] = useState<TripWithId[]>([]);
 
     useEffect(() => {
-        getAnomalies().then(data => {
+        getAnomalies().then(response => {
             // 👇 데이터를 받아와서 상태에 저장하기 전에 ID를 부여합니다.
-            const anomaliesWithId = data.map(trip => ({
+            const anomalyTrips = response.data;
+            const anomaliesWithId = anomalyTrips.map(trip => ({
                 ...trip,
                 id: uuidv4() 
             }));

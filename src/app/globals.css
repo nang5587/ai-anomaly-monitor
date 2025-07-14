@@ -9,6 +9,8 @@ body,
   overflow: hidden;
 }
 
+
+/************** 🆎 폰트 ******************/
 .font-viga {
   font-family: 'Viga', sans-serif;
 }
@@ -46,9 +48,67 @@ body,
   font-weight: 400;
   font-style: normal;
 }
+/**************   끝   ******************/
 
+
+
+/* 차트 css */
 .nivo-radar .radarWrapper path {
   fill-opacity: 0.8 !important;
+}
+
+
+.animated-link {
+  stroke-dasharray: 10 5; /* 10px 그리고, 5px 비우고 */
+  animation: dash 1s linear infinite;
+  color: crimson;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -15; /* dasharray 합계만큼 이동 */
+  }
+}
+
+@import 'rc-slider/assets/index.css';
+
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+
+
+
+/************** 스크롤바 css ******************/
+.hide-scrollbar {
+  /* Firefox를 위한 표준 방식 */
+  scrollbar-width: none;
+  
+  /* IE, Edge 구버전 */
+  -ms-overflow-style: none;
+}
+/* Chrome, Safari, Edge 등 Webkit 기반 브라우저를 위한 방식 */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/**************    끝     ******************/
+
+
+
+
+
+
+/* FilterPanel.tsx 드롭다운 메뉴 배경색 변경 */
+.custom-select option {
+  background-color: #2A2A2A; /* 부모 컴포넌트의 배경색과 유사하게 */
+  color: #FFFFFF;
+}
+
+/* FilterPanel.tsx 달력 변경 */
+.custom-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* 아이콘 색상을 반전시켜 흰색으로 보이게 함 */
+  cursor: pointer;
+  color: #FFFFFF;
 }
 
 @theme inline {
@@ -89,50 +149,6 @@ body,
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-}
-
-.animated-link {
-  stroke-dasharray: 10 5; /* 10px 그리고, 5px 비우고 */
-  animation: dash 1s linear infinite;
-  color: crimson;
-}
-
-@keyframes dash {
-  to {
-    stroke-dashoffset: -15; /* dasharray 합계만큼 이동 */
-  }
-}
-
-@import 'rc-slider/assets/index.css';
-
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-
-.hide-scrollbar {
-  /* Firefox를 위한 표준 방식 */
-  scrollbar-width: none;
-
-  /* IE, Edge 구버전 */
-  -ms-overflow-style: none;
-}
-
-/* Chrome, Safari, Edge 등 Webkit 기반 브라우저를 위한 방식 */
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* FilterPanel.tsx 드롭다운 메뉴 배경색 변경 */
-.custom-select option {
-  background-color: #2A2A2A; /* 부모 컴포넌트의 배경색과 유사하게 */
-  color: #FFFFFF;
-}
-
-/* FilterPanel.tsx 달력 변경 */
-.custom-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1); /* 아이콘 색상을 반전시켜 흰색으로 보이게 함 */
-  cursor: pointer;
-  color: #FFFFFF;
 }
 
 :root {

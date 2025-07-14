@@ -35,7 +35,7 @@ export default function Header() {
               {/* 로그인 */}
               <LogIn className="w-6 h-6" />
             </button>
-            <button onClick={() => router.push('/register')} className="text-white p-3 cursor-pointer">
+            <button onClick={() => router.push('/join')} className="text-white p-3 cursor-pointer">
               {/* 회원가입 */}
               <UserPlus className="w-6 h-6" />
             </button>

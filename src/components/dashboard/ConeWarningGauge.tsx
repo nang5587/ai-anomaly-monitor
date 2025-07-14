@@ -20,7 +20,7 @@ export default function ConeWarningGauge({rate}:ConeWarningGaugeProps) {
         fill: i < filledSegments ? 'rgba(121,141,185)' : '#ffffff', // 조건부 색상
     }));
     return (
-        <div className="relative w-64 h-64">
+        <div className="relative w-56 h-56">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Pie

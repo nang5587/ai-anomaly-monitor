@@ -207,11 +207,13 @@ export const SupplyChainDashboard: React.FC = () => {
                 }}>
                     {activeTab === 'anomalies' && (
                         <>
-                            <AnomalyList
-                                anomalies={trips}
-                                onCaseClick={(trip) => setSelectedObject(trip)}
-                                selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
-                            />
+                            <div style={{ flex: 1, minHeight: 0 }}>
+                                <AnomalyList
+                                    anomalies={trips}
+                                    onCaseClick={(trip) => setSelectedObject(trip)}
+                                    selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                                />
+                            </div>
                             <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
                                 <p className="mb-2">현재 {trips.length}개의 이상 징후 표시 중</p>
                                 {nextCursor && (

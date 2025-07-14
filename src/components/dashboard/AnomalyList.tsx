@@ -99,8 +99,9 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                 return (
                     <div
                         key={trip.id}
-                        className={`group font-noto-400 border-b border-b-[#e0e0e034] transition-colors cursor-pointer 
+                        className={`group font-noto-400 border-b border-b-[#e0e0e034] transition-colors
                                     sm:grid sm:grid-cols-[2fr_1fr_3fr_3fr_1fr] sm:gap-x-4 sm:items-center sm:text-center
+                                    hover:bg-[rgba(30,30,30)]
                                     flex flex-col gap-2 py-4 px-6 sm:px-12 ${rowHoverStyle}`}
                     >
                         <div className="sm:col-span-1 text-white flex flex-col sm:items-center sm:justify-center text-left">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-// import { useAuth } from '@/context/AuthContext'; 백이랑 연결 시 주석 풀기
+// import { useAuth } from '@/context/AuthContext'; ℹ️ 백이랑 연결 시 주석 풀기
 
 import { motion, type Variants } from 'framer-motion';
 
@@ -38,7 +38,7 @@ const DynamicInventoryChart = dynamic(
 );
 const DynamicTimelineChart = dynamic(
   () => import('@/components/dashboard/AnomalyTimelineChart'),
-  { ssr: false }); // 새로 추가
+  { ssr: false });
 
 const DynamicStageLollipopChart = dynamic(
   () => import('@/components/dashboard/StageLollipopChart'),
@@ -48,6 +48,7 @@ const DynamicStageLollipopChart = dynamic(
 import { StageBarDataPoint } from '@/components/dashboard/StageLollipopChart';
 
 import {
+  Calendar as CalendarIcon,
   AlertTriangle,
   TrendingUp,
   Truck,
@@ -60,6 +61,9 @@ import {
   ArrowRightCircle,
 } from "lucide-react";
 
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
 type AnomalyDataPoint = {
   name: string; // 한글 이름
   type: AnomalyType;
@@ -67,6 +71,15 @@ type AnomalyDataPoint = {
   color1: string;
   color2: string;
 };
+
+type User = {
+  role: 'ADMIN' | 'MANAGER';
+  factoryCode: number;
+}
+
+const MOCK_USER_ADMIN: User = { role: 'ADMIN', factoryCode: 0 };
+const MOCK_USER_MANAGER: User = { role: 'MANAGER', factoryCode: 1 };
+
 // type InventoryDataPoint = { name: string; value: number; };
 // type UserRole = 'ADMIN' | 'MANAGER';
 // type MockUser = { role: UserRole; factory: string; };
@@ -78,8 +91,18 @@ type EventTimelineDataPoint = {
 
 type TripWithId = AnalyzedTrip & { id: string };
 
-const factoryPrefixMap: { [key: string]: string } = {
-  '화성공장': 'HWS', '인천공장': 'ICN', '구미공장': 'KUM', '양산공장': 'YGS',
+const factoryCodeNameMap: { [key: number]: string } = {
+  1: '인천',
+  2: '화성',
+  3: '양산',
+  4: '구미',
+};
+
+const factoryNameCodeMap: { [key: string]: number } = {
+  '인천': 1,
+  '화성': 2,
+  '양산': 3,
+  '구미': 4,
 };
 
 export type AnomalyListItem = {
@@ -91,10 +114,10 @@ export type AnomalyListItem = {
 };
 
 export default function SupervisorDashboard() {
-  // const { user } = useAuth(); // 테스트 끝나면 주석 풀기
   const router = useRouter();
-
-  // useEffect(() => { 📛서버 연결하면 다시 주석 풀어야 함
+  // ℹ️ 테스트 끝나면 주석 풀기
+  // const { user } = useAuth();
+  // useEffect(() => {
   //   if (!user) return; // 아직 로딩 중일 수 있음
 
   //   if (user.role !== 'ADMIN') {
@@ -103,6 +126,12 @@ export default function SupervisorDashboard() {
   //   }
   // }, [user, router]);
 
+
+  //⚠️ 백엔드 연결 시 삭제
+  const user = MOCK_USER_ADMIN;
+  // const user = MOCK_USER_MANAGER; // 이건 매니저 테스트
+  
+  
   const [nodes, setNodes] = useState<Node[]>([]);
 
   const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
@@ -120,17 +149,49 @@ export default function SupervisorDashboard() {
   const [stageChartData, setStageChartData] = useState<StageBarDataPoint[]>([]);
   const [eventTimelineData, setEventTimelineData] = useState<any[]>([]);
 
+  // 날짜 선택
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // 필터 상태
-  const [activeFactory, setActiveFactory] = useState('전체');
+  const [activeFactory, setActiveFactory] = useState<string>('');
+
+  const factoryTabs = useMemo(() => {
+    if (user.role === 'ADMIN') {
+      return ['전체', '화성', '인천', '구미', '양산'];
+    }
+    if (user.role === 'MANAGER') {
+      const myFactoryName = factoryCodeNameMap[user.factoryCode];
+      return myFactoryName ? [myFactoryName] : [];
+    }
+    return [];
+  }, [user]);
 
   useEffect(() => {
+    if (user.role === 'MANAGER' && factoryTabs.length > 0) {
+      setActiveFactory(factoryTabs[0]); // MANAGER는 자기 공장 탭을 기본값으로 설정
+    } else {
+      setActiveFactory('전체'); // ADMIN은 '전체' 탭을 기본값으로 설정
+    }
+  }, [user, factoryTabs]);
+
+  useEffect(() => {
+    if (!activeFactory) return;
+
     async function loadData() {
-      // 필터가 변경될 때마다 로딩 상태를 true로 설정하고, 기존 목록을 비웁니다.
       setIsLoading(true);
       setAnomalyTrips([]);
       setNextCursor(null);
 
-      const params = activeFactory === '전체' ? {} : { factoryCode: factoryPrefixMap[activeFactory] };
+      const params: Record<string, any> = {};
+
+      if (user.role === 'ADMIN' && activeFactory !== '전체') {
+        params.factoryCode = factoryNameCodeMap[activeFactory];
+      }
+
+      if (selectedDate) {
+        const dateString = selectedDate.toLocaleDateString('sv-SE');
+        params.date = dateString;
+      }
 
       try {
         // KPI, 인벤토리, 노드 데이터와 "첫 페이지"의 이상 징후 데이터를 함께 요청합니다.
@@ -157,17 +218,21 @@ export default function SupervisorDashboard() {
       }
     }
     loadData();
-  }, [activeFactory]);
+  }, [user, activeFactory, selectedDate]);
 
   const handleLoadMore = useCallback(async () => {
     if (!nextCursor || isFetchingMore) return;
-
     setIsFetchingMore(true);
-    const params = {
-      ...(activeFactory === '전체' ? {} : { factoryCode: factoryPrefixMap[activeFactory] }),
-      limit: 50,
-      cursor: nextCursor,
-    };
+
+    const params: Record<string, any> = {};
+    if (user.role === 'ADMIN' && activeFactory !== '전체') {
+      params.factoryCode = factoryNameCodeMap[activeFactory];
+    }
+
+    if (selectedDate) {
+      const dateString = selectedDate.toLocaleDateString('sv-SE');
+      params.date = dateString;
+    }
 
     try {
       const response = await getAnomalies(params);
@@ -180,7 +245,7 @@ export default function SupervisorDashboard() {
     } finally {
       setIsFetchingMore(false);
     }
-  }, [activeFactory, nextCursor, isFetchingMore]);
+  }, [user, activeFactory, nextCursor, isFetchingMore]);
 
   useEffect(() => {
     if (isLoading || !nodes.length || !anomalyTrips.length) {
@@ -333,7 +398,7 @@ export default function SupervisorDashboard() {
           <motion.h2 variants={itemVariants} className="font-vietnam text-white text-[50px] whitespace-nowrap">Supervisor<br />DashBoard</motion.h2>
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-4"
-            variants={containerVariants} // 여기서 다시 container를 써서 카드들도 순차적으로 나타나게 합니다.
+            variants={containerVariants}
           >
             <motion.div variants={itemVariants}><StatCard title="총 이상 이벤트(건)" value={kpiData.anomalyCount.toString()} icon={<AlertTriangle className="text-[#E0E0E0]" />} /></motion.div>
             <motion.div variants={itemVariants}><StatCard title="판매율(%)" value={kpiData.salesRate.toFixed(1)} icon={<TrendingUp className="text-[#E0E0E0]" />} /></motion.div>
@@ -342,12 +407,33 @@ export default function SupervisorDashboard() {
           </motion.div>
         </div>
         <motion.div variants={itemVariants} className="font-vietnam flex justify-between items-center bg-[rgba(40,40,40)] p-2 rounded-[50px]">
-          <div className="flex items-center gap-4 text-white pl-4"><MapPin size={22} /><h3>Orders Database</h3></div>
-          <div className="flex items-center gap-4 pr-4"><button className="w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full"><History size={22} /></button><button className="py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]"><Download size={18} />Download Report</button><button className="flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]"><Upload size={18} />Upload CSV</button></div>
+          <div className="flex items-center gap-4 text-white pl-4">
+            <MapPin size={22} /><h3>Orders Database</h3>
+            <div className="flex items-center gap-2 bg-[rgba(30,30,30)] text-white border border-gray-400 px-4 py-2 rounded-[50px]">
+              <CalendarIcon size={20} className="text-gray-300" />
+              <DatePicker
+                selected={selectedDate}
+                onChange={(date: Date | null) => setSelectedDate(date)}
+                dateFormat="yyyy/MM/dd"
+                isClearable
+                placeholderText="날짜 선택"
+                className="bg-transparent text-white outline-none w-28" // 스타일링
+                popperPlacement="bottom-start"
+                maxDate={new Date()}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 pr-4">
+            <button className="w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full">
+              <History size={22} />
+            </button>
+            <button className="py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]"><Download size={18} />Download Report</button><button className="flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]">
+              <Upload size={18} />Upload CSV
+            </button>
+          </div>
         </motion.div>
       </motion.div>
 
-      {/* --- ✨ 2. 두 번째 행: 스크롤 가능한 메인 콘텐츠 영역 --- */}
       <div className="px-8 pb-[120px]">
         <motion.div
           className="space-y-4"
@@ -362,27 +448,26 @@ export default function SupervisorDashboard() {
 
             {/* 1열: 공장 상세 뷰 */}
             <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
-              <FactoryDetailView activeFactory={activeFactory} onTabClick={setActiveFactory} kpiData={kpiData} />
+              <FactoryDetailView factoryTabs={factoryTabs} activeFactory={activeFactory} onTabClick={setActiveFactory} kpiData={kpiData} />
             </motion.div>
 
             {/* 2열: 중앙 분석 패널 */}
-            <motion.div variants={itemVariants} className="lg:col-span-6">
+            <motion.div variants={itemVariants} className="lg:col-span-6 h-full flex flex-col">
               {/* 
                 - grid-cols-2: 전체 공간을 왼쪽, 오른쪽 두 개의 열로 나눕니다.
                 - gap-6: 두 열 사이에 간격을 줍니다.
               */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-6 h-full">
 
                 {/* --- 왼쪽 열 --- */}
                 {/* 
                   - space-y-6: 이 열 안의 아이템들(차트) 사이에 수직 간격을 줍니다.
                   - flex flex-col: 내부 아이템을 수직으로 쌓기 위해 추가할 수 있습니다.
                 */}
-                <div className="space-y-6">
+                <div className="flex flex-col gap-6">
 
                   {/* 1. 이상 탐지 유형별 건수 */}
-                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[260px]) */}
-                  <div className="bg-[#E0E0E0] p-4 rounded-2xl shadow h-[380px] flex flex-col">
+                  <div className="bg-[#E0E0E0] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
                     <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 탐지 유형별 건수</h3>
                     <div className="flex-grow overflow-hidden">
                       <DynamicAnomalyChart data={anomalyChartData} />
@@ -390,8 +475,7 @@ export default function SupervisorDashboard() {
                   </div>
 
                   {/* 2. 시간대별 이상 발생 추이 */}
-                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[260px]) */}
-                  <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
+                  <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[260px] flex flex-col flex-grow">
                     <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">시간대별 이상 발생 추이</h3>
                     <div className="flex-grow overflow-hidden">
                       <DynamicTimelineChart data={eventTimelineData} />
@@ -400,11 +484,10 @@ export default function SupervisorDashboard() {
                 </div>
 
                 {/* --- 오른쪽 열 --- */}
-                <div className="space-y-6">
+                <div className="flex flex-col gap-6">
 
                   {/* 3. 공급망 */}
-                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[360px]) */}
-                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[260px] flex flex-col">
+                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[260px] flex flex-col flex-grow">
                     <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트</h3>
                     <div className="flex-grow overflow-hidden">
                       <DynamicStageLollipopChart data={stageChartData} />
@@ -412,8 +495,7 @@ export default function SupervisorDashboard() {
                   </div>
 
                   {/* 4. 유형별 재고 분산 */}
-                  {/* ✅ 여기에 원하는 높이를 직접 지정하세요! (예: h-[360px]) */}
-                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow h-[380px] flex flex-col">
+                  <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
                     <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
                     <div className="flex-grow overflow-hidden">
                       <DynamicInventoryChart data={inventoryData} />
