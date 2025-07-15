@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
-import axios from 'axios'; // isAxiosError 타입을 위해 유지
+import axios from 'axios';
 import apiClient from '@/api/apiClient';
 import { useRouter } from 'next/navigation';
 
@@ -21,7 +21,7 @@ type FormValues = {
     passwordConfirm: string;
     email: string;
     phone: string;
-    factoryCode: number;
+    locationId: number;
 }
 
 // 부모로 받을 step, setStep
@@ -40,7 +40,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
             passwordConfirm: '',
             email: '',
             phone: '',
-            factoryCode: 0,
+            locationId: 0,
         }
     });
 
@@ -50,7 +50,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
 
     //⭐감시하겠다는 뜻
     const password = watch('password');
-    const factoryCodeValue = watch('factoryCode');
+    const factoryCodeValue = watch('locationId');
     const phoneValue = watch('phone');
 
     // 전화번호 자동 하이픈
@@ -89,7 +89,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
 
     const handlePreviousStep = () => {
         if (step === 3) {
-            resetField('factoryCode');
+            resetField('locationId');
         }
         setStep(prevStep => prevStep - 1);
     };
@@ -220,7 +220,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                         <div className="flex-1 overflow-y-auto py-4 px-2">
                             <label className="block text-xl font-semibold text-center mb-6">소속 공장을 선택하세요</label>
                             <Controller
-                                name="factoryCode"
+                                name="locationId"
                                 control={control}
                                 rules={{ validate: (value) => value > 0 || "공장을 선택해주세요." }}
                                 render={({ field }) => (
@@ -231,8 +231,8 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                                             </button>))}
                                     </div>)}
                             />
-                            {errors.factoryCode && <p className="text-sm text-blue-600 mt-2 text-center">
-                                {errors.factoryCode.message}
+                            {errors.locationId && <p className="text-sm text-blue-600 mt-2 text-center">
+                                {errors.locationId.message}
                             </p>}
                         </div>
                         <div className="flex items-center gap-4 py-4 px-2">

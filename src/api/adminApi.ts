@@ -15,10 +15,10 @@ export const updateUser = async (userId: string, data: Partial<User>): Promise<U
 };
 
 // 3. 사용자의 소속 공장 변경 (PATCH /api/admin/users/factory)
-export const changeUserFactory = async (userId: string, factoryCode: number) => {
+export const changeUserFactory = async (userId: string, locationId: number) => {
     const response = await apiClient.patch('/admin/users/factory', {
         userId,
-        factoryCode,
+        locationId,
     });
     return response.data;
 };

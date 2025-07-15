@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 // import { useAuth } from '@/context/AuthContext'; // 1. 실제 훅은 주석 처리
 import { toast } from 'sonner';
 import { KeyIcon, UserCircleIcon } from '@heroicons/react/24/outline';
-// import { getMyProfile, updateProfileInfo, changePassword } from '@/api/userApi'; // 실제 API 파일 import도 주석 처리
+import { getMyProfile, updateProfileInfo, changePassword } from '@/api/userApi';
+
 
 // --- ✨ 더미 데이터 테스트를 위한 Mock API 함수들 (컴포넌트 내에 유지) ---
 
@@ -44,7 +45,7 @@ export default function UserSettings() {
     const user = {
         userName: 'admin_id', // 로그인 ID
         role: 'ADMIN',       // 'ADMIN' 또는 'MANAGER'
-        factoryCode: 0,      // MANAGER일 경우 1, 2, 3, 4 등으로 변경
+        locationId: 0,      // MANAGER일 경우 1, 2, 3, 4 등으로 변경
     };
     
     // 3. updateUserContext는 없으므로 빈 함수로 정의하여 에러 방지
@@ -128,7 +129,7 @@ export default function UserSettings() {
     const factoryName = useMemo(() => {
         if (!user) return '';
         if (user.role === 'ADMIN') return '전체 관리';
-        return user.factoryCode ? factoryCodeNameMap[user.factoryCode] || '미지정' : '소속 없음';
+        return user.locationId ? factoryCodeNameMap[user.locationId] || '미지정' : '소속 없음';
     }, [user]);
 
     if (isLoading) {

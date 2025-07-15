@@ -1,5 +1,11 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { Node, AnalyzedTrip, getAnomalies } from '../visual/data';
+import {
+    type Node,
+    type AnalyzedTrip,
+    type AnomalyType,
+    getAnomalies,
+} from '../visual/data';
+import { anomalyDescriptionMap } from '../visual/anomalyUtils';
 import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -57,26 +63,42 @@ const TripTimeline: React.FC<{ trip: TripWithId }> = ({ trip }) => {
 };
 
 const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
+    const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
+
     return (
         <>
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
-                    {trip.anomalyDescription || "세부 정보 없음"}
-                </p>
+            {/* 이상 현상 상세 설명 섹션 */}
+            {hasAnomalies && (
+                <div className="flex flex-col gap-4 p-3 mb-6 rounded-lg bg-black/20">
+                    {trip.anomalyTypeList.map(code => (
+                        <div key={code}>
+                            <p className="font-bold text-base" style={{ color: `rgb(${getAnomalyColor(code).join(',')})` }}>
+                                {getAnomalyName(code)}
+                            </p>
+                            <p className="text-sm text-neutral-300 mt-1">
+                                {anomalyDescriptionMap[code] || "상세 설명이 없습니다."}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* 기본 정보 섹션 */}
+            <div className="flex flex-col gap-2 text-sm text-neutral-400">
+                <div>
+                    <span className="text-white text-base">상품명 : </span>
+                    <span className="text-[#E0E0E0]">{trip.productName}</span>
+                </div>
+                <div>
+                    <span className="text-white text-base">EPC : </span>
+                    <span className="text-[#E0E0E0] font-mono">{trip.epcCode}</span>
+                </div>
+                <div className="mb-4">
+                    <span className="text-white text-base">LOT ID : </span>
+                    <span className="text-[#E0E0E0]">{trip.epcLot}</span>
+                </div>
             </div>
-            <div style={{ fontSize: '14px', color: '#a0a0a0', marginBottom: '8px' }}>
-                <span style={{ color: '#FFFFFF' }} className='text-base'>상품명 : </span>
-                <span className='text-[#E0E0E0]'>{trip.productName}</span>
-            </div>
-            <div style={{ fontSize: '14px', color: '#a0a0a0', marginBottom: '8px' }}>
-                <span style={{ color: '#FFFFFF' }} className='text-base'>EPC : </span>
-                <span className='text-[#E0E0E0]'>{trip.epcCode}</span>
-            </div>
-            <div style={{ fontSize: '14px', color: '#a0a0a0', marginBottom: '24px' }}>
-                <span style={{ color: '#FFFFFF' }} className='text-base'>LOT ID : </span>
-                <span className='text-[#E0E0E0]'>{trip.epcLot}</span>
-            </div>
-            {/* ✨ 2. TripTimeline에도 nodeMap을 전달 */}
+
             <TripTimeline trip={trip} />
         </>
     );
@@ -85,36 +107,43 @@ const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
 const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ node, allAnomalies }) => {
     const relatedAnomalies = useMemo(() => {
         return allAnomalies.filter(
-            trip => trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation
+            trip => (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation) &&
+                    (trip.anomalyTypeList && trip.anomalyTypeList.length > 0) // 이상이 있는 trip만 필터링
         );
     }, [node, allAnomalies]);
 
     return (
         <>
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', marginBottom: '15px' }}>
-                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
-                    <strong style={{ color: '#FFFFFF' }}>허브 타입:</strong> {node.hubType}<br />
-                    <strong style={{ color: '#FFFFFF' }}>좌표:</strong> {node.coord.join(', ')}
+            <div className="p-3 mb-4 rounded-lg bg-black/20">
+                <p className="text-sm leading-relaxed">
+                    <strong className="text-white">허브 타입:</strong> {node.hubType}<br />
+                    <strong className="text-white">좌표:</strong> {node.coord.join(', ')}
                 </p>
             </div>
-            <h4 style={{ margin: '15px 0 10px 0', fontSize: '15px', color: '#ddd' }}>연관된 이상징후 ({relatedAnomalies.length})</h4>
+            <h4 className="my-4 text-base font-semibold text-neutral-300">연관된 이상징후 ({relatedAnomalies.length})</h4>
             {relatedAnomalies.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {relatedAnomalies.map(trip => (
-                        <div key={trip.id} style={{ fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}>
-                            <div style={{ fontWeight: 'bold', color: `rgb(${getAnomalyColor(trip.anomaly || undefined).join(',')})` }}>{getAnomalyName(trip.anomaly || undefined)}</div>
-                            <div>{trip.from.scanLocation} → {trip.to.scanLocation}</div>
-                            <div>상품명: {trip.productName}</div>
-                        </div>
-                    ))}
+                <div className="flex flex-col gap-2">
+                    {relatedAnomalies.map(trip => {
+                        // 각 trip의 대표 이상 유형을 찾음
+                        const representativeAnomaly = trip.anomalyTypeList[0];
+                        return (
+                            <div key={trip.id} className="text-xs p-2 rounded-md bg-white/5">
+                                <div className="font-bold" style={{ color: `rgb(${getAnomalyColor(representativeAnomaly).join(',')})` }}>
+                                    {getAnomalyName(representativeAnomaly)}
+                                    {trip.anomalyTypeList.length > 1 && ` 외 ${trip.anomalyTypeList.length - 1}건`}
+                                </div>
+                                <div>{trip.from.scanLocation} → {trip.to.scanLocation}</div>
+                                <div>상품명: {trip.productName}</div>
+                            </div>
+                        );
+                    })}
                 </div>
             ) : (
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>이 지점과 연관된 이상 징후가 없습니다.</p>
+                <p className="text-sm text-neutral-500 m-0">이 지점과 연관된 이상 징후가 없습니다.</p>
             )}
         </>
     );
 };
-
 // --- 메인 컴포넌트 ---
 
 interface DetailsPanelProps {
@@ -131,7 +160,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             const anomalyTrips = response.data;
             const anomaliesWithId = anomalyTrips.map(trip => ({
                 ...trip,
-                id: uuidv4() 
+                id: uuidv4()
             }));
             setAllAnomalies(anomaliesWithId);
         });
@@ -155,7 +184,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#FFFFFF' }}>
                     {isTrip
-                        ? getAnomalyName((selectedObject as TripWithId).anomaly!)
+                        ? `운송 상세`
                         : (selectedObject as Node).scanLocation
                     }
                 </h3>

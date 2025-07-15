@@ -15,16 +15,14 @@ import {
     type PaginatedTripsResponse,
 } from './data';
 
-import { SupplyChainMap } from './SupplyChainMap'; // 리팩토링된 맵 컴포넌트
+import { SupplyChainMap } from './SupplyChainMap';
 import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
 import FilterPanel from './FilterPanel';
 import TripList from './TripList';
 
-// 탭 타입 정의
+// 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 type Tab = 'anomalies' | 'all';
-
-
 
 // 탭 버튼 스타일
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({

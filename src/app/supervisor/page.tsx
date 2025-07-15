@@ -11,18 +11,22 @@ import {
   getAnomalies,
   getKpiSummary,
   getInventoryDistribution,
+  getUploadHistory,
   type Node,
   type AnalyzedTrip,
   type KpiSummary,
   type InventoryDataPoint,
   type AnomalyType,
   type PaginatedTripsResponse,
-} from '@/components/visual/data'
+  type UploadFile,
+} from '@/components/visual/data';
 
 import StatCard from '@/components/dashboard/StatCard';
 import AnomalyList from '@/components/dashboard/AnomalyList';
 import { SupplyChainMapWidget } from '@/components/visual/SupplyChainMapWidget';
 import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
+import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
+
 import { getAnomalyName, getAnomalyColor } from '@/components/visual/colorUtils';
 
 import dynamic from 'next/dynamic';
@@ -59,6 +63,8 @@ import {
   History,
   Clock,
   ArrowRightCircle,
+  FileText,
+  X
 } from "lucide-react";
 
 import DatePicker from 'react-datepicker';
@@ -74,11 +80,11 @@ type AnomalyDataPoint = {
 
 type User = {
   role: 'ADMIN' | 'MANAGER';
-  factoryCode: number;
+  locationId: number;
 }
 
-const MOCK_USER_ADMIN: User = { role: 'ADMIN', factoryCode: 0 };
-const MOCK_USER_MANAGER: User = { role: 'MANAGER', factoryCode: 1 };
+const MOCK_USER_ADMIN: User = { role: 'ADMIN', locationId: 0 };
+const MOCK_USER_MANAGER: User = { role: 'MANAGER', locationId: 1 };
 
 // type InventoryDataPoint = { name: string; value: number; };
 // type UserRole = 'ADMIN' | 'MANAGER';
@@ -130,8 +136,8 @@ export default function SupervisorDashboard() {
   //⚠️ 백엔드 연결 시 삭제
   const user = MOCK_USER_ADMIN;
   // const user = MOCK_USER_MANAGER; // 이건 매니저 테스트
-  
-  
+
+
   const [nodes, setNodes] = useState<Node[]>([]);
 
   const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
@@ -155,16 +161,61 @@ export default function SupervisorDashboard() {
   // 필터 상태
   const [activeFactory, setActiveFactory] = useState<string>('');
 
+  // ✨ 모달 및 파일 필터 관련 상태 추가
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [uploadHistory, setUploadHistory] = useState<UploadFile[]>([]);
+  const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
+
   const factoryTabs = useMemo(() => {
     if (user.role === 'ADMIN') {
       return ['전체', '화성', '인천', '구미', '양산'];
     }
     if (user.role === 'MANAGER') {
-      const myFactoryName = factoryCodeNameMap[user.factoryCode];
+      const myFactoryName = factoryCodeNameMap[user.locationId];
       return myFactoryName ? [myFactoryName] : [];
     }
     return [];
   }, [user]);
+
+  const viewProps = useMemo(() => {
+    // 1. 파일이 선택된 경우
+    if (selectedFileId) {
+      const selectedFile = uploadHistory.find(file => file.fileId === selectedFileId);
+
+      // 파일 정보와 locationId가 유효한지 확인
+      if (selectedFile && selectedFile.locationId) {
+        const factoryName = factoryCodeNameMap[selectedFile.locationId];
+        if (factoryName) {
+          // 해당 공장 탭 하나만 표시하고, 그 탭을 활성화
+          return {
+            tabs: [factoryName],
+            active: factoryName
+          };
+        }
+      }
+      // 만약의 경우 (파일 정보가 없거나 locationId가 없을 때)
+      // 파일 선택을 무시하고 기본 상태로 돌아갑니다.
+      return {
+        tabs: factoryTabs,
+        active: '전체' // 또는 activeFactory 상태
+      };
+    }
+
+    // 2. 파일이 선택되지 않은 경우 (기본 상태)
+    // 기존의 factoryTabs와 activeFactory 상태를 그대로 사용
+    return {
+      tabs: factoryTabs,
+      active: activeFactory
+    };
+  }, [selectedFileId, uploadHistory, factoryTabs, activeFactory]);
+
+  const handleTabClick = (factory: string) => {
+    // 탭을 클릭하면 항상 파일 필터가 해제됩니다.
+    if (selectedFileId !== null) {
+      setSelectedFileId(null);
+    }
+    setActiveFactory(factory);
+  };
 
   useEffect(() => {
     if (user.role === 'MANAGER' && factoryTabs.length > 0) {
@@ -183,30 +234,32 @@ export default function SupervisorDashboard() {
       setNextCursor(null);
 
       const params: Record<string, any> = {};
-
-      if (user.role === 'ADMIN' && activeFactory !== '전체') {
-        params.factoryCode = factoryNameCodeMap[activeFactory];
+      const factoryId = factoryNameCodeMap[activeFactory];
+      if (user.role === 'ADMIN' && factoryId) {
+        params.locationId = factoryId;
       }
 
-      if (selectedDate) {
-        const dateString = selectedDate.toLocaleDateString('sv-SE');
-        params.date = dateString;
+      // ✨ 중요: 파일 필터와 날짜 필터는 상호 배타적으로 동작
+      if (selectedFileId) {
+        params.fileId = selectedFileId;
+      } else if (selectedDate) {
+        params.date = selectedDate.toLocaleDateString('sv-SE');
       }
+
+      console.log('--- 1. API에 전달되는 파라미터 ---', { ...params, limit: 50, cursor: null });
 
       try {
-        // KPI, 인벤토리, 노드 데이터와 "첫 페이지"의 이상 징후 데이터를 함께 요청합니다.
         const [kpiRes, inventoryRes, nodesRes, anomaliesRes] = await Promise.all([
           getKpiSummary(params),
           getInventoryDistribution(params),
           getNodes(),
-          getAnomalies({ ...params, limit: 50, cursor: null }) // 첫 페이지는 50개 로드
+          getAnomalies({ ...params, limit: 50, cursor: null })
         ]);
 
+        // ... 데이터 설정 로직 ...
         setKpiData(kpiRes);
         setInventoryData(inventoryRes.inventoryDistribution);
         setNodes(nodesRes);
-
-        // 첫 페이지 데이터 설정
         const tripsWithId = anomaliesRes.data.map(trip => ({ ...trip, id: uuidv4() }));
         setAnomalyTrips(tripsWithId);
         setNextCursor(anomaliesRes.nextCursor);
@@ -218,26 +271,28 @@ export default function SupervisorDashboard() {
       }
     }
     loadData();
-  }, [user, activeFactory, selectedDate]);
+  }, [user, activeFactory, selectedDate, selectedFileId]);
 
   const handleLoadMore = useCallback(async () => {
     if (!nextCursor || isFetchingMore) return;
     setIsFetchingMore(true);
 
     const params: Record<string, any> = {};
-    if (user.role === 'ADMIN' && activeFactory !== '전체') {
-      params.factoryCode = factoryNameCodeMap[activeFactory];
+    const factoryId = factoryNameCodeMap[activeFactory];
+    if (user.role === 'ADMIN' && factoryId) {
+      params.locationId = factoryId;
     }
 
-    if (selectedDate) {
-      const dateString = selectedDate.toLocaleDateString('sv-SE');
-      params.date = dateString;
+    if (selectedFileId) {
+      params.fileId = selectedFileId;
+    } else if (selectedDate) {
+      params.date = selectedDate.toLocaleDateString('sv-SE');
     }
 
     try {
-      const response = await getAnomalies(params);
+      // getAnomalies 호출 시 cursor 정보도 함께 전달
+      const response = await getAnomalies({ ...params, cursor: nextCursor });
       const newTripsWithId = response.data.map(trip => ({ ...trip, id: uuidv4() }));
-
       setAnomalyTrips(prev => [...prev, ...newTripsWithId]);
       setNextCursor(response.nextCursor);
     } catch (error) {
@@ -245,7 +300,55 @@ export default function SupervisorDashboard() {
     } finally {
       setIsFetchingMore(false);
     }
-  }, [user, activeFactory, nextCursor, isFetchingMore]);
+  }, [user, activeFactory, selectedDate, selectedFileId, nextCursor, isFetchingMore]);
+
+  const handleHistoryClick = async () => {
+    try {
+      const historyData = await getUploadHistory();
+      setUploadHistory(historyData);
+      setIsHistoryModalOpen(true);
+    } catch (error) {
+      alert('업로드 내역을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleFileSelect = (fileId: number) => {
+    // 선택된 파일의 전체 정보를 찾습니다.
+    const selectedFile = uploadHistory.find(file => file.fileId === fileId);
+
+    if (selectedFile) {
+      // 1. fileId 상태를 업데이트합니다.
+      setSelectedFileId(selectedFile.fileId);
+
+      // 2. 해당 파일의 locationId를 기반으로 activeFactory 상태를 업데이트합니다.
+      if (selectedFile.locationId) {
+        // locationId가 있으면 해당 공장 이름으로 탭을 설정합니다.
+        const factoryName = factoryCodeNameMap[selectedFile.locationId];
+        if (factoryName) {
+          setActiveFactory(factoryName);
+        }
+      } else {
+        // locationId가 null이면 '전체' 탭으로 설정합니다.
+        setActiveFactory('전체');
+      }
+    }
+
+    // 3. 날짜 필터는 초기화하고 모달을 닫습니다.
+    setSelectedDate(null);
+    setIsHistoryModalOpen(false);
+  };
+
+  // 필터 초기화 함수
+  const clearFilters = () => {
+    setSelectedDate(null);
+    setSelectedFileId(null);
+    setActiveFactory('전체');
+  };
+
+  const selectedFileName = useMemo(() => {
+    if (!selectedFileId) return null;
+    return uploadHistory.find(file => file.fileId === selectedFileId)?.fileName || `File ID: ${selectedFileId}`;
+  }, [selectedFileId, uploadHistory]);
 
   useEffect(() => {
     if (isLoading || !nodes.length || !anomalyTrips.length) {
@@ -257,11 +360,16 @@ export default function SupervisorDashboard() {
 
     // 1. 이상 탐지 유형별 건수 (변경 필요 없음, anomalyTrips는 이미 ID 포함)
     const countsByType = anomalyTrips.reduce((acc, trip) => {
-      if (trip.anomaly) {
-        acc[trip.anomaly] = (acc[trip.anomaly] || 0) + 1;
+      // 기존: trip.anomaly (단일 값) -> 변경: trip.anomalyTypeList (배열)
+      // 배열의 각 이상 유형에 대해 카운트를 1씩 증가시킵니다.
+      if (trip.anomalyTypeList && trip.anomalyTypeList.length > 0) {
+        trip.anomalyTypeList.forEach(anomalyCode => {
+          acc[anomalyCode] = (acc[anomalyCode] || 0) + 1;
+        });
       }
       return acc;
     }, {} as Record<AnomalyType, number>);
+
     const newAnomalyChartData = Object.entries(countsByType).map(([type, count]) => ({
       type: type as AnomalyType,
       name: getAnomalyName(type as AnomalyType),
@@ -386,7 +494,12 @@ export default function SupervisorDashboard() {
 
   return (
     <div className="h-screen grid grid-rows-[auto_1fr] bg-black overflow-y-auto hide-scrollbar">
-
+      <UploadHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        files={uploadHistory}
+        onFileSelect={handleFileSelect}
+      />
       {/* --- 첫 번째 행: 상단 고정 영역 --- */}
       <motion.div
         className="px-8 pb-6 space-y-4 "
@@ -409,27 +522,39 @@ export default function SupervisorDashboard() {
         <motion.div variants={itemVariants} className="font-vietnam flex justify-between items-center bg-[rgba(40,40,40)] p-2 rounded-[50px]">
           <div className="flex items-center gap-4 text-white pl-4">
             <MapPin size={22} /><h3>Orders Database</h3>
-            <div className="flex items-center gap-2 bg-[rgba(30,30,30)] text-white border border-gray-400 px-4 py-2 rounded-[50px]">
-              <CalendarIcon size={20} className="text-gray-300" />
-              <DatePicker
-                selected={selectedDate}
-                onChange={(date: Date | null) => setSelectedDate(date)}
-                dateFormat="yyyy/MM/dd"
-                isClearable
-                placeholderText="날짜 선택"
-                className="bg-transparent text-white outline-none w-28" // 스타일링
-                popperPlacement="bottom-start"
-                maxDate={new Date()}
-              />
-            </div>
+            {selectedFileId ? (
+              <div className="flex items-center gap-2 bg-[rgba(91,111,155,0.5)] text-white border border-[rgba(111,131,175)] px-4 py-2 rounded-[50px]">
+                <FileText size={16} className="text-blue-300" />
+                <span className="text-sm font-semibold truncate max-w-[200px]">{selectedFileName}</span>
+                <button onClick={clearFilters} className="ml-2 p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/10">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-[rgba(30,30,30)] text-white border border-gray-400 px-4 py-2 rounded-[50px]">
+                <CalendarIcon size={20} className="text-gray-300" />
+                <DatePicker
+                  selected={selectedDate}
+                  onChange={(date: Date | null) => {
+                    setSelectedDate(date);
+                    setSelectedFileId(null);
+                  }}
+                  dateFormat="yyyy/MM/dd"
+                  isClearable
+                  placeholderText="날짜 선택"
+                  className="bg-transparent text-white outline-none w-28"
+                  popperPlacement="bottom-start"
+                  maxDate={new Date()}
+                />
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4 pr-4">
-            <button className="w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full">
+            <button onClick={handleHistoryClick} className="w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full">
               <History size={22} />
             </button>
-            <button className="py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]"><Download size={18} />Download Report</button><button className="flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]">
-              <Upload size={18} />Upload CSV
-            </button>
+            <button className="py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]"><Download size={18} />Download Report</button>
+            <button className="flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]"><Upload size={18} />Upload CSV</button>
           </div>
         </motion.div>
       </motion.div>
@@ -448,7 +573,12 @@ export default function SupervisorDashboard() {
 
             {/* 1열: 공장 상세 뷰 */}
             <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
-              <FactoryDetailView factoryTabs={factoryTabs} activeFactory={activeFactory} onTabClick={setActiveFactory} kpiData={kpiData} />
+              <FactoryDetailView
+                factoryTabs={viewProps.tabs}
+                activeFactory={viewProps.active}
+                onTabClick={handleTabClick}
+                kpiData={kpiData}
+              />
             </motion.div>
 
             {/* 2열: 중앙 분석 패널 */}

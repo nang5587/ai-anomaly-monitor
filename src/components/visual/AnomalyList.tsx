@@ -1,7 +1,8 @@
 import React from 'react';
 
-import { type AnalyzedTrip, type AnomalyType, type Node } from '../visual/data';
+import { type AnalyzedTrip, type AnomalyType } from '../visual/data';
 import { getAnomalyColor, getAnomalyName } from './colorUtils';
+
 
 type TripWithId = AnalyzedTrip & { id: string };
 
@@ -57,10 +58,13 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                 className="hide-scrollbar"
             >
                 {anomalies.map(trip => {
-                    if (!trip.anomaly) return null;
-                    const pastel = pastelColorMap[trip.anomaly] || pastelColorMap['default'];
-                    const bgColor = `${pastel}26`;
-                    const textColor = pastel;
+                    const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
+                    
+                    // ✨ anomalyList에 들어온 데이터는 이상이 있다고 가정하므로,
+                    // 만약의 경우를 대비한 방어 코드입니다.
+                    if (!hasAnomalies) {
+                        return null; 
+                    }
 
                     const isSelected = selectedObjectId === trip.id;
 
@@ -71,12 +75,24 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >
                             <div className="flex items-center justify-between mb-2">
-                                <span
-                                    className="px-3 py-1 text-xs font-bold rounded-full"
-                                    style={{ backgroundColor: bgColor, color: textColor }}
-                                >
-                                    {getAnomalyName(trip.anomaly)}
-                                </span>
+                                {/* ✨ 수정: 여러 개의 태그를 렌더링하기 위한 컨테이너 */}
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    {trip.anomalyTypeList.map(typeCode => {
+                                        const pastel = pastelColorMap[typeCode] || pastelColorMap['default'];
+                                        const bgColor = `${pastel}26`;
+                                        const textColor = pastel;
+
+                                        return (
+                                            <span
+                                                key={typeCode} // 각 태그는 고유한 키가 필요
+                                                className="px-2 py-0.5 text-xs font-bold rounded-full"
+                                                style={{ backgroundColor: bgColor, color: textColor }}
+                                            >
+                                                {getAnomalyName(typeCode)}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
                                 <span className="text-xs text-neutral-500">
                                     {trip.eventType}
                                 </span>

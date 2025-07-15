@@ -109,44 +109,48 @@ export default function TripList({ trips, onCaseClick, selectedObjectId }: TripL
                 className="hide-scrollbar"
             >
                 {trips.map((trip) => {
-                    const anomalyType = trip.anomaly;
-                    const pastel = anomalyType ? pastelColorMap[anomalyType] || pastelColorMap['default'] : null;
-                    const bgColor = pastel ? `${pastel}26` : '';
-                    const textColor = pastel || '';
-
                     const isSelected = selectedObjectId === trip.id;
+                    // ✨ trip.anomalyTypeList가 유효한 배열인지 확인
+                    const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
 
                     return (
                         <div
                             key={trip.id}
                             onClick={() => onCaseClick(trip)}
-                            // Tailwind CSS를 사용하여 스타일링
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >
-                            {/* 상단 행: 이상 유형 태그와 출발 시간 */}
                             <div className="flex items-center justify-between mb-2">
-                                {anomalyType && pastel ? (
-                                    <span
-                                        className="px-3 py-1 text-xs font-bold rounded-full"
-                                        style={{ backgroundColor: bgColor, color: textColor }}
-                                    >
-                                        {getAnomalyName(anomalyType)}
-                                    </span>
-                                ) : (
-                                    // 이상이 없는 경우 공간을 차지하지 않도록 빈 span을 렌더링
-                                    <span></span>
-                                )}
+                                {/* ✨ 수정: 여러 이상 유형 태그를 렌더링하는 부분 */}
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    {hasAnomalies ? (
+                                        trip.anomalyTypeList.map(typeCode => {
+                                            const color = pastelColorMap[typeCode] || pastelColorMap['default'];
+                                            const bgColor = `${color}26`;
+                                            const textColor = color;
+                                            return (
+                                                <span
+                                                    key={typeCode} // 각 태그는 고유한 키를 가져야 함
+                                                    className="px-2 py-0.5 text-xs font-bold rounded-full"
+                                                    style={{ backgroundColor: bgColor, color: textColor }}
+                                                >
+                                                    {getAnomalyName(typeCode)}
+                                                </span>
+                                            );
+                                        })
+                                    ) : (
+                                        // 이상이 없는 경우 빈 공간으로 둡니다.
+                                        <span />
+                                    )}
+                                </div>
                                 <span className="text-xs text-neutral-500">
                                     {formatUnixTime(trip.from.eventTime)}
                                 </span>
                             </div>
 
-                            {/* 중간 행: 상품명 */}
                             <p className="text-sm font-medium text-white mb-2 truncate">
                                 {trip.productName}
                             </p>
 
-                            {/* 하단 행: 경로 및 EPC 정보 */}
                             <div className="text-xs text-neutral-400">
                                 <p className="truncate">{trip.from.scanLocation} → {trip.to.scanLocation}</p>
                                 <p className="mt-1 opacity-70 font-mono">EPC: {trip.epcCode}</p>

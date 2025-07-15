@@ -93,7 +93,7 @@ export default function UserSettings() {
     const factoryName = useMemo(() => {
         if (!user) return '';
         if (user.role === 'ADMIN') return '전체 관리';
-        return user.factoryCode ? factoryCodeNameMap[user.factoryCode] || '미지정' : '소속 없음';
+        return user.locationId ? factoryCodeNameMap[user.locationId] || '미지정' : '소속 없음';
     }, [user]);
 
     if (isLoading) {

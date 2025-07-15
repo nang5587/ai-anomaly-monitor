@@ -2,15 +2,15 @@
 import jwtDecode from 'jwt-decode';
 
 interface JwtPayload {
-  userName: string;
+  userId: string;
   role: string;
-  factoryCode?: number;
+  location_id?: number;
 }
 
 export interface User {
-  userName: string; // 로그인 ID
+  userId: string; // 로그인 ID
   role: string;
-  factoryCode?: number;
+  locationId?: number;
 
   // 선택적
   realName?: string;
@@ -21,7 +21,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
-  user: { userName: string; role: string; factoryCode?: number; } | null;
+  user: { userId: string; role: string; locationId?: number; } | null;
   login: (token: string, rememberMe: boolean) => void;
   logout: () => void;
   updateUserContext: (updatedInfo: Partial<User>) => void;
@@ -30,7 +30,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ userName: string; role: string; factoryCode?: number; } | null>(null);
+  const [user, setUser] = useState<{ userId: string; role: string; locationId?: number; } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,14 +42,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (token) {
         try {
           // 토큰을 디코딩하여 필수 정보를 얻음
-          const { userName, role, factoryCode } = jwtDecode<JwtPayload>(token);
-
+          const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
+          const locationId = location_id;
           // ✨ 토큰 외에 저장해 둔 추가 정보(realName, email)도 함께 읽어옴
           const realName = storage.getItem('realName') || undefined;
           const email = storage.getItem('email') || undefined;
 
           // 복원된 사용자 객체 생성
-          const restoredUser: User = { userName, role, factoryCode, realName, email };
+          const restoredUser: User = { userId, role, locationId, realName, email };
           setUser(restoredUser);
         } catch (error) {
           // 유효하지 않은 토큰일 경우, 모든 정보를 지움
@@ -61,13 +61,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (token: string, rememberMe: boolean) => {
-    const { userName, role, factoryCode } = jwtDecode<JwtPayload>(token);
+    const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
 
     // 토큰과 필수 정보를 스토리지에 저장
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', token);
 
-    const newUser: User = { userName, role, factoryCode };
+    console.log(location_id, "-------------- 로그인 성공 : 나의 공장 코드")
+    console.log(role, "-------------- 로그인 성공 : 나의 role")
+    console.log(userId, "-------------- 로그인 성공 : 나의 userId")
+    const locationId = location_id;
+    const newUser: User = { userId, role, locationId };
     setUser(newUser);
   };
 

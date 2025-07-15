@@ -22,18 +22,18 @@ export const getUsers = async ({ status }: { status: 'pending' | 'active' }): Pr
 interface ApproveUserData {
     userId: string;
     role: 'MANAGER' | 'UNAUTH';
-    factoryCode?: number;
+    locationId?: number;
 }
 
 // 사용자 승인하기
 export const approveUser = async (data: ApproveUserData) => {
-    const { userId, role, factoryCode } = data;
+    const { userId, role, locationId } = data;
     const body: any = {
         userId,
         role,
     };
-    if (role === 'MANAGER' && factoryCode) {
-        body.factory = factoryCode;
+    if (role === 'MANAGER' && locationId) {
+        body.factory = locationId;
     }
 
     const response = await apiClient.post('/admin/users/approve', body);

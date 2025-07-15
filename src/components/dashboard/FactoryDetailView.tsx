@@ -62,7 +62,7 @@ export default function FactoryDetailView({ factoryTabs, activeFactory, onTabCli
 
             {/* 만약 탭이 1개만 있다면, 그 공장 이름을 제목처럼 보여줄 수 있습니다. */}
             {factoryTabs && factoryTabs.length === 1 && (
-                <h2 className="font-noto-500 text-2xl text-white mb-6 text-center">{factoryTabs[0]}공장</h2>
+                <h2 className="font-noto-400 text-xl text-white mb-6 text-center rounded-2xl bg-[rgba(30,30,30)] p-2">{factoryTabs[0]}공장</h2>
             )}
 
             {/* --- KPI 그리드 --- */}

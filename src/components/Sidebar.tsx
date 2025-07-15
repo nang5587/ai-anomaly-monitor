@@ -6,6 +6,7 @@ import {
   SettingsIcon,
   BellIcon,
   UserIcon,
+  Map as MapIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from 'react';
@@ -13,6 +14,7 @@ import { useMemo } from 'react';
 const menus = [
   { name: "대시보드", icon: HomeIcon, href: "/" },
   { name: "분석 리포트", icon: BarChartIcon, href: "/report" },
+  { name: "분석 지도", icon: MapIcon, href: "/graph" },
   { name: "알림", icon: BellIcon, href: "/alerts" },
   { name: "설정", icon: SettingsIcon, href: "/settings" },
   { name: "사용자 관리", icon: UserIcon, href: "/supervisor/management", requiredRole: "ADMIN" },

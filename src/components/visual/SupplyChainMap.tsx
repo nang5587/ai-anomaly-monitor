@@ -203,11 +203,15 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
         } else {
             const trip = object as TripWithId;
 
-            // 이상 유형이 있을 때만 해당 라인을 추가
-            const anomalyLine = trip.anomaly
+            // ✨ 1. 대표 이상 유형 코드를 가져옵니다. (배열의 첫 번째 항목)
+            const representativeAnomaly = trip.anomalyTypeList && trip.anomalyTypeList.length > 0 ? trip.anomalyTypeList[0] : null;
+
+            // ✨ 2. 대표 이상 유형이 있을 때만 툴팁에 표시할 HTML 라인을 만듭니다.
+            const anomalyLine = representativeAnomaly
                 ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); color: #FFFFFF; font-weight: semi-bold;">
-                        이상 유형: ${getAnomalyName(trip.anomaly)}
-                    </div>`
+                    이상 유형: ${getAnomalyName(representativeAnomaly)}
+                    ${trip.anomalyTypeList.length > 1 ? ` 외 ${trip.anomalyTypeList.length - 1}건` : ''}
+                </div>`
                 : '';
 
             return {
@@ -225,7 +229,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     };
 
     // 이상 탐지된 트립만 필터링
-    const anomalyList = useMemo(() => validTrips.filter(t => t.anomaly), [validTrips]);
+    const anomalyList = useMemo(() => validTrips.filter(t => t.anomalyTypeList && t.anomalyTypeList.length > 0), [validTrips]);
 
     useEffect(() => {
         // 선택된 객체가 없으면 아무것도 하지 않고 종료합니다.
@@ -352,7 +356,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     const anomalyNodeIds = useMemo(() => {
         const ids = new Set<string>();
         validTrips.forEach(trip => {
-            if (trip.anomaly) {
+            if (trip.anomalyTypeList && trip.anomalyTypeList.length > 0) {
                 ids.add(trip.from.scanLocation);
                 ids.add(trip.to.scanLocation);
             }
@@ -376,16 +380,13 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
             getTargetPosition: d => d.to.coord,
             getColor: d => {
                 // 👇 getColor에서도 동일한 로직 적용
-                let isSelected = false;
-                // selectedObject가 존재하고, 'id' 속성을 가지고 있으며, 그 id가 현재 라인의 id와 같은지 확인
-                if (selectedObject && 'id' in selectedObject) {
-                    isSelected = selectedObject.id === d.id;
-                }
-
+                let isSelected = selectedObject && 'id' in selectedObject && selectedObject.id === d.id;
                 if (selectedObject && !isSelected) return [128, 128, 128, 20];
-                
-                if (d.anomaly) {
-                    const color = getAnomalyColor(d.anomaly);
+
+                // ✨ 수정: trip.anomalyType -> trip.anomalyTypeList
+                const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
+                if (representativeAnomaly) {
+                    const color = getAnomalyColor(representativeAnomaly);
                     return isSelected ? [255, 255, 255, 255] : [...color, 200];
                 }
                 return isSelected ? [0, 255, 127, 255] : [0, 255, 127, 50];
@@ -425,10 +426,9 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
             getTimestamps: d => [d.from.eventTime, d.to.eventTime],
 
             getColor: d => {
-                console.log('Trip ID:', d.id, 'Anomaly Value:', d.anomaly, 'Type:', typeof d.anomaly);
-
-                if (d.anomaly) {
-                    return getAnomalyColor(d.anomaly);
+                const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
+                if (representativeAnomaly) {
+                    return getAnomalyColor(representativeAnomaly);
                 }
                 return [0, 255, 127];
             },

@@ -1,7 +1,7 @@
-// components/visual/data.ts (또는 lib/data.ts)
+import apiClient from "@/api/apiClient";
 
-// --- 1. 타입 정의 (최종 API 명세 기준) ---
-// 이 타입들은 실제 API와 연동될 때도 그대로 사용됩니다.
+// --- 1. 타입 정의 ---
+// 최종 논의된 내용에 맞춰 타입을 정의합니다.
 
 export interface Node {
     hubType: string;
@@ -11,22 +11,29 @@ export interface Node {
 }
 
 export type AnomalyType = 'jump' | 'evtOrderErr' | 'epcFake' | 'epcDup' | 'locErr';
-
+export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
+    jump: '시공간 점프',
+    evtOrderErr: '이벤트 순서 오류',
+    epcFake: 'EPC 위조',
+    epcDup: 'EPC 복제',
+    locErr: '경로 이탈',
+};
 export interface TripEndpoint {
     scanLocation: string;
     coord: [number, number];
-    eventTime: number;
+    eventTime: number; // 더미 데이터에서는 Unix 타임스탬프(초)를 사용합니다.
     businessStep: string;
 }
 
 export interface AnalyzedTrip {
+    id: string;
     from: TripEndpoint;
     to: TripEndpoint;
     epcCode: string;
     productName: string;
     epcLot: string;
     eventType: string;
-    anomaly: AnomalyType | null;
+    anomalyTypeList: AnomalyType[];
     anomalyDescription: string | null;
 }
 
@@ -55,25 +62,163 @@ export interface InventoryDistributionResponse {
     inventoryDistribution: InventoryDataPoint[];
 }
 
+// ✨ 최종 확정된 필터 옵션 타입
 export interface FilterOptions {
     scanLocations: string[];
-    eventTimeRange: { min: number; max: number };
+    eventTimeRange: [string, string]; // [min, max] 날짜-시간 문자열 배열
     businessSteps: string[];
     productNames: string[];
     eventTypes: string[];
-    anomalyTypes: { code: string; name: string }[];
+    anomalyTypes: string[]; // 코드 문자열 배열
 }
 
-// --- 2. "가짜" API 호출 함수들 (더미 데이터 사용) ---
-// 컴포넌트는 이 함수들을 실제 API처럼 호출합니다.
-// 나중에 이 함수 내부의 fetch URL만 실제 API 엔드포인트로 바꾸면 됩니다.
+export interface UploadFile {
+    fileId: number;
+    fileName: string;
+    userId: string;
+    fileSize: number;
+    createdAt: string;
+    locationId: number;
+}
+
+// --- 2. API 호출 함수 (더미 데이터 시뮬레이션) ---
 
 /**
- * 노드 목록을 가져옵니다. (더미)
- * @returns {Promise<Node[]>}
+ * ✨ [신규] 특정 출발지를 기준으로 가능한 도착지 목록을 반환합니다. (더미)
+ * @param scanLocation 선택된 출발지 이름
  */
+export async function getToLocations(scanLocation: string): Promise<string[]> {
+    if (!scanLocation) {
+        return [];
+    }
+    try {
+        // 전체 trip 데이터를 가져와서 클라이언트 측에서 필터링합니다.
+        const response = await fetch('/api/trips.json');
+        if (!response.ok) {
+            throw new Error('Failed to fetch trips for dynamic location filtering');
+        }
+        const allTrips: AnalyzedTrip[] = await response.json();
+
+        const possibleToLocations = allTrips
+            .filter(trip => trip.from.scanLocation === scanLocation) // 출발지가 일치하는 trip만 찾기
+            .map(trip => trip.to.scanLocation); // 해당 trip들의 도착지만 추출
+
+        // Set을 사용하여 중복된 도착지를 제거한 후 배열로 반환
+        return [...new Set(possibleToLocations)];
+    } catch (error) {
+        console.error("Error fetching dynamic 'to' locations:", error);
+        return [];
+    }
+}
+
+/**
+ * 필터 옵션 목록을 가져옵니다. (더미)
+ * 이 함수는 /public/api/filter.json 파일을 fetch합니다.
+ */
+export async function getFilterOptions(): Promise<FilterOptions> {
+    const response = await fetch('/api/filter.json');
+    if (!response.ok) throw new Error('Failed to fetch filter options');
+    return response.json();
+}
+
+/**
+ * 필터링된 이상 징후 Trip 목록을 가져옵니다. (더미)
+ * @param params 필터 조건
+ */
+export async function getAnomalies(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
+    console.log('Fetching Anomalies with params:', params);
+    const response = await fetch('/api/anomalies.json');
+    console.log(response, 'test 입니다.')
+    if (!response.ok) throw new Error('Failed to fetch anomalies');
+
+    let allAnomalies: AnalyzedTrip[] = await response.json();
+    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
+
+    if (filterKeys.length > 0) {
+        allAnomalies = allAnomalies.filter(trip => {
+            return filterKeys.every(key => {
+                const value = params![key];
+                if (!value) return true;
+                switch (key) {
+                    case 'fromScanLocation': return trip.from.scanLocation === value;
+                    case 'toScanLocation': return trip.to.scanLocation === value;
+                    case 'min': return trip.from.eventTime >= (new Date(value).getTime() / 1000);
+                    case 'max': return trip.to.eventTime <= (new Date(value).getTime() / 1000);
+                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
+                    case 'epcCode': return trip.epcCode.includes(String(value));
+                    case 'productName': return trip.productName === value;
+                    case 'epcLot': return trip.epcLot.includes(String(value));
+                    case 'eventType': return trip.eventType === value;
+                    case 'anomalyType':
+                        return trip.anomalyTypeList.includes(value);
+                    default: return true;
+                }
+            });
+        });
+    }
+
+    const limit = params?.limit || 50;
+    const startIndex = params?.cursor ? Number(params.cursor) : 0;
+    const paginatedData = allAnomalies.slice(startIndex, startIndex + limit);
+    const nextCursor = (startIndex + limit < allAnomalies.length) ? (startIndex + limit).toString() : null;
+
+    return {
+        data: paginatedData,
+        nextCursor,
+    };
+}
+
+/**
+ * 필터링 및 페이지네이션된 전체 Trip 목록을 가져옵니다. (더미)
+ * @param params 필터 조건 및 페이지네이션 커서
+ */
+export async function getTrips(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
+    console.log('Fetching Trips with params:', params);
+    const response = await fetch('/api/trips.json');
+    if (!response.ok) throw new Error('Failed to fetch trips');
+
+    let allTrips: AnalyzedTrip[] = await response.json();
+    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
+
+    if (filterKeys.length > 0) {
+        allTrips = allTrips.filter(trip => {
+            return filterKeys.every(key => {
+                const value = params![key];
+                if (!value) return true;
+                switch (key) {
+                    case 'fromScanLocation': return trip.from.scanLocation === value;
+                    case 'toScanLocation': return trip.to.scanLocation === value;
+                    // ✨ 시간 필터링: 파라미터(문자열)를 Unix 타임스탬프(숫자)로 변환하여 비교
+                    case 'min': return trip.from.eventTime >= (new Date(value).getTime() / 1000);
+                    case 'max': return trip.to.eventTime <= (new Date(value).getTime() / 1000);
+                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
+                    case 'epcCode': return trip.epcCode.includes(String(value));
+                    case 'productName': return trip.productName === value;
+                    case 'epcLot': return trip.epcLot.includes(String(value));
+                    case 'eventType': return trip.eventType === value;
+                    case 'anomalyType':
+                        return trip.anomalyTypeList.includes(value);
+                    default: return true;
+                }
+            });
+        });
+    }
+
+    const limit = params?.limit || 50;
+    const startIndex = params?.cursor ? Number(params.cursor) : 0;
+    const paginatedData = allTrips.slice(startIndex, startIndex + limit);
+    const nextCursor = (startIndex + limit < allTrips.length) ? (startIndex + limit).toString() : null;
+
+    return {
+        data: paginatedData,
+        nextCursor,
+    };
+}
+
+
+// --- 나머지 더미 API 함수들 (수정 필요 없음) ---
+
 export async function getNodes(): Promise<Node[]> {
-    // public 폴더의 더미 JSON 파일을 fetch합니다.
     const response = await fetch('/api/nodes.json');
     if (!response.ok) {
         throw new Error('Failed to fetch nodes');
@@ -81,13 +226,8 @@ export async function getNodes(): Promise<Node[]> {
     return response.json();
 }
 
-/**
- * KPI 요약 정보를 가져옵니다. (더미)
- * @returns {Promise<KpiSummary>}
- */
 export async function getKpiSummary(params?: Record<string, any>): Promise<KpiSummary> {
-    // 실제 API라면 params를 사용해 필터링하겠지만, 지금은 더미 데이터를 반환합니다.
-    console.log('Fetching KPI Summary with params:', params); // 파라미터 확인용 로그
+    console.log('Fetching KPI Summary with params:', params);
     return {
         totalTripCount: 854320000,
         uniqueProductCount: 128,
@@ -101,10 +241,6 @@ export async function getKpiSummary(params?: Record<string, any>): Promise<KpiSu
     };
 }
 
-/**
- * 재고 분산 데이터를 가져옵니다. (더미)
- * @returns {Promise<InventoryDistributionResponse>}
- */
 export async function getInventoryDistribution(params?: Record<string, any>): Promise<InventoryDistributionResponse> {
     console.log('Fetching Inventory Distribution with params:', params);
     return {
@@ -119,103 +255,17 @@ export async function getInventoryDistribution(params?: Record<string, any>): Pr
     };
 }
 
-export async function getFilterOptions(): Promise<FilterOptions> {
-    const response = await fetch('/api/filter.json');
-    if (!response.ok) throw new Error('Failed to fetch filter options');
-    return response.json();
-}
-/**
- * 필터링된 이상 징후 Trip 목록을 가져옵니다.
- * @param params 필터 조건
- */
-export async function getAnomalies(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
-    console.log('Fetching Anomalies with params:', params);
-    const response = await fetch('/api/anomalies.json');
-    if (!response.ok) throw new Error('Failed to fetch anomalies');
-    
-    let allAnomalies: AnalyzedTrip[] = await response.json();
-
-    // 더미 필터링 로직
-    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
-    
-    if (filterKeys.length > 0) {
-        allAnomalies = allAnomalies.filter(trip => {
-            return filterKeys.every(key => {
-                const value = params![key];
-                if (!value) return true;
-                switch (key) {
-                    case 'fromScanLocation': return trip.from.scanLocation === value;
-                    case 'toScanLocation': return trip.to.scanLocation === value;
-                    case 'min': return trip.from.eventTime >= Number(value);
-                    case 'max': return trip.to.eventTime <= Number(value);
-                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
-                    case 'epcCode': return trip.epcCode.includes(String(value));
-                    case 'productName': return trip.productName === value;
-                    case 'epcLot': return trip.epcLot.includes(String(value));
-                    case 'eventType': return trip.eventType === value;
-                    case 'anomaly': return trip.anomaly === value;
-                    default: return true;
-                }
-            });
-        });
+export async function getUploadHistory(): Promise<UploadFile[]> {
+    try {
+        const response = await fetch('/api/upload_history.json');
+        if (!response.ok) {
+            throw new Error('Failed to fetch upload history');
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Error fetching upload history:", error);
+        // 실제 운영 환경에서는 alert보다는 UI에 에러 메시지를 표시하는 것이 좋습니다.
+        // alert('업로드 내역을 불러오는 데 실패했습니다.');
+        return []; // 에러 발생 시 빈 배열 반환
     }
-
-    // [중요] 페이지네이션 로직을 여기에 추가합니다. (getTrips에서 가져옴)
-    const limit = params?.limit || 50; // 기본값을 50으로 설정
-    const startIndex = params?.cursor ? Number(params.cursor) : 0;
-    const paginatedData = allAnomalies.slice(startIndex, startIndex + limit);
-    const nextCursor = (startIndex + limit < allAnomalies.length) ? (startIndex + limit).toString() : null;
-
-    // [중요] 반환 형식을 { data, nextCursor } 객체로 변경합니다.
-    return {
-        data: paginatedData,
-        nextCursor,
-    };
-}
-/**
- * 필터링 및 페이지네이션된 전체 Trip 목록을 가져옵니다.
- * @param params 필터 조건 및 페이지네이션 커서
- */
-export async function getTrips(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
-    console.log('Fetching Trips with params:', params);
-    const response = await fetch('/api/trips.json');
-    if (!response.ok) throw new Error('Failed to fetch trips');
-    
-    let allTrips: AnalyzedTrip[] = await response.json();
-
-    // 더미 필터링 로직
-    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
-    
-    if (filterKeys.length > 0) {
-        allTrips = allTrips.filter(trip => {
-            return filterKeys.every(key => {
-                const value = params![key];
-                if (!value) return true;
-                switch (key) {
-                    case 'fromScanLocation': return trip.from.scanLocation === value;
-                    case 'toScanLocation': return trip.to.scanLocation === value;
-                    case 'min': return trip.from.eventTime >= Number(value);
-                    case 'max': return trip.to.eventTime <= Number(value);
-                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
-                    case 'epcCode': return trip.epcCode.includes(String(value));
-                    case 'productName': return trip.productName === value;
-                    case 'epcLot': return trip.epcLot.includes(String(value));
-                    case 'eventType': return trip.eventType === value;
-                    case 'anomaly': return trip.anomaly === value;
-                    default: return true;
-                }
-            });
-        });
-    }
-
-    // 페이지네이션 로직
-    const limit = params?.limit || 50;
-    const startIndex = params?.cursor ? Number(params.cursor) : 0;
-    const paginatedData = allTrips.slice(startIndex, startIndex + limit);
-    const nextCursor = (startIndex + limit < allTrips.length) ? (startIndex + limit).toString() : null;
-
-    return {
-        data: paginatedData,
-        nextCursor,
-    };
 }

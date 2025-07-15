@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { AnalyzedTrip } from "./data";
+import type { AnalyzedTrip, AnomalyType } from "./data";
 import { getAnomalyColor, getAnomalyName } from "./colorUtils";
 
 const SIMULATION_START_DATE = new Date('2025-02-17T00:00:00Z');
@@ -53,31 +53,51 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
     const renderTooltip = () => {
         if (!tooltip) return null;
 
-        const anomalyType = tooltip.trip.anomaly || 'default';
-        const pastel = pastelColorMap[anomalyType] || pastelColorMap['default'];
-        const bgColor = `${pastel}26`; // 배경색 (투명도 15% 적용)
-        const textColor = pastel;
+        const { anomalyTypeList } = tooltip.trip;
+        const hasAnomalies = anomalyTypeList && anomalyTypeList.length > 0;
+
+        // 대표 색상은 첫 번째 이상 유형으로 결정
+        const representativeColor = hasAnomalies ? pastelColorMap[anomalyTypeList[0]] : pastelColorMap['default'];
+        const bgColor = `${representativeColor}26`;
+        const textColor = representativeColor;
 
         return (
             <div style={{
-                position: 'fixed',
-                top: tooltip.top,
-                left: tooltip.left,
-                transform: 'translate(-50%, -120%)',
-                backgroundColor: bgColor,
-                color: textColor,
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                pointerEvents: 'none',
-                zIndex: 100,
-                whiteSpace: 'nowrap',
-                border: `1px solid ${pastel}80`, // 테두리 추가로 가시성 확보
-                backdropFilter: 'blur(4px)',
+                position: 'fixed', top: tooltip.top, left: tooltip.left,
+                transform: 'translate(-50%, -120%)', backgroundColor: bgColor, color: textColor,
+                padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
+                pointerEvents: 'none', zIndex: 100, whiteSpace: 'nowrap',
+                border: `1px solid ${representativeColor}80`, backdropFilter: 'blur(4px)',
             }}>
-                {getAnomalyName(tooltip.trip.anomaly || undefined)}
+                {/* 여러 이상 유형의 이름을 쉼표로 구분하여 표시 */}
+                {hasAnomalies ? anomalyTypeList.map(getAnomalyName).join(', ') : '정상'}
             </div>
+        );
+    };
+
+    // ✨ 여러 색상을 가진 파이 차트 형태의 마커를 생성하는 컴포넌트
+    const AnomalyMarker = ({ anomalyTypes }: { anomalyTypes: AnomalyType[] }) => {
+        if (!anomalyTypes || anomalyTypes.length === 0) {
+            return <div style={{ width: '12px', height: '12px', background: pastelColorMap['default'], borderRadius: '50%' }} />;
+        }
+        if (anomalyTypes.length === 1) {
+            return <div style={{ width: '12px', height: '12px', background: pastelColorMap[anomalyTypes[0]], borderRadius: '50%' }} />;
+        }
+
+        // 여러 색상을 conic-gradient로 표현
+        const colorStops = anomalyTypes.map((type, index) => {
+            const startAngle = (index / anomalyTypes.length) * 360;
+            const endAngle = ((index + 1) / anomalyTypes.length) * 360;
+            return `${pastelColorMap[type]} ${startAngle}deg ${endAngle}deg`;
+        });
+
+        return (
+            <div style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: `conic-gradient(${colorStops.join(', ')})`,
+            }} />
         );
     };
     return (
@@ -146,37 +166,23 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
 
                     {/* ✨ 6. 마커들을 렌더링하는 부분 */}
                     {anomalies.map(trip => {
-                        if (duration <= 0) return null;
                         const positionPercent = ((trip.from.eventTime - minTime) / duration) * 100;
-                        const anomalyType = trip.anomaly || 'default';
-                        const pastel = pastelColorMap[anomalyType] || pastelColorMap['default'];
-                        const textColor = pastel;
                         return (
                             <div
                                 key={trip.id}
                                 style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: `${positionPercent}%`,
-                                    transform: 'translate(-50%, -50%)',
-                                    width: '12px',
-                                    height: '12px',
-                                    background: `${textColor}`,
-                                    borderRadius: '50%',
-                                    cursor: 'pointer',
-                                    zIndex: 1,
+                                    position: 'absolute', top: '50%', left: `${positionPercent}%`,
+                                    transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 1,
                                 }}
                                 onClick={() => onMarkerClick(trip)}
                                 onMouseEnter={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
-                                    setTooltip({
-                                        trip,
-                                        top: rect.top,
-                                        left: rect.left + rect.width / 2,
-                                    });
+                                    setTooltip({ trip, top: rect.top, left: rect.left + rect.width / 2 });
                                 }}
                                 onMouseLeave={() => setTooltip(null)}
-                            />
+                            >
+                                <AnomalyMarker anomalyTypes={trip.anomalyTypeList} />
+                            </div>
                         );
                     })}
 

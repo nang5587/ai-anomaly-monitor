@@ -145,9 +145,13 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             data: validTrips,
             getSourcePosition: d => d.from.coord,
             getTargetPosition: d => d.to.coord,
-            getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [220, 220, 228, 50],
-            getWidth: 1, // 얇은 선으로 고정
-            pickable: false, // 위젯에서는 클릭/호버 비활성화
+            getColor: d => {
+                const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
+                // 대표 이상 유형이 있으면 해당 색상을, 없으면 기본 회색을 반환
+                return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [220, 220, 228, 50];
+            },
+            getWidth: 1,
+            pickable: false,
         }),
         // 건물 및 굴뚝 레이어
         ...otherMeshLayers,
@@ -158,7 +162,11 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             data: validTrips,
             getPath: d => [d.from.coord, d.to.coord],
             getTimestamps: d => [d.from.eventTime, d.to.eventTime],
-            getColor: d => getAnomalyColor(d.anomaly as AnomalyType) || [144, 238, 144],
+            getColor: d => {
+                const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
+                // 대표 이상 유형이 있으면 해당 색상을, 없으면 기본 초록색을 반환
+                return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [144, 238, 144];
+            },
             opacity: 0.8,
             widthMinPixels: 4,
             capRounded: true,

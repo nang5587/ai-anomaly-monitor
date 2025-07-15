@@ -1,5 +1,4 @@
 import React from 'react'
-// import SupplyChainGraph from '@/components/visual/SupplyChainGraph'
 import { SupplyChainDashboard } from '@/components/visual/SupplyChainDashboard'
 
 export default function page() {
