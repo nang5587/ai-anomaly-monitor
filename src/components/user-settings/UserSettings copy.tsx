@@ -73,9 +73,26 @@ export default function UserSettings() {
     const handlePasswordSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+
+        if (!passwordData.password || !passwordData.newPassword || !passwordData.confirmPassword) {
+            toast.error("모든 비밀번호 필드를 입력해주세요.");
+            return;
+        }
+
         if (passwordData.newPassword !== passwordData.confirmPassword) {
             toast.error("새 비밀번호가 일치하지 않습니다."); return;
         }
+
+        if (passwordData.newPassword.length < 8) {
+            toast.error("새 비밀번호는 8자 이상이어야 합니다.");
+            return;
+        }
+
+        // const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+        // if (!passwordRegex.test(passwordData.newPassword)) {
+        //     toast.error("비밀번호는 8자 이상의 영문과 숫자를 포함해야 합니다.");
+        //     return;
+        // }
 
         toast.loading("비밀번호를 변경하는 중...");
         try {
@@ -107,12 +124,12 @@ export default function UserSettings() {
             <div className="flex flex-col justify-between bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
                 <div className="flex items-center gap-4 mb-6">
                     <UserCircleIcon className="w-8 h-8 text-[#E0E0E0}" />
-                    <h2 className="text-xl font-coto-400">프로필 정보</h2>
+                    <h2 className="text-xl font-coto-400">프로필</h2>
                 </div>
                 <form onSubmit={handleProfileSave} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-[#E0E0E0] mb-1">아이디</label>
-                        <input name="userId" type="text" value={user?.userName || ''} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        <input name="userId" type="text" value={user?.userId || ''} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-[#E0E0E0} mb-1">소속 공장</label>

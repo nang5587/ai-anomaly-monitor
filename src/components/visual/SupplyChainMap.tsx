@@ -1,5 +1,9 @@
 'use client'
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
+import { useAtom } from 'jotai';
+import { tutorialSeenAtom } from '@/stores/uiAtoms';
+
 import DeckGL, { FlyToInterpolator } from 'deck.gl';
 
 import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
@@ -83,7 +87,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     selectedObject,
     onObjectSelect
 }) => {
-    const [showTutorial, setShowTutorial] = useState(true); // 튜토리얼 표시 여부용
+    const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom); // 튜토리얼 표시 여부용
     const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE); // 카메라 상태 갱신용
     const [currentTime, setCurrentTime] = useState(0); // TripsLayer에서 경로 애니메이션 표시용
     const [hoverInfo, setHoverInfo] = useState<PickingInfo | null>(null); // 마우스로 마커나 선 위에 올렸을 때 표시할 툴팁 정보 저장
@@ -93,7 +97,6 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     });
     const [isPlaying, setIsPlaying] = useState(true); // TripsLayer 애니메이션 재생 여부
     const [pulseRadius, setPulseRadius] = useState(0); // 이상 노드에 퍼지는 원의 반경
-
 
     const validTrips = useMemo(() => {
         if (!analyzedTrips) return [];
@@ -127,13 +130,18 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
 
     // 튜토리얼 자동으로 숨김 (5초)
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setShowTutorial(false);
-        }, 5000); // 5000ms = 5초
+        // 만약 튜토리얼이 아직 보여지고 있다면 (한 번도 안 봤다면)
+        if (!hasSeenTutorial) {
+            const timer = setTimeout(() => {
+                // 5초 뒤에 튜토리얼을 봤다는 상태로 변경합니다.
+                // 이 setHasSeenTutorial(true) 호출은 Jotai 아톰의 값을 바꾸고,
+                // 그 즉시 localStorage의 'tutorialSeen' 값도 true로 업데이트합니다.
+                setHasSeenTutorial(true);
+            }, 5000); // 5초
 
-        // 컴포넌트가 언마운트되거나, 이 useEffect가 다시 실행되기 전에 타이머를 정리
-        return () => clearTimeout(timer);
-    }, []);
+            return () => clearTimeout(timer);
+        }
+    }, [hasSeenTutorial, setHasSeenTutorial]);
 
     // 애니메이션 재생 타이머
     useEffect(() => {
@@ -233,7 +241,9 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
 
     useEffect(() => {
         // 선택된 객체가 없으면 아무것도 하지 않고 종료합니다.
-        if (!selectedObject) return;
+        if (!selectedObject) {
+            return;
+        }
 
         // 1. 선택된 객체가 'Trip' 타입일 경우 (from, to 속성으로 확인)
         if ('from' in selectedObject && 'to' in selectedObject) {
@@ -367,7 +377,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     // 위변조 관련 노드 데이터만 필터링
     const anomalyNodes = useMemo(() => {
         if (!nodes) return [];
-        return nodes.filter(node => anomalyNodeIds.includes(node.hubType));
+        return nodes.filter(node => anomalyNodeIds.includes(node.scanLocation));
     }, [nodes, anomalyNodeIds]);
 
     // 전체 레이어 목록
@@ -459,7 +469,11 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
                 }
             `}</style>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
+                {!hasSeenTutorial && (
+                    <TutorialOverlay
+                        onClose={() => setHasSeenTutorial(true)} // X 버튼을 눌러도 닫히도록 설정
+                    />
+                )}
 
                 {/* DeckGL + Mapbox */}
                 <DeckGL

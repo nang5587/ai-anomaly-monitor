@@ -61,10 +61,10 @@ const StageStandardLineChart: React.FC<StandardChartProps> = ({ data }) => {
                 <Tooltip
                     cursor={{ stroke: 'rgba(111,131,175)', strokeWidth: 1, strokeDasharray: '3 3' }}
                     contentStyle={{
-                        background: 'rgba(30, 30, 30, 0.9)',
-                        borderColor: 'rgba(111,131,175, 0.5)',
-                        color: '#FFFFFF'
+                        background: 'rgba(0, 0, 0, 0.85)', color: 'white', borderRadius: '6px', whiteSpace:'nowrap',
+                        border: 'none'
                     }}
+                    itemStyle={{ color: '#FFFFFF' }}
                 />
                 {/* 4. Bar 컴포넌트를 Area 컴포넌트로 교체합니다. */}
                 <Area
@@ -80,5 +80,4 @@ const StageStandardLineChart: React.FC<StandardChartProps> = ({ data }) => {
     );
 };
 
-// 파일 이름은 그대로 두되, export default 이름은 명확하게 변경했습니다.
 export default StageStandardLineChart;

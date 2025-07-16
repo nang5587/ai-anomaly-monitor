@@ -62,7 +62,7 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                 <Tooltip
                     cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
                     content={({ payload, label }) => (
-                        <div style={{ color: 'white', background: 'rgba(0,0,0,0.8)', padding: '8px 12px', borderRadius: '4px', border: '1px solid #555' }}>
+                        <div style={{ color: 'white', background: 'rgba(0,0,0,0.85)', padding: '8px 12px', borderRadius: '6px' }}>
                             {payload?.[0] && (
                                 <>
                                     <p style={{ margin: 0, fontWeight: 'bold' }}>{label}</p>

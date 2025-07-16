@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition  } from 'react';
 import ChangeFactoryModal from './ChangeFactoryModal';
 import { toast } from 'sonner';
 import { UserPlusIcon, UserMinusIcon, ArchiveBoxXMarkIcon, TrashIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
-import { getUsers, updateUser, changeUserFactory } from '@/api/adminApi';
+import { getUsers, updateUser, changeUserFactory, type AdminUser } from '@/api/adminApi';
 
-import { dummyAllUsers, type User, type UserStatus, type UserRole } from './dummyData';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { usersAtom, usersLoadingAtom, loadUsersAtom, refetchUsersAtom  } from '@/stores/userAtoms';
+
+import { dummyAllUsers, type User as DummyUser } from './dummyData';
 
 const FACTORY_NAME_MAP: { [key: string]: string } = {
     '1': '인천공장',
@@ -44,147 +47,100 @@ const StatusToggle = ({ isActive, onClick }: { isActive: boolean; onClick: () =>
 
 type ActiveTab = 'pending' | 'active' | 'rejected' | 'del';
 
+// ⚠️ api 연동 시 env로 가서 false로 바꿔야 함
+const USE_DUMMY_DATA = process.env.NEXT_PUBLIC_USE_DUMMY_DATA === 'true';
+
 export default function UserManagementClient() {
     const [activeTab, setActiveTab] = useState<ActiveTab>('pending');
-    const [selectedUserForFactoryChange, setSelectedUserForFactoryChange] = useState<User | null>(null);
+    const [selectedUserForFactoryChange, setSelectedUserForFactoryChange] = useState<AdminUser | DummyUser | null>(null);
     
-    const [isLoading, setIsLoading] = useState(false);
-    
-    // ⚠️ 백엔드 연결 시 삭제
-    const [allUsers, setAllUsers] = useState<User[]>(dummyAllUsers);
-    
-    // API 연동 시 사용할 함수들 (현재는 주석 처리)
-    /*
-    const [allUsers, setAllUsers] = useState<User[]>([]);
-    const [isProcessing, startTransition] = useTransition();
+    const [isProcessing, startTransition] = useTransition(); // API 호출 시 UI 블로킹 방지용
 
-    const fetchAllUsers = async () => {
-        setIsLoading(true);
-        try {
-            const usersFromServer = await getUsers();
-            setAllUsers(usersFromServer);
-        } catch (error) {
-            toast.error('사용자 목록을 불러오는 데 실패했습니다.');
-        } finally {
-            setIsLoading(false);
+    const setUsersAtom = useSetAtom(usersAtom);
+    const loadUsers = useSetAtom(loadUsersAtom);
+    const isLoadingFromApi = useAtomValue(usersLoadingAtom);
+    const apiUsers = useAtomValue(usersAtom);
+    const refetchUsers = useSetAtom(refetchUsersAtom); // 데이터 새로고침용
+    
+    const [dummyUsers, setDummyUsers] = useState<DummyUser[]>(dummyAllUsers);
+    
+    // 최종적으로 사용할 데이터와 로딩 상태를 결정
+    const allUsers = USE_DUMMY_DATA ? dummyUsers : apiUsers;
+    const isLoading = USE_DUMMY_DATA ? false : isLoadingFromApi;
+
+    // 실제 API 모드일 때만 데이터를 로드
+    useEffect(() => {
+        if (!USE_DUMMY_DATA) {
+            loadUsers();
+        }
+        else{
+            setUsersAtom(dummyAllUsers as unknown as AdminUser[]);
+        }
+    }, [USE_DUMMY_DATA, loadUsers, setUsersAtom]);
+
+    // --- 핸들러 함수: 모드에 따라 다르게 작동 ---
+    const handleUpdateUser = (user: AdminUser | DummyUser, updates: Partial<AdminUser | DummyUser>, confirmMessage: string) => {
+        if (confirm(confirmMessage)) {
+            if (USE_DUMMY_DATA) {
+                // 더미 데이터 모드: 로컬 상태 업데이트
+                setDummyUsers(prev => prev.map(u => (u.userId === user.userId ? { ...u, ...updates } : u)));
+                toast.success('더미 데이터가 업데이트되었습니다.');
+            } else {
+                // API 모드: API 호출 및 Jotai 상태 새로고침
+                startTransition(async () => {
+                    try {
+                        await updateUser(user.userId, updates as Partial<AdminUser>);
+                        toast.success('사용자 정보가 성공적으로 업데이트되었습니다.');
+                        await refetchUsers();
+                    } catch (error) {
+                        toast.error('처리 중 오류가 발생했습니다.');
+                    }
+                });
+            }
         }
     };
+    
+    const handleApprove = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'active', role: 'MANAGER' }, `'${user.userName}'님을 승인하시겠습니까?`);
+    const handleReject = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'rejected' }, `'${user.userName}'님의 요청을 거절하시겠습니까?`);
+    const handleDelete = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'del' }, `'${user.userName}'님을 삭제 처리하시겠습니까?`);
+    const handleRestore = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'pending', role: 'UNAUTH' }, `'${user.userName}'님을 복구하시겠습니까?`);
+    const handleToggleActive = (user: AdminUser | DummyUser) => {
+        const newStatus = user.status === 'active' ? 'inactive' : 'active';
+        handleUpdateUser(user, { status: newStatus }, `'${user.userName}'님을 ${newStatus === 'inactive' ? '비활성화' : '활성화'}하시겠습니까?`);
+    };
 
-    useEffect(() => {
-        fetchAllUsers();
-    }, []);
-
-    const handleUserUpdate = (user: User, updates: Partial<User>, confirmMessage: string) => {
-        if (confirm(confirmMessage)) {
+    const handleFactoryUpdateSuccess = (userId: string, newFactoryId: string) => {
+        if (USE_DUMMY_DATA) {
+            setDummyUsers(prev => prev.map(u => (u.userId === userId ? { ...u, locationId: newFactoryId } : u)));
+            toast.success('소속 공장이 변경되었습니다.');
+        } else {
             startTransition(async () => {
                 try {
-                    await updateUser(user.userId, updates);
-                    toast.success('사용자 정보가 성공적으로 업데이트되었습니다.');
-                    await fetchAllUsers(); // 성공 후 목록을 새로고침하여 최신 상태를 반영
+                    await changeUserFactory(userId, Number(newFactoryId));
+                    toast.success('소속 공장이 변경되었습니다.');
+                    await refetchUsers();
                 } catch (error) {
-                    toast.error('처리 중 오류가 발생했습니다.');
+                    toast.error("공장 변경 중 오류가 발생했습니다.");
                 }
             });
         }
     };
-
-    const handleApprove = (user: User) => {
-        handleUserUpdate(user, { status: 'active', role: 'MANAGER' }, `'${user.userName}'님을 승인하시겠습니까?`);
-    };
-    const handleReject = (user: User) => {
-        handleUserUpdate(user, { status: 'rejected' }, `'${user.userName}'님의 요청을 거절하시겠습니까?`);
-    };
-    const handleToggleActive = (user: User) => {
-        const newStatus = user.status === 'active' ? 'inactive' : 'active';
-        handleUserUpdate(user, { status: newStatus }, `'${user.userName}'님을 ${newStatus === 'inactive' ? '비활성화' : '활성화'}하시겠습니까?`);
-    };
-    const handleDelete = (user: User) => {
-        handleUserUpdate(user, { status: 'del' }, `'${user.userName}'님을 삭제 처리하시겠습니까? (복구 가능)`);
-    };
-    const handleRestore = (user: User) => {
-        handleUserUpdate(user, { status: 'pending', role: 'UNAUTH' }, `'${user.userName}'님을 '승인 대기' 상태로 복구하시겠습니까?`);
-    };
     
-    // 공장 변경은 별도의 API를 사용하므로 따로 처리
-    const handleFactoryUpdateSuccess = async (userId: string, newFactoryId: string) => {
-        startTransition(async () => {
-            try {
-                await changeUserFactory(userId, Number(newFactoryId));
-                toast.success('소속 공장이 변경되었습니다.');
-                await fetchAllUsers(); // 성공 후 목록 새로고침
-            } catch (error) {
-                // 모달 내부에서 이미 에러 토스트를 보여줄 수 있으므로 여기서는 생략 가능
-            }
-        });
-    };
-
-    */
-
-    // *️⃣--- 더미 데이터용 로직 (백엔드 연결 시 삭제) ---*️⃣
-    const updateUserInList = (userId: string, updates: Partial<User>) => {
-        setAllUsers(prevUsers =>
-            prevUsers.map(user =>
-                user.userId === userId ? { ...user, ...updates } : user
-            )
-        );
-    };
-
-    const handleApprove = (user: User) => {
-        if (confirm(`'${user.userName}'님을 승인하시겠습니까?`)) {
-            updateUserInList(user.userId, { status: 'active', role: 'MANAGER' });
-            toast.success("사용자 승인이 완료되었습니다.");
-        }
-    };
-
-    const handleReject = (user: User) => {
-        if (confirm(`'${user.userName}'님의 요청을 거절하시겠습니까?`)) {
-            updateUserInList(user.userId, { status: 'rejected' });
-            toast.info("사용자 요청을 거절했습니다.");
-        }
-    };
-
-    const handleToggleActive = (user: User) => {
-        const newStatus = user.status === 'active' ? 'inactive' : 'active';
-        const actionText = newStatus === 'inactive' ? '비활성화' : '활성화';
-        if (confirm(`'${user.userName}'님을 ${actionText}하시겠습니까?`)) {
-            updateUserInList(user.userId, { status: newStatus });
-            toast.success(`사용자 상태가 ${actionText}로 변경되었습니다.`);
-        }
-    };
-
-    const handleDelete = (user: User) => {
-        if (confirm(`'${user.userName}'님을 삭제 처리하시겠습니까? (복구 가능)`)) {
-            updateUserInList(user.userId, { status: 'del' });
-            toast.success("사용자가 삭제 처리되었습니다.");
-        }
-    };
-
-    const handleRestore = (user: User) => {
-        if (confirm(`'${user.userName}'님을 '승인 대기' 상태로 복구하시겠습니까?`)) {
-            updateUserInList(user.userId, { status: 'pending', role: 'UNAUTH' });
-            toast.success("사용자가 복구되었습니다.");
-        }
-    };
-
-    const handleFactoryUpdateSuccess = (userId: string, newFactoryId: string) => {
-        updateUserInList(userId, { locationId: newFactoryId });
-    };
-
     // --- 필터링 로직 ---
     const filteredUsers = useMemo(() => {
-        if (isLoading) return [];
+        // isLoading은 Jotai 스토어에서 직접 가져오므로 로컬 state가 필요 없음
+        if (!allUsers) return []; 
         switch (activeTab) {
             case 'pending':
                 return allUsers.filter(u => u.status === 'pending');
             case 'active':
                 return allUsers.filter(u => u.status === 'active' || u.status === 'inactive');
-            case 'rejected':
-            case 'del':
+            case 'rejected': // 'rejected'와 'del'을 함께 보여주는 탭으로 변경
                 return allUsers.filter(u => u.status === 'rejected' || u.status === 'del');
             default:
                 return [];
         }
-    }, [activeTab, allUsers, isLoading]);
+    }, [activeTab, allUsers]);
 
     // --- 렌더링 함수들 ---
     const renderTableHeader = () => {
@@ -200,7 +156,7 @@ export default function UserManagementClient() {
         );
     };
 
-    const renderActionButtons = (user: User) => {
+    const renderActionButtons = (user: AdminUser | DummyUser) => {
         switch (activeTab) {
             case 'pending':
                 return (
@@ -244,8 +200,15 @@ export default function UserManagementClient() {
                 ))}
             </div>
 
+            {isProcessing && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 rounded-2xl">
+                    <p className="text-white text-lg animate-pulse">처리 중...</p>
+                </div>
+            )}
+
+
             {isLoading ? (
-                <p className='text-gray-300 p-4 text-center'>처리 중...</p>
+                <p className='text-gray-300 p-4 text-center'>사용자 목록을 불러오는 중...</p>
             ) : (
                 <>
                     {filteredUsers.length === 0 ? (

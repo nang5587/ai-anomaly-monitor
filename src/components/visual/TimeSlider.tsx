@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import type { AnalyzedTrip, AnomalyType } from "./data";
 import { getAnomalyColor, getAnomalyName } from "./colorUtils";
@@ -78,10 +78,10 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
     // ✨ 여러 색상을 가진 파이 차트 형태의 마커를 생성하는 컴포넌트
     const AnomalyMarker = ({ anomalyTypes }: { anomalyTypes: AnomalyType[] }) => {
         if (!anomalyTypes || anomalyTypes.length === 0) {
-            return <div style={{ width: '12px', height: '12px', background: pastelColorMap['default'], borderRadius: '50%' }} />;
+            return <div style={{ width: '15px', height: '15px', background: pastelColorMap['default'], borderRadius: '50%' }} />;
         }
         if (anomalyTypes.length === 1) {
-            return <div style={{ width: '12px', height: '12px', background: pastelColorMap[anomalyTypes[0]], borderRadius: '50%' }} />;
+            return <div style={{ width: '15px', height: '15px', background: pastelColorMap[anomalyTypes[0]], borderRadius: '50%' }} />;
         }
 
         // 여러 색상을 conic-gradient로 표현
@@ -93,8 +93,8 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
 
         return (
             <div style={{
-                width: '12px',
-                height: '12px',
+                width: '15px',
+                height: '15px',
                 borderRadius: '50%',
                 background: `conic-gradient(${colorStops.join(', ')})`,
             }} />
@@ -112,6 +112,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     border-radius: 5px;
                     outline: none;
                     transition: opacity .2s;
+                    pointer-events: none;
                 }
                 .time-slider::-webkit-slider-thumb {
                     -webkit-appearance: none;
@@ -121,6 +122,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     background: #fff;
                     border-radius: 50%;
                     cursor: pointer;
+                    pointer-events: auto;
                 }
                 .time-slider::-moz-range-thumb {
                     width: 20px;
@@ -129,6 +131,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     border: 2px solid #007bff;
                     border-radius: 50%;
                     cursor: pointer;
+                    pointer-events: auto;
                 }
                 .play-pause-btn svg {
                     width: 25px;
@@ -136,6 +139,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     fill: white;
                     cursor: pointer;
                 }
+                    
             `}</style>
             <div style={{
                 position: 'absolute',
@@ -171,15 +175,15 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                             <div
                                 key={trip.id}
                                 style={{
-                                    position: 'absolute', top: '50%', left: `${positionPercent}%`,
-                                    transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 1,
+                                    position: 'absolute', top: '50%', left: `${positionPercent}%`, padding: '5px',
+                                    transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 10, background: 'rgba(0, 0, 0, 0.001)',
                                 }}
-                                onClick={() => onMarkerClick(trip)}
+                                onClick={(e) => { e.stopPropagation(); onMarkerClick(trip) }}
                                 onMouseEnter={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     setTooltip({ trip, top: rect.top, left: rect.left + rect.width / 2 });
                                 }}
-                                onMouseLeave={() => setTooltip(null)}
+                                onMouseOut={() => setTooltip(null)}
                             >
                                 <AnomalyMarker anomalyTypes={trip.anomalyTypeList} />
                             </div>

@@ -143,7 +143,7 @@ export default function UserSettings() {
                 <div>
                     <div className="flex items-center gap-4 mb-6">
                         <UserCircleIcon className="w-8 h-8 text-[#E0E0E0]" />
-                        <h2 className="text-xl font-noto-400">프로필 정보</h2>
+                        <h2 className="text-xl font-noto-400">프로필</h2>
                     </div>
                     <form id="profileForm" onSubmit={handleProfileSave} className="space-y-4">
                         <div>

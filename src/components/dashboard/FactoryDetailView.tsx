@@ -70,8 +70,8 @@ export default function FactoryDetailView({ factoryTabs, activeFactory, onTabCli
                 {/* 1. 카드 그리드는 필요한 만큼의 공간을 차지합니다. */}
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-2 gap-3">
                     <MiniStatCard title="총 처리 건수" value={formatNumberCompact(kpiData.totalTripCount)} icon={<ListChecks size={32} className="text-white" />} />
-                    <MiniStatCard title="평균 리드타임" value={kpiData.avgLeadTime} icon={<Clock size={32} className="text-white" />} />
-                    <MiniStatCard title="총 생산 제품" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={32} className="text-white" />} />
+                    <MiniStatCard title="평균 리드타임" value={`${kpiData.avgLeadTime}일`} icon={<Clock size={32} className="text-white" />} />
+                    <MiniStatCard title="총 생산 제품 수" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={32} className="text-white" />} />
                     <MiniStatCard title="총 생산 EPC" value={formatNumberCompact(kpiData.codeCount)} icon={<Barcode size={32} className="text-white" />} />
                 </div>
 

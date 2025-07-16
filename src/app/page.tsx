@@ -11,13 +11,13 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth(); // ℹ️ 연결 시 주석 풀기
+  // const { user } = useAuth(); // ℹ️ 연결 시 주석 풀기
   
   // ⚠️ 백엔드랑 연결 시 삭제
-  // const user = {
-  //   role:"ADMIN",
-  //   locationId: 0
-  // };
+  const user = {
+    role:"ADMIN",
+    locationId: 0
+  };
 
   const [isLoading, setIsLoading] = useState(true);
 

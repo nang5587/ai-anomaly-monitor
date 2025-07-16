@@ -14,6 +14,8 @@ type RadarDatum = {
     average: number;
 };
 
+const formatNumberWithCommas = (value: number) => `${value.toLocaleString('en-US')} 개`;
+
 export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartProps) {
     const { radarData, averageValue } = useMemo(() => {
         // 데이터가 없거나 비어있으면 빈 값 반환
@@ -55,6 +57,7 @@ export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartPro
                 data={radarData}
                 keys={['average', 'value' ]} // 순서 변경: 실제 값을 위로, 평균을 아래로
                 indexBy="businessStep" // ✨ subject 대신 businessStep 사용
+                valueFormat={value => `${value.toLocaleString('en-US')} 개`}
                 maxValue={Math.max(...radarData.map(d => d.value)) * 1.2} // ✨ 동적 최대값 계산
                 margin={{ top: 70, right: 80, bottom: 40, left: 80 }}
                 theme={{
@@ -63,7 +66,7 @@ export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartPro
                         legend: { text: { fill: '#FFFFFF' } }
                     },
                     grid: { line: { stroke: 'rgba(255, 255, 255, 0.3)', strokeDasharray: '4 4' } },
-                    tooltip: { container: { background: 'rgba(0, 0, 0, 0.85)', color: '#FFFFFF', borderRadius: '6px' } },
+                    tooltip: { container: { background: 'rgba(0, 0, 0, 0.85)', color: '#FFFFFF', borderRadius: '6px', whiteSpace:'nowrap' } },
                     legends: { text: { fill: '#999' } }
                 }}
                 colors={['#E0E0E0', 'rgba(111, 131, 175, 1)' ]} // 순서에 맞게 색상 변경
@@ -89,8 +92,8 @@ export default function DataBalanceRadarChart({ data }: DataBalanceRadarChartPro
                         symbolSize: 12,
                         symbolShape: 'circle',
                         data: [
-                            { id: 'value', label: 'Actual', color: 'rgba(111, 131, 175, 1)' },
-                            { id: 'average', label: `Average (${averageValue.toFixed(0)})`, color: '#E0E0E0' },
+                            { id: 'value', label: '재고 수량', color: 'rgba(111, 131, 175, 1)' },
+                            { id: 'average', label: `평균 (${averageValue.toLocaleString('en-US')} 개)`, color: '#E0E0E0' },
                         ],
                         effects: [{ on: 'hover', style: { itemTextColor: '#fff' } }],
                     },

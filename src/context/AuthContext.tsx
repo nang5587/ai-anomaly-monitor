@@ -13,7 +13,7 @@ export interface User {
   locationId?: number;
 
   // 선택적
-  realName?: string;
+  userName?: string;
   email?: string;
 }
 
@@ -44,12 +44,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // 토큰을 디코딩하여 필수 정보를 얻음
           const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
           const locationId = location_id;
-          // ✨ 토큰 외에 저장해 둔 추가 정보(realName, email)도 함께 읽어옴
-          const realName = storage.getItem('realName') || undefined;
+          // ✨ 토큰 외에 저장해 둔 추가 정보(userName, email)도 함께 읽어옴
+          const userName = storage.getItem('userName') || undefined;
           const email = storage.getItem('email') || undefined;
 
           // 복원된 사용자 객체 생성
-          const restoredUser: User = { userId, role, locationId, realName, email };
+          const restoredUser: User = { userId, role, locationId, userName, email };
           setUser(restoredUser);
         } catch (error) {
           // 유효하지 않은 토큰일 경우, 모든 정보를 지움
@@ -66,10 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 토큰과 필수 정보를 스토리지에 저장
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', token);
-
-    console.log(location_id, "-------------- 로그인 성공 : 나의 공장 코드")
-    console.log(role, "-------------- 로그인 성공 : 나의 role")
-    console.log(userId, "-------------- 로그인 성공 : 나의 userId")
     const locationId = location_id;
     const newUser: User = { userId, role, locationId };
     setUser(newUser);
@@ -92,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // 변경된 정보를 스토리지에도 반영하여 새로고침 시 유지되도록 함
       const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
       if (storage) {
-        if (updatedInfo.realName) storage.setItem('realName', updatedInfo.realName);
+        if (updatedInfo.userName) storage.setItem('userName', updatedInfo.userName);
         if (updatedInfo.email) storage.setItem('email', updatedInfo.email);
       }
 

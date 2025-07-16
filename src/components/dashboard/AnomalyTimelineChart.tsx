@@ -25,10 +25,10 @@ export default function AnomalyTimelineChart({ data }: AnomalyTimelineChartProps
                 <XAxis dataKey="time" stroke="#E0E0E0" fontSize={12} />
                 <YAxis stroke="#E0E0E0" fontSize={12} allowDecimals={false} />
                 <Tooltip content={({ payload, label }) => (
-                    <div style={{ color: 'white', background: 'rgba(0,0,0,0.8)', padding: 8, borderRadius: 4 }}>
+                    <div style={{ color: 'white', background: 'rgba(0,0,0,0.85)', padding: 8, borderRadius: '6px' }}>
                         {payload?.[0] && (
                             <>
-                                <p>시간 {label}</p>
+                                <p className='font-bold'>시간 {label}</p>
                                 <p>{payload[0].name} : {payload[0].value}</p>
                             </>
                         )}
