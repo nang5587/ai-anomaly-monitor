@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname } from 'next/navigation';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { SupplyChainMap } from '@/components/visual/SupplyChainMap';
+import { SupplyChainDashboard } from '@/components/visual/SupplyChainDashboard';
+import { useMapStore } from '@/stores/mapStore';
 
 import { useAuth } from "@/context/AuthContext";
 
@@ -18,6 +19,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         // role: "MANAGER",
     }
 
+
     const [sidebarHovered, setSidebarHovered] = useState(false);
 
     const isMapPage = pathname === '/graph';
@@ -25,7 +27,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (!user) {
         return (
             <div className="bg-black h-screen flex items-center justify-center">
-                {/* 또는 Header만 있는 로딩 화면을 보여줄 수도 있습니다. */}
                 <p className="text-white">사용자 정보를 불러오는 중...</p>
             </div>
         );
@@ -38,19 +39,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <div className="flex">
                 <Sidebar userRole={user.role as 'ADMIN' | 'MANAGER'} hovered={sidebarHovered} setHovered={setSidebarHovered} />
 
-                <main className="flex-1 h-screen pt-20 overflow-hidden">
-                    {/* <div style={{ display: isMapPage ? 'block' : 'none', width: '100%', height: '100%' }}>
-                        <SupplyChainMap
-                            nodes={nodes}
-                            analyzedTrips={analyzedTrips}
-                            selectedObject={selectedObject}
-                            onObjectSelect={setSelectedObject}
-                        />
-                    </div> */}
-
-                    <div className="w-full h-full">
-                        {children}
-                    </div>
+                <main className="flex-1 h-screen pt-20 overflow-hidden relative">
+                    {isMapPage ? (
+                        <SupplyChainDashboard />
+                    ) : (
+                        <div className="w-full h-full">
+                            {children}
+                        </div>
+                    )}
                 </main>
 
             </div>

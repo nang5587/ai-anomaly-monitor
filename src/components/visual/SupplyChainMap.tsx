@@ -1,28 +1,29 @@
 'use client'
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import {
+    nodesAtom,
+    tripsAtom, // 상세 경로가 병합된 trips 데이터 아톰
+    selectedObjectAtom,
+    mapViewStateAtom,
+    flyToLocationAtom,
+    type MapViewState
+} from '@/stores/mapDataAtoms';
+
 import { tutorialSeenAtom } from '@/stores/uiAtoms';
 
+// Deck.gl 및 기타 라이브러리 import
 import DeckGL, { FlyToInterpolator } from 'deck.gl';
-
-import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { PathLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
-
 import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
-import { default as ReactMapGL, Marker } from 'react-map-gl';
-
+import { default as ReactMapGL, Marker, ViewState, } from 'react-map-gl';
 import type { PickingInfo } from '@deck.gl/core';
 
-import {
-    getNodes,
-    getAnomalies, // 초기 데이터는 이상 징후만 로드
-    type Node,
-    type AnalyzedTrip,
-    type AnomalyType
-} from './data';
+import { type Node, type AnalyzedTrip } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
 
 import TutorialOverlay from './TutorialOverlay';
@@ -31,6 +32,9 @@ import MapLegend from './MapLegend';
 
 import { getNodeColor, getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
 import { NodeIcon, getIconAltitude } from '../visual/icons';
+import { toast } from 'sonner';
+
+import { type TripWithId } from './SupplyChainDashboard';
 
 // Mapbox 액세스 토큰
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -72,38 +76,26 @@ const material = {
     specularColor: [number, number, number];
 };
 
-type TripWithId = AnalyzedTrip & { id: string };
+export const SupplyChainMap: React.FC = () => {
+    const nodes = useAtomValue(nodesAtom);
+    const analyzedTrips = useAtomValue(tripsAtom); // 상세 경로가 포함된 데이터
+    const flyTo = useSetAtom(flyToLocationAtom);
+    const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
+    const [viewState, setViewState] = useAtom(mapViewStateAtom); // 지도 뷰 상태도 Jotai로 관리
 
-interface SupplyChainMapProps {
-    nodes: Node[];
-    analyzedTrips: TripWithId[];
-    selectedObject: TripWithId | Node | null;
-    onObjectSelect: (object: TripWithId | Node | null) => void;
-}
+    const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom);
 
-export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
-    nodes,
-    analyzedTrips,
-    selectedObject,
-    onObjectSelect
-}) => {
-    const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom); // 튜토리얼 표시 여부용
-    const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE); // 카메라 상태 갱신용
-    const [currentTime, setCurrentTime] = useState(0); // TripsLayer에서 경로 애니메이션 표시용
-    const [hoverInfo, setHoverInfo] = useState<PickingInfo | null>(null); // 마우스로 마커나 선 위에 올렸을 때 표시할 툴팁 정보 저장
-    const [hoveredType, setHoveredType] = useState<string | null>(null); // MapLegend에 마우스를 올렸을 때 해당 노드 타입 표시
-    const [visibleTypes, setVisibleTypes] = useState<Record<string, boolean>>({
-        Factory: true, WMS: true, LogiHub: true, Wholesaler: true, Reseller: true,
-    });
-    const [isPlaying, setIsPlaying] = useState(true); // TripsLayer 애니메이션 재생 여부
-    const [pulseRadius, setPulseRadius] = useState(0); // 이상 노드에 퍼지는 원의 반경
+    // 이 컴포넌트 내에서만 사용하는 로컬 상태는 그대로 유지합니다.
+    const [currentTime, setCurrentTime] = useState(0);
+    const [hoverInfo, setHoverInfo] = useState<PickingInfo | null>(null);
+    const [hoveredType, setHoveredType] = useState<string | null>(null);
+    const [visibleTypes, setVisibleTypes] = useState<Record<string, boolean>>({ Factory: true, WMS: true, LogiHub: true, Wholesaler: true, Reseller: true, POS: true });
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [pulseRadius, setPulseRadius] = useState(0);
 
     const validTrips = useMemo(() => {
         if (!analyzedTrips) return [];
-        // from/to 객체와 그 안의 coord 속성이 유효한지 확인합니다.
-        return analyzedTrips.filter(trip =>
-            trip && trip.from?.coord && trip.to?.coord
-        );
+        return analyzedTrips.filter(trip => trip && trip.from?.coord && trip.to?.coord);
     }, [analyzedTrips]);
 
     const { minTime, maxTime } = useMemo(() => {
@@ -240,76 +232,38 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     const anomalyList = useMemo(() => validTrips.filter(t => t.anomalyTypeList && t.anomalyTypeList.length > 0), [validTrips]);
 
     useEffect(() => {
-        // 선택된 객체가 없으면 아무것도 하지 않고 종료합니다.
-        if (!selectedObject) {
-            return;
-        }
+        if (!selectedObject) return;
 
-        // 1. 선택된 객체가 'Trip' 타입일 경우 (from, to 속성으로 확인)
-        if ('from' in selectedObject && 'to' in selectedObject) {
+        if ('from' in selectedObject) {
             const trip = selectedObject;
-            // 출발지와 도착지 좌표가 유효한지 확인
             if (!trip.from?.coord || !trip.to?.coord) return;
-
             const [x1, y1] = trip.from.coord;
             const [x2, y2] = trip.to.coord;
 
-            // 두 지점의 중간 지점을 계산합니다.
-            const longitude = (x1 + x2) / 2;
-            const latitude = (y1 + y2) / 2;
+            // 중간 지점으로 날아가는 액션 호출
+            flyTo({
+                longitude: (x1 + x2) / 2,
+                latitude: (y1 + y2) / 2,
+                zoom: 10
+            });
 
-            // setViewState를 호출하여 카메라를 이동시킵니다.
-            setViewState((currentViewState: any) => ({
-                ...currentViewState,
-                longitude,
-                latitude,
-                zoom: 10, // trip을 보여주기에 적절한 줌 레벨 (조정 가능)
-                pitch: 45,
-                transitionDuration: 1500, // 1.5초 동안 부드럽게 이동
-                transitionInterpolator: new FlyToInterpolator(), // 날아가는 효과
-            }));
-        }
-        // 2. 선택된 객체가 'Node' 타입일 경우 (coord 속성으로 확인)
-        else if ('coord' in selectedObject) {
+        } else if ('coord' in selectedObject) {
             const node = selectedObject;
-            // setViewState를 호출하여 카메라를 이동시킵니다.
-            setViewState((currentViewState: any) => ({
-                ...currentViewState,
+
+            // 노드 위치로 날아가는 액션 호출
+            flyTo({
                 longitude: node.coord[0],
                 latitude: node.coord[1],
-                zoom: 13, // node를 보여주기에 적절한 줌 레벨 (조정 가능)
-                pitch: 60,
-                transitionDuration: 1500,
-                transitionInterpolator: new FlyToInterpolator(),
-            }));
+                zoom: 13
+            });
         }
 
-    }, [selectedObject]);
+    }, [selectedObject, flyTo]);
 
     // AnomalyList 항목 클릭 시 해당 경로를 중앙에 보여주는 함수
-    // 
     const handleCaseClick = (trip: TripWithId) => {
-        // 1. 상세 보기 패널 업데이트 (이 부분은 유지)
-        onObjectSelect(trip);
-
-        // 2. 시간 슬라이더를 이벤트 발생 시점으로 이동 (이 부분은 유지)
+        setSelectedObject(trip);
         setCurrentTime(trip.from.eventTime);
-
-        // 3. 카메라 이동 로직은 위에서 추가한 useEffect가 처리하므로, 여기서는 제거해도 됩니다.
-        /*
-        const [x1, y1] = trip.from.coord;
-        const [x2, y2] = trip.to.coord;
-        const newViewState = {
-            ...viewState,
-            longitude: (x1 + x2) / 2,
-            latitude: (y1 + y2) / 2,
-            zoom: 11,
-            pitch: 45,
-            transitionDuration: 1500,
-            transitionInterpolator: new FlyToInterpolator(),
-        };
-        setViewState(newViewState);
-        */
     };
 
     // 노드 분류
@@ -339,7 +293,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
             getTranslation: [0, 0, 50],
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => onObjectSelect(info.object as Node),
+            onClick: info => setSelectedObject(info.object as Node),
             material
         });
     }).filter(Boolean);
@@ -357,7 +311,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
             getTranslation: [0, 0, 50],
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => onObjectSelect(info.object as Node),
+            onClick: info => setSelectedObject(info.object as Node),
             material
         }),
     ];
@@ -383,34 +337,27 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
     // 전체 레이어 목록
     const layers = [
         // 1. 정적 연결선 레이어
-        new LineLayer<TripWithId>({
+        new PathLayer<TripWithId>({
             id: 'static-supply-lines',
             data: validTrips,
-            getSourcePosition: d => d.from.coord,
-            getTargetPosition: d => d.to.coord,
+            widthMinPixels: 5,
+            getPath: d => d.path || [d.from.coord, d.to.coord],
             getColor: d => {
                 // 👇 getColor에서도 동일한 로직 적용
                 let isSelected = selectedObject && 'id' in selectedObject && selectedObject.id === d.id;
-                if (selectedObject && !isSelected) return [128, 128, 128, 20];
+                if (selectedObject && !isSelected) return [255, 255, 255, 10];
 
                 // ✨ 수정: trip.anomalyType -> trip.anomalyTypeList
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 if (representativeAnomaly) {
                     const color = getAnomalyColor(representativeAnomaly);
-                    return isSelected ? [255, 255, 255, 255] : [...color, 200];
+                    return isSelected ? [255, 255, 255, 255] : [...color, 50];
                 }
                 return isSelected ? [0, 255, 127, 255] : [0, 255, 127, 50];
             },
-            getWidth: d => {
-                let isSelected = false;
-                if (selectedObject && 'id' in selectedObject) {
-                    isSelected = selectedObject.id === d.id;
-                }
-                return isSelected ? 5 : 2;
-            },
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => onObjectSelect(info.object as TripWithId),
+            onClick: info => setSelectedObject(info.object as TripWithId),
         }),
         // 3. 이상 노드 pulse
         new ScatterplotLayer({
@@ -429,11 +376,8 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
         new TripsLayer<TripWithId>({
             id: 'trips-layer',
             data: validTrips,
-
-            // [데이터 방어] 경로 데이터가 유효한지 확인합니다.
-            // path가 배열이고, 두 개의 좌표를 포함하는지 체크합니다.
-            getPath: d => [d.from.coord, d.to.coord],
-            getTimestamps: d => [d.from.eventTime, d.to.eventTime],
+            getPath: d => d.path || [d.from.coord, d.to.coord],
+            getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
 
             getColor: d => {
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
@@ -478,9 +422,9 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
                 {/* DeckGL + Mapbox */}
                 <DeckGL
                     layers={layers} viewState={viewState}
-                    onClick={info => !info.object && onObjectSelect(null)}
+                    onClick={info => !info.object && setSelectedObject(null)}
                     onViewStateChange={({ viewState: newViewState }) => {
-                        setViewState(newViewState);
+                        setViewState(newViewState as MapViewState);
                     }}
                     controller={true}
                     getTooltip={renderTooltip}
@@ -515,7 +459,7 @@ export const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
                             <Marker key={`marker-${node.hubType}`} longitude={node.coord[0]} latitude={node.coord[1]} pitchAlignment="viewport" rotationAlignment="map" altitude={getIconAltitude(node)}
                                 onClick={(e) => {
                                     e.originalEvent.stopPropagation();
-                                    onObjectSelect(node);
+                                    setSelectedObject(node);
                                 }}
                             >
                                 <div className="map-marker">

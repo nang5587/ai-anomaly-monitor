@@ -26,7 +26,7 @@ export interface TripEndpoint {
 }
 
 export interface AnalyzedTrip {
-    id: string;
+    roadId: string;
     from: TripEndpoint;
     to: TripEndpoint;
     epcCode: string;

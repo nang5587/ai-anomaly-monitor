@@ -22,6 +22,8 @@ import {
 import type { Node, AnalyzedTrip } from './data';
 
 import { SupplyChainMap } from './SupplyChainMap';
+
+// --- 하위 컴포넌트 import ---
 import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
 import FilterPanel from './FilterPanel';
@@ -29,7 +31,7 @@ import TripList from './TripList';
 
 // 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 export type Tab = 'anomalies' | 'all';
-export type TripWithId = AnalyzedTrip & { id: string };
+export type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][]; timestamps?: number[] };
 
 // 탭 버튼 스타일
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
@@ -46,7 +48,7 @@ const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
 
 export const SupplyChainDashboard: React.FC = () => {
     // --- Jotai 스토어에서 가져온 상태 관리 ---
-    const nodes = useAtomValue(nodesAtom);
+    // const nodes = useAtomValue(nodesAtom);
     const trips = useAtomValue(tripsAtom);
     const filterOptions = useAtomValue(filterOptionsAtom);
     const nextCursor = useAtomValue(nextCursorAtom);
@@ -88,20 +90,19 @@ export const SupplyChainDashboard: React.FC = () => {
     };
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
+        <div style={{
+            position: 'relative',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+        }}>
+            <SupplyChainMap />
             {isLoading && !isFetchingMore && (
                 <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
                     <p>데이터를 불러오는 중입니다...</p>
                 </div>
             )}
-
-            {/* 지도 및 관련 UI 컴포넌트들 */}
-            <SupplyChainMap
-                nodes={nodes}
-                analyzedTrips={trips}
-                selectedObject={selectedObject}
-                onObjectSelect={setSelectedObject}
-            />
 
             {/* ✨ 필터 패널: showFilterPanel 상태에 따라 나타나거나 사라짐 */}
             <div style={{
@@ -117,11 +118,7 @@ export const SupplyChainDashboard: React.FC = () => {
             }}>
                 <FilterPanel
                     options={filterOptions}
-                    onApplyFilters={(filters) => {
-                        setAppliedFilters(filters);
-                        // 필터 적용 후 자동으로 닫아주는 UX 개선
-                        setShowFilterPanel(false);
-                    }}
+                    onApplyFilters={handleApplyFilters}
                     isFiltering={isLoading}
                     onClose={() => setShowFilterPanel(false)}
                 />
@@ -136,7 +133,7 @@ export const SupplyChainDashboard: React.FC = () => {
                 zIndex: 3,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '15px'
+                gap: '15px',
             }}>
                 {/* 탭 UI */}
                 <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px] pr-4'>

@@ -4,7 +4,7 @@ import DeckGL from 'deck.gl';
 
 import { Maximize } from 'lucide-react';
 
-import { LineLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { PathLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
 
@@ -12,7 +12,8 @@ import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
 import Map from 'react-map-gl';
 
-import { type Node, type AnalyzedTrip, type AnomalyType } from './data';
+import { type Node, type AnalyzedTrip } from './data';
+import { type TripWithId } from './SupplyChainDashboard';
 import { cubeModel, factoryBuildingModel } from './models';
 import { getNodeColor, getAnomalyColor } from '../visual/colorUtils';
 
@@ -58,30 +59,36 @@ type SupplyChainMapWidgetProps = {
 };
 
 export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ nodes, analyzedTrips, minTime, maxTime, onWidgetClick }) => {
-    const [currentTime, setCurrentTime] = useState<number>(minTime)
+    const [currentTime, setCurrentTime] = useState<number>(minTime);
 
     useEffect(() => {
-        // 부모로부터 받은 minTime, maxTime이 유효하지 않으면 애니메이션을 시작하지 않음
-        if (minTime === Infinity || maxTime === -Infinity) return;
+        if (minTime === Infinity || maxTime === -Infinity || minTime >= maxTime) {
+            setCurrentTime(minTime); // 시간 초기화
+            return;
+        }
 
-        const DURATION = 5000; // 5초
-        const startTime = Date.now();
         let animationFrame: number;
 
         const animate = () => {
-            const elapsedTime = Date.now() - startTime;
-            const progress = Math.min(elapsedTime / DURATION, 1);
-            const newTime = minTime + (maxTime - minTime) * progress;
-            setCurrentTime(newTime);
+            setCurrentTime(time => {
+                const newTime = time + 1; // 또는 적절한 ANIMATION_SPEED
 
-            if (progress < 1) {
+                // maxTime에 도달하면 애니메이션을 멈춤
+                if (newTime >= maxTime) {
+                    cancelAnimationFrame(animationFrame);
+                    return maxTime;
+                }
+
                 animationFrame = requestAnimationFrame(animate);
-            }
+                return newTime;
+            });
         };
 
-        setCurrentTime(minTime);
+        // 애니메이션 시작
+        setCurrentTime(minTime); // 항상 minTime부터 시작
         animationFrame = requestAnimationFrame(animate);
 
+        // 클린업 함수: minTime, maxTime이 변경되어 재실행될 때 이전 애니메이션을 정리
         return () => cancelAnimationFrame(animationFrame);
 
     }, [minTime, maxTime]);
@@ -140,35 +147,37 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
     // 모든 레이어를 합침
     const layers = [
         // 정적 연결선 레이어 (선택 하이라이트 로직 제거)
-        new LineLayer({
-            id: 'widget-static-supply-lines',
+        new PathLayer<TripWithId>({
+            id: 'widget-static-paths',
             data: validTrips,
-            getSourcePosition: d => d.from.coord,
-            getTargetPosition: d => d.to.coord,
+            getPath: d => d.path || [d.from.coord, d.to.coord],
             getColor: d => {
+                // ✨ 수정: trip.anomalyType -> trip.anomalyTypeList
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
-                // 대표 이상 유형이 있으면 해당 색상을, 없으면 기본 회색을 반환
-                return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [220, 220, 228, 50];
+                if (representativeAnomaly) {
+                    const color = getAnomalyColor(representativeAnomaly);
+                    return [...color, 80];
+                }
+                return [255,255,255, 50];
             },
-            getWidth: 1,
-            pickable: false,
+            widthMinPixels: 5,
         }),
         // 건물 및 굴뚝 레이어
         ...otherMeshLayers,
         ...factoryLayers,
         // 동적 이동 애니메이션 레이어
-        new TripsLayer<AnalyzedTrip>({
+        new TripsLayer<TripWithId>({
             id: 'widget-trips-layer',
             data: validTrips,
-            getPath: d => [d.from.coord, d.to.coord],
-            getTimestamps: d => [d.from.eventTime, d.to.eventTime],
+            getPath: d => d.path || [d.from.coord, d.to.coord],
+            getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
             getColor: d => {
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 // 대표 이상 유형이 있으면 해당 색상을, 없으면 기본 초록색을 반환
                 return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [144, 238, 144];
             },
             opacity: 0.8,
-            widthMinPixels: 4,
+            widthMinPixels: 5,
             capRounded: true,
             jointRounded: true,
             trailLength: 180,
@@ -226,10 +235,9 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
                     transition: 'background 0.2s',
                     pointerEvents: 'auto',
                 }}
-
                 onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
                 onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'}
-                aria-label="지도 확대"
+                title="분석지도 확대"
             >
                 <Maximize size={20} />
             </button>

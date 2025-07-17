@@ -1,8 +1,16 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 // import { useAuth } from '@/context/AuthContext'; ℹ️ 백이랑 연결 시 주석 풀기
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import {
+    nodesAtom,
+    mergeAndGenerateTimestamps,
+    loadRouteGeometriesAtom,
+    routeGeometriesAtom,
+} from '@/stores/mapDataAtoms';
 
 import { motion, type Variants } from 'framer-motion';
 
@@ -61,7 +69,7 @@ import {
     Download,
     MapPin,
     History,
-    Clock,
+    Play,
     ArrowRightCircle,
     FileText,
     X
@@ -118,6 +126,7 @@ export type AnomalyListItem = {
     timestamp: string;
 };
 
+
 export default function SupervisorDashboard() {
     const router = useRouter();
     // ℹ️ 테스트 끝나면 주석 풀기
@@ -136,8 +145,8 @@ export default function SupervisorDashboard() {
     // const user = MOCK_USER_ADMIN;
     const user = MOCK_USER_MANAGER; // 이건 매니저 테스트
 
-
-    const [nodes, setNodes] = useState<Node[]>([]);
+    const nodes = useAtomValue(nodesAtom);
+    const setNodes = useSetAtom(nodesAtom);
 
     const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
 
@@ -148,6 +157,11 @@ export default function SupervisorDashboard() {
     const [inventoryData, setInventoryData] = useState<InventoryDataPoint[]>([]);
 
     const [isLoading, setIsLoading] = useState(true);
+
+    const routeGeometries = useAtomValue(routeGeometriesAtom);
+    const loadGeometries = useSetAtom(loadRouteGeometriesAtom);
+
+    const [replayTrigger, setReplayTrigger] = useState(0);
 
     // 차트 전용 상태
     const [anomalyChartData, setAnomalyChartData] = useState<any[]>([]);
@@ -216,6 +230,8 @@ export default function SupervisorDashboard() {
         setActiveFactory(factory);
     };
 
+
+
     useEffect(() => {
         if (user.role === 'MANAGER' && factoryTabs.length > 0) {
             setActiveFactory(factoryTabs[0]); // MANAGER는 자기 공장 탭을 기본값으로 설정
@@ -223,6 +239,11 @@ export default function SupervisorDashboard() {
             setActiveFactory('전체'); // ADMIN은 '전체' 탭을 기본값으로 설정
         }
     }, [user, factoryTabs]);
+
+    useEffect(() => {
+        // 상세 경로 데이터가 먼저 로드되도록 합니다.
+        loadGeometries();
+    }, [loadGeometries]);
 
     useEffect(() => {
         if (!activeFactory) return;
@@ -245,8 +266,6 @@ export default function SupervisorDashboard() {
                 params.date = selectedDate.toLocaleDateString('sv-SE');
             }
 
-            console.log('--- 1. API에 전달되는 파라미터 ---', { ...params, limit: 50, cursor: null });
-
             try {
                 const [kpiRes, inventoryRes, nodesRes, anomaliesRes] = await Promise.all([
                     getKpiSummary(params),
@@ -259,8 +278,10 @@ export default function SupervisorDashboard() {
                 setKpiData(kpiRes);
                 setInventoryData(inventoryRes.inventoryDistribution);
                 setNodes(nodesRes);
-                const tripsWithId = anomaliesRes.data.map(trip => ({ ...trip, id: uuidv4() }));
-                setAnomalyTrips(tripsWithId);
+
+                const mergedTrips = mergeAndGenerateTimestamps(anomaliesRes.data, routeGeometries);
+
+                setAnomalyTrips(mergedTrips);
                 setNextCursor(anomaliesRes.nextCursor);
 
             } catch (error) {
@@ -269,8 +290,11 @@ export default function SupervisorDashboard() {
                 setIsLoading(false);
             }
         }
-        loadData();
-    }, [user, activeFactory, selectedDate, selectedFileId]);
+
+        if (routeGeometries) {
+            loadData();
+        }
+    }, [user, activeFactory, selectedDate, selectedFileId, routeGeometries]);
 
     const handleLoadMore = useCallback(async () => {
         if (!nextCursor || isFetchingMore) return;
@@ -447,6 +471,10 @@ export default function SupervisorDashboard() {
         };
     }, [anomalyTrips]);
 
+    const handleReplayAnimation = () => {
+        setReplayTrigger(prev => prev + 1);
+    };
+
     if (isLoading && anomalyTrips.length === 0) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
@@ -549,11 +577,13 @@ export default function SupervisorDashboard() {
                         )}
                     </div>
                     <div className="flex items-center gap-4 pr-4">
-                        <button onClick={handleHistoryClick} className="w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full">
+                        <button onClick={handleHistoryClick} className="cursor-pointer w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full"
+                            title='csv 업로드 목록'
+                        >
                             <History size={22} />
                         </button>
-                        <button className="py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]"><Download size={18} />Download Report</button>
-                        <button className="flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]"><Upload size={18} />Upload CSV</button>
+                        <button className="cursor-pointer py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]" title='보고서 다운로드'><Download size={18} />Download Report</button>
+                        <button className="cursor-pointer flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]" title='csv 업로드'><Upload size={18} />Upload CSV</button>
                     </div>
                 </motion.div>
             </motion.div>
@@ -637,9 +667,30 @@ export default function SupervisorDashboard() {
 
                         {/* 3열: 지도 */}
                         <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
-                            <div className="w-full h-full rounded-3xl overflow-hidden">
-                                <SupplyChainMapWidget nodes={nodes}
+                            <div className="relative w-full h-full rounded-3xl overflow-hidden">
+                                <SupplyChainMapWidget
+                                    key={replayTrigger}
+                                    nodes={nodes}
                                     analyzedTrips={anomalyTrips} minTime={minTime} maxTime={maxTime} onWidgetClick={() => handleWidgetClick('/graph')} />
+                                <button
+                                    onClick={handleReplayAnimation}
+                                    style={{
+                                        background: 'rgba(0, 0, 0, 0.5)',
+                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'background 0.2s',
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'}
+                                    className="absolute top-4 left-4 text-white p-2 rounded-full"
+                                    title="애니메이션 다시 재생"
+                                >
+                                    <Play size={20} />
+                                </button>
                             </div>
                         </motion.div>
                     </div>
