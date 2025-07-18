@@ -22,6 +22,7 @@ import {
 import type { Node, AnalyzedTrip } from './data';
 
 import { SupplyChainMap } from './SupplyChainMap';
+import { HeatmapView } from './HeatmapView';
 
 // --- 하위 컴포넌트 import ---
 import AnomalyList from './AnomalyList';
@@ -30,7 +31,7 @@ import FilterPanel from './FilterPanel';
 import TripList from './TripList';
 
 // 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
-export type Tab = 'anomalies' | 'all';
+export type Tab = 'anomalies' | 'all' | 'heatmap';
 export type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][]; timestamps?: number[] };
 
 // 탭 버튼 스타일
@@ -68,6 +69,12 @@ export const SupplyChainDashboard: React.FC = () => {
     // 필터 패널 표시 여부는 이 컴포넌트의 로컬 상태로 유지하는 것이 적합합니다.
     const [showFilterPanel, setShowFilterPanel] = useState(false);
 
+    // 이상징후 히트맵만 잘 보이게 상태 관리
+    const [isHighlightMode, setIsHighlightMode] = useState(false);
+
+    // 히트맵에 쓰일 
+    const [isAllDataLoaded, setIsAllDataLoaded] = useState(false);
+
     // 컴포넌트 마운트 시 초기 데이터(노드, 필터옵션) 로드
     useEffect(() => {
         loadInitialData();
@@ -75,6 +82,10 @@ export const SupplyChainDashboard: React.FC = () => {
 
     // 탭이나 필터가 변경될 때마다 Trip 데이터 로드
     useEffect(() => {
+        if (activeTab === 'heatmap') {
+            return; // 함수를 즉시 종료
+        }
+
         loadTrips();
     }, [activeTab, appliedFilters, loadTrips]);
 
@@ -97,49 +108,73 @@ export const SupplyChainDashboard: React.FC = () => {
             width: '100%',
             height: '100%',
         }}>
-            <SupplyChainMap />
+
+            {!isLoading && (
+                activeTab === 'heatmap' ? (
+                    <>
+                        <HeatmapView isHighlightMode={isHighlightMode} />
+                        <div style={{ position: 'absolute', top: '80px', left: '20px', zIndex: 5 }} >
+                            <label className='cursor-pointer'>
+                                <input
+                                    type="checkbox"
+                                    checked={isHighlightMode}
+                                    onChange={(e) => setIsHighlightMode(e.target.checked)}
+                                />
+                                <span className='font-noto-400 text-white pl-2'>이상 징후만 강조하기</span>
+                            </label>
+                        </div>
+                    </>
+                ) : (
+                    <SupplyChainMap />
+                )
+            )}
+
+            {/* <SupplyChainMap /> */}
+
             {isLoading && !isFetchingMore && (
                 <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
                     <p>데이터를 불러오는 중입니다...</p>
                 </div>
             )}
 
-            {/* ✨ 필터 패널: showFilterPanel 상태에 따라 나타나거나 사라짐 */}
-            <div style={{
-                position: 'absolute',
-                top: '20px',
-                left: '30px',
-                width: '320px',
-                height: 'calc(100vh - 200px)',
-                zIndex: 4, // 리스트 패널보다 위에 위치
-                transform: showFilterPanel ? 'translateX(-6%)' : 'translateX(-120%)',
-                transition: 'transform 0.3s ease-in-out',
-                display: activeTab === 'all' ? 'block' : 'none', // '전체' 탭에서만 활성화
-            }}>
-                <FilterPanel
-                    options={filterOptions}
-                    onApplyFilters={handleApplyFilters}
-                    isFiltering={isLoading}
-                    onClose={() => setShowFilterPanel(false)}
-                />
-            </div>
+            {activeTab !== 'heatmap' && (
+                <>
+                    <div style={{
+                        position: 'absolute',
+                        top: '20px',
+                        left: '30px',
+                        width: '320px',
+                        height: 'calc(100vh - 200px)',
+                        zIndex: 4, // 리스트 패널보다 위에 위치
+                        transform: showFilterPanel ? 'translateX(-6%)' : 'translateX(-120%)',
+                        transition: 'transform 0.3s ease-in-out',
+                        display: activeTab === 'all' ? 'block' : 'none', // '전체' 탭에서만 활성화
+                    }}>
+                        <FilterPanel
+                            options={filterOptions}
+                            onApplyFilters={handleApplyFilters}
+                            isFiltering={isLoading}
+                            onClose={() => setShowFilterPanel(false)}
+                        />
+                    </div>
 
+                </>
+            )}
             <div style={{
                 position: 'absolute',
                 top: '0px',
-                width: '300px',
                 left: '20px',
-                height: 'calc(100vh - 200px)',
                 zIndex: 3,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '15px',
             }}>
                 {/* 탭 UI */}
-                <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px] pr-4'>
+                <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px]'>
                     <div className='flex whitespace-nowrap'>
-                        <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 징후 분석</button>
                         <button style={tabButtonStyle(activeTab === 'all')} onClick={() => setActiveTab('all')}>전체 이력 추적</button>
+                        <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 징후 분석</button>
+                        <button style={tabButtonStyle(activeTab === 'heatmap')} onClick={() => setActiveTab('heatmap')}>이벤트 히트맵</button>
                     </div>
                     {activeTab === 'all' && (
                         <button
@@ -153,64 +188,76 @@ export const SupplyChainDashboard: React.FC = () => {
                 </div>
 
                 {/* 2. 리스트 콘텐츠 영역 */}
-                <div style={{
-                    flex: 1, // 남은 공간을 모두 차지
-                    minHeight: 0,
-                    background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                    borderRadius: '25px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}>
-                    {activeTab === 'anomalies' && (
-                        <>
-                            <div style={{ flex: 1, minHeight: 0 }}>
-                                <AnomalyList
-                                    anomalies={trips}
-                                    onCaseClick={(trip) => setSelectedObject(trip)}
-                                    selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
-                                />
-                            </div>
-                            <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
-                                <p className="mb-2">현재 {trips.length}개의 이상 징후 표시 중</p>
-                                {nextCursor && (
-                                    <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
-                                        {isFetchingMore ? '로딩 중...' : '더 보기'}
-                                    </button>
-                                )}
-                            </div>
-                        </>
-                    )}
+                {activeTab !== 'heatmap' && (
+                    <>
+                        <div style={{
+                            width: '300px',
+                            height: 'calc(100vh - 250px)',
+                            // flex: 1, // 남은 공간을 모두 차지
+                            minHeight: 0,
+                            background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                            borderRadius: '25px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}>
+                            {activeTab === 'anomalies' && (
+                                <>
+                                    <div style={{ flex: 1, minHeight: 0 }}>
+                                        <AnomalyList
+                                            anomalies={trips}
+                                            onCaseClick={(trip) => setSelectedObject(trip)}
+                                            selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                                        />
+                                    </div>
+                                    <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
+                                        <p className="mb-2">현재 {trips.length}개의 이상 징후 표시 중</p>
+                                        {nextCursor && (
+                                            <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
+                                                {isFetchingMore ? '로딩 중...' : '더 보기'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
 
-                    {activeTab === 'all' && (
-                        <>
-                            {/* 리스트 본문 */}
-                            <div style={{ flex: 1, minHeight: 0 }}>
-                                <TripList
-                                    trips={trips}
-                                    onCaseClick={(trip) => setSelectedObject(trip)}
-                                    selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
-                                />
-                            </div>
+                            {activeTab === 'all' && (
+                                <>
+                                    {/* 리스트 본문 */}
+                                    <div style={{ flex: 1, minHeight: 0 }}>
+                                        <TripList
+                                            trips={trips}
+                                            onCaseClick={(trip) => setSelectedObject(trip)}
+                                            selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                                        />
+                                    </div>
 
-                            {/* '더 보기' 버튼 (푸터) */}
-                            <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
-                                <p className="mb-2">현재 {trips.length}개의 경로 표시 중</p>
-                                {nextCursor && (
-                                    <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
-                                        {isFetchingMore ? '로딩 중...' : '더 보기'}
-                                    </button>
-                                )}
-                            </div>
-                        </>
-                    )}
-                </div>
+                                    {/* '더 보기' 버튼 (푸터) */}
+                                    <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
+                                        <p className="mb-2">현재 {trips.length}개의 경로 표시 중</p>
+                                        {nextCursor && (
+                                            <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
+                                                {isFetchingMore ? '로딩 중...' : '더 보기'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+
+                    </>
+                )}
+
             </div>
 
-            <DetailsPanel
-                selectedObject={selectedObject}
-                onClose={() => setSelectedObject(null)}
-            />
+            {activeTab !== 'heatmap' && (
+                <DetailsPanel
+                    selectedObject={selectedObject}
+                    onClose={() => setSelectedObject(null)}
+                />
+            )}
+
         </div>
     );
 };

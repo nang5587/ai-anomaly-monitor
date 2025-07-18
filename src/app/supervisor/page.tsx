@@ -17,6 +17,7 @@ import { motion, type Variants } from 'framer-motion';
 import {
   getNodes,
   getAnomalies,
+  getTrips,
   getKpiSummary,
   getInventoryDistribution,
   getUploadHistory,
@@ -150,6 +151,7 @@ export default function SupervisorDashboard() {
   const setNodes = useSetAtom(nodesAtom);
 
   const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
+  const [allTripsForMap, setAllTripsForMap] = useState<TripWithId[]>([]);
 
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false)
@@ -250,6 +252,7 @@ export default function SupervisorDashboard() {
     async function loadData() {
       setIsLoading(true);
       setAnomalyTrips([]);
+      setAllTripsForMap([]);
       setNextCursor(null);
 
       const params: Record<string, any> = {};
@@ -268,11 +271,12 @@ export default function SupervisorDashboard() {
       console.log('--- 1. API에 전달되는 파라미터 ---', { ...params, limit: 50, cursor: null });
 
       try {
-        const [kpiRes, inventoryRes, nodesRes, anomaliesRes] = await Promise.all([
+        const [kpiRes, inventoryRes, nodesRes, anomaliesRes, allTripsRes] = await Promise.all([
           getKpiSummary(params),
           getInventoryDistribution(params),
           getNodes(),
-          getAnomalies({ ...params, limit: 50, cursor: null })
+          getAnomalies({ ...params, limit: 50, cursor: null }),
+          getTrips({ ...params, limit: 50 })
         ]);
 
         // ... 데이터 설정 로직 ...
@@ -285,6 +289,8 @@ export default function SupervisorDashboard() {
         // 가공된 최종 데이터를 상태에 저장합니다.
         setAnomalyTrips(mergedTrips);
         setNextCursor(anomaliesRes.nextCursor);
+        const mergedAllTrips = mergeAndGenerateTimestamps(allTripsRes.data, routeGeometries);
+        setAllTripsForMap(mergedAllTrips);
 
       } catch (error) {
         console.error("대시보드 데이터 로딩 실패:", error);
@@ -450,11 +456,11 @@ export default function SupervisorDashboard() {
 
   // minTime, maxTime 계산 (변경 필요 없음)
   const { minTime, maxTime } = useMemo(() => {
-    if (!anomalyTrips || anomalyTrips.length === 0) {
+    if (!allTripsForMap || allTripsForMap.length === 0) {
       return { minTime: 0, maxTime: 1 };
     }
     // timestamp가 없는 데이터를 필터링하여 안정성 확보
-    const validTimestamps = anomalyTrips.flatMap(trip => [
+    const validTimestamps = allTripsForMap.flatMap(trip => [
       trip.from.eventTime,
       trip.to.eventTime
     ].filter(t => typeof t === 'number'));
@@ -465,7 +471,7 @@ export default function SupervisorDashboard() {
       minTime: Math.min(...validTimestamps),
       maxTime: Math.max(...validTimestamps),
     };
-  }, [anomalyTrips]);
+  }, [allTripsForMap]);
 
   const handleReplayAnimation = () => {
     setReplayTrigger(prev => prev + 1);
@@ -667,7 +673,7 @@ export default function SupervisorDashboard() {
                 <SupplyChainMapWidget
                   key={replayTrigger}
                   nodes={nodes}
-                  analyzedTrips={anomalyTrips} minTime={minTime} maxTime={maxTime} onWidgetClick={() => handleWidgetClick('/graph')} />
+                  analyzedTrips={allTripsForMap} minTime={minTime} maxTime={maxTime} onWidgetClick={() => handleWidgetClick('/graph')} />
                 <button
                   onClick={handleReplayAnimation}
                   style={{

@@ -30,7 +30,7 @@ type RouteGeometry = {
 type RouteGeometryMap = Record<string, RouteGeometry>;
 
 // --- 상태(State) 아톰 정의 ---
-export const activeTabAtom = atom<Tab>('anomalies');
+export const activeTabAtom = atom<Tab>('all');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
 export const selectedObjectAtom = atom<TripWithId | Node | null>(null);
 export const nodesAtom = atom<Node[]>([]);
