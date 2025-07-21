@@ -113,15 +113,56 @@ export const SupplyChainDashboard: React.FC = () => {
                 activeTab === 'heatmap' ? (
                     <>
                         <HeatmapView isHighlightMode={isHighlightMode} />
-                        <div style={{ position: 'absolute', top: '80px', left: '20px', zIndex: 5 }} >
-                            <label className='cursor-pointer'>
-                                <input
-                                    type="checkbox"
-                                    checked={isHighlightMode}
-                                    onChange={(e) => setIsHighlightMode(e.target.checked)}
-                                />
-                                <span className='font-noto-400 text-white pl-2'>이상 징후만 강조하기</span>
-                            </label>
+                        <div
+                            style={{ position: 'absolute', top: '60px', left: '20px', zIndex: 5 }}
+                            className='px-6 py-4 flex items-center gap-4'
+                        >
+                            <span className='font-noto-400 text-white select-none'>이상 징후만 강조하기</span>
+
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isHighlightMode}
+                                onClick={() => setIsHighlightMode(!isHighlightMode)}
+                                className={`
+                                    relative inline-flex items-center h-6 w-11 flex-shrink-0 cursor-pointer rounded-full 
+                                    border-2 border-transparent transition-colors duration-200 ease-in-out 
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgba(111,131,175)]
+                                    ${isHighlightMode ? 'bg-[rgba(111,131,175)]' : 'bg-gray-500'}
+                                `}
+                            >
+                                <span className="sr-only">이상 징후 강조 토글</span>
+                                <span
+                                    aria-hidden="true"
+                                    className={`
+                                        pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 
+                                        transition duration-200 ease-in-out
+                                    `}
+                                    style={{
+                                        transform: isHighlightMode ? 'translateX(1.5rem)' : 'translateX(0.1rem)',
+                                    }}
+                                ></span>
+                            </button>
+                        </div>
+
+                        <div
+                            style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}
+                            className="bg-[rgba(40,40,40,0.85)] rounded-lg p-4 text-white w-56 shadow-lg backdrop-blur-sm"
+                        >
+                            <h3 className="text-sm font-bold mb-2">이벤트 밀도</h3>
+                            {/* 색상 그라데이션 바 */}
+                            <div
+                                className="h-3 rounded-md"
+                                style={{
+                                    // 투명한 파랑 -> 진한 파랑
+                                    background: 'linear-gradient(to right, rgba(135,206,235), rgba(43,96,121))'
+                                }}
+                            ></div>
+                            {/* 라벨 */}
+                            <div className="flex justify-between text-xs mt-1 text-gray-300">
+                                <span>낮음</span>
+                                <span>높음</span>
+                            </div>
                         </div>
                     </>
                 ) : (

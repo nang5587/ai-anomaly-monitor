@@ -95,6 +95,21 @@ body,
 
 
 
+/**************    로딩 애니메이션     ******************/
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 이 클래스를 JSX에서 직접 사용할 것입니다. */
+.animate-shimmer-custom {
+  animation: shimmer 2s linear infinite;
+}
+/**************    끝     ******************/
 
 
 

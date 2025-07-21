@@ -1,11 +1,9 @@
 'use client'
-import React, { useMemo, useState, useRef } from 'react';
-import type { PickingInfo } from 'deck.gl';
+import React, { useMemo, useState, useEffect } from 'react';
+import type { PickingInfo, Color } from 'deck.gl';
 
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom } from 'jotai';
 import {
-    nodesAtom,
-    tripsAtom,
     mapViewStateAtom,
     type MapViewState
 } from '@/stores/mapDataAtoms';
@@ -15,8 +13,16 @@ import { HeatmapLayer } from '@deck.gl/aggregation-layers'; // 히트맵 레이�
 import { ScatterplotLayer } from '@deck.gl/layers';
 import { default as ReactMapGL } from 'react-map-gl';
 
-import { type TripWithId } from './SupplyChainDashboard';
-import { type Node, type AnalyzedTrip } from './data';
+import { getTrips, getNodes, type AnalyzedTrip, type Node } from './data';
+
+const BLUE_COLOR_PALETTE: Color[] = [
+    [135, 206, 235],
+    [135, 206, 235],
+    [70, 130, 180],
+    [70, 130, 180],
+    [43, 96, 121],
+    [43, 96, 121],
+];
 
 // Mapbox 액세스 토큰
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -31,28 +37,42 @@ type NodeWithEventStats = Node & {
 };
 
 export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => {
-    const nodes = useAtomValue(nodesAtom);
-    const currentTrips = useAtomValue(tripsAtom);
-    const [viewState, setViewState] = useAtom(mapViewStateAtom); // 지도 시점은 다른 맵과 공유될 수 있습니다.
-    const allTripsRef = useRef<TripWithId[]>([]); // 가장 긴 데이터를 기억할 저장소 역할
+    const [localNodes, setLocalNodes] = useState<Node[]>([]);
+    const [localTrips, setLocalTrips] = useState<AnalyzedTrip[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const tripsForHeatmap = useMemo(() => {
-        if (currentTrips && currentTrips.length > allTripsRef.current.length) {
-            allTripsRef.current = currentTrips;
-        }
-        
-        return allTripsRef.current;
-    }, [currentTrips]);
+    const [viewState, setViewState] = useAtom(mapViewStateAtom); // 지도 시점은 다른 맵과 공유될 수 있습니다.
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                // Promise.all을 사용하여 노드와 트립 데이터를 병렬로 가져옵니다.
+                const [nodesData, tripsResponse] = await Promise.all([
+                    getNodes(),
+                    getTrips() // 파라미터 없이 호출하여 전체 데이터를 가져옵니다.
+                ]);
+                setLocalNodes(nodesData);
+                setLocalTrips(tripsResponse.data); // Paginated 응답이므로 .data를 사용
+            } catch (error) {
+                console.error("Failed to fetch data for Heatmap:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const nodesWithStats = useMemo((): NodeWithEventStats[] => {
-        if (!Array.isArray(tripsForHeatmap) || !Array.isArray(nodes)) {
+        if (!Array.isArray(localTrips) || !Array.isArray(localNodes) || localTrips.length === 0 || localNodes.length === 0) {
             return [];
         }
 
-        const eventCounts = new Map<string, { total: number, hasAnomaly: boolean }>();
+        const eventCounts = new Map<string, { total: number; hasAnomaly: boolean }>();
 
-        tripsForHeatmap.forEach(trip => {
-            if (!trip || !trip.from?.scanLocation || !trip.to?.scanLocation) return;
+        localTrips.forEach(trip => {
+            if (!trip?.from?.scanLocation || !trip?.to?.scanLocation) return;
 
             const locations = [trip.from.scanLocation, trip.to.scanLocation];
             const isAnomaly = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
@@ -67,12 +87,9 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
             });
         });
 
-        if (eventCounts.size === 0) return [];
-
-        return nodes
+        return localNodes
             .map(node => {
                 const stats = eventCounts.get(node.scanLocation);
-                // 이벤트가 발생한 노드만 반환
                 return stats ? {
                     ...node,
                     totalEventCount: stats.total,
@@ -80,7 +97,7 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
                 } : null;
             })
             .filter((node): node is NodeWithEventStats => node !== null);
-    }, [tripsForHeatmap, nodes]);
+    }, [localTrips, localNodes]);
 
     const renderTooltip = (info: PickingInfo) => {
         if (info.layer?.id !== 'scatterplot-layer-picking' || !info.object) {
@@ -111,7 +128,7 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
         return {
             html: `
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${node.scanLocation}</div>
-                    <div>전체 이벤트<span style="color: #ff6384; font-size: 1.1em; font-weight: bold;">${node.totalEventCount}</span> 건</div>
+                    <div>전체 이벤트<span style="color: #ff6384; font-size: 1.1em; font-weight: bold;"> ${node.totalEventCount}</span> 건</div>
                     ${anomalyText}
             `,
             style: {
@@ -127,7 +144,12 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
             id: 'heatmap-layer-visual',
             data: nodesWithStats,
             getPosition: d => d.coord,
-            radiusPixels: 70,
+            radiusPixels: 65,
+            intensity: 1.5,
+            threshold: 0.05,
+
+            // ✅ 2. colorRange 속성에 정의된 파란색 팔레트를 적용합니다.
+            colorRange: BLUE_COLOR_PALETTE,
             getWeight: (d: NodeWithEventStats) => {
                 if (isHighlightMode) {
                     // 강조 모드 ON: 이상 징후가 있는 노드만 가중치를 갖고, 나머지는 0
@@ -155,7 +177,24 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-
+            {isLoading && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    zIndex: 20,
+                    fontSize: '1.2rem'
+                }}>
+                    데이터 로딩 중...
+                </div>
+            )}
             <DeckGL
                 layers={layers}
                 viewState={viewState}
@@ -172,7 +211,6 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
                     onLoad={e => {
                         const map = e.target;
 
-                        // ✨ 안전한 스타일 변경 로직
                         const setMapStyle = () => {
                             // isStyleLoaded()로 스타일이 준비되었는지 확인
                             if (map.isStyleLoaded()) {

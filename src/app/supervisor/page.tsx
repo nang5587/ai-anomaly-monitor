@@ -369,6 +369,10 @@ export default function SupervisorDashboard() {
     setIsHistoryModalOpen(false);
   };
 
+  const handleFileUpload = async () => {
+    router.push('/upload');
+  };
+
   // 필터 초기화 함수
   const clearFilters = () => {
     setSelectedDate(null);
@@ -584,8 +588,8 @@ export default function SupervisorDashboard() {
             >
               <History size={22} />
             </button>
-            <button className="cursor-pointer py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]" title='보고서 다운로드'><Download size={18} />Download Report</button>
-            <button className="cursor-pointer flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]" title='csv 업로드'><Upload size={18} />Upload CSV</button>
+            <button onClick={handleHistoryClick} className="cursor-pointer py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]" title='보고서 다운로드'><Download size={18} />Download Report</button>
+            <button onClick={handleFileUpload} className="cursor-pointer flex items-center gap-2 bg-[rgba(111,131,175,1)] hover:bg-[rgba(91,111,155,1)] text-white py-4 px-6 rounded-[50px]" title='csv 업로드'><Upload size={18} />Upload CSV</button>
           </div>
         </motion.div>
       </motion.div>

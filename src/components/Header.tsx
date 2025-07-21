@@ -19,7 +19,7 @@ export default function Header() {
         {user ? (
           <>
             <span className="text-sm text-white">
-              안녕하세요, <strong>{user.role}</strong> 님
+              안녕하세요, <strong>{user.userId}</strong> 님
             </span>
             <button
               onClick={logout}
