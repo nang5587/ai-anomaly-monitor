@@ -4,7 +4,9 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { SupplyChainDashboard } from '@/components/visual/SupplyChainDashboard';
+// import { SupplyChainDashboard } from '@/components/visual/SupplyChainDashboard';
+// import { useMapData } from '@/context/MapDataContext';
+
 import { useMapStore } from '@/stores/mapStore';
 
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +24,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
     const [sidebarHovered, setSidebarHovered] = useState(false);
 
-    const isMapPage = pathname === '/graph';
+    // const isMapPage = pathname === '/graph';
+    // const mapData = useMapData();
 
     if (!user) {
         return (
@@ -40,13 +43,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <Sidebar userRole={user.role as 'ADMIN' | 'MANAGER'} hovered={sidebarHovered} setHovered={setSidebarHovered} />
 
                 <main className="flex-1 h-screen pt-20 overflow-hidden relative">
-                    {isMapPage ? (
-                        <SupplyChainDashboard />
-                    ) : (
-                        <div className="w-full h-full">
-                            {children}
-                        </div>
-                    )}
+                    {children}
                 </main>
 
             </div>

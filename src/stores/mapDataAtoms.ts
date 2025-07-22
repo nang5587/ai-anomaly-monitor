@@ -5,10 +5,10 @@ import {
     getNodes,
     getAnomalies,
     getTrips,
-    // getFilterOptions,
+    getFilterOptions,
     type Node,
     type AnalyzedTrip,
-    // type FilterOptions,
+    type FilterOptions,
     type PaginatedTripsResponse,
 } from '@/components/visual/data';
 
@@ -34,9 +34,9 @@ export const activeTabAtom = atom<Tab>('all');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
 export const selectedObjectAtom = atom<TripWithId | Node | null>(null);
 export const nodesAtom = atom<Node[]>([]);
-// export const filterOptionsAtom = atom<FilterOptions | null>(null);
+export const filterOptionsAtom = atom<FilterOptions | null>(null);
 export const tripsAtom = atom<TripWithId[]>([]);
-export const isLoadingAtom = atom<boolean>(true);
+export const isLoadingAtom = atom<boolean>(false);
 export const nextCursorAtom = atom<string | null>(null);
 export const isFetchingMoreAtom = atom<boolean>(false);
 
@@ -79,7 +79,7 @@ export const mergeAndGenerateTimestamps = (tripsFromApi: AnalyzedTrip[], geometr
 
         return {
             ...trip,
-            id: uuidv4(),
+            id: trip.roadId || uuidv4(),
             path: finalPath,
             timestamps: finalTimestamps,
         };
