@@ -1,80 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { FcGoogle } from 'react-icons/fc';
-import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import apiClient from '../../api/apiClient';
-import jwtDecode from 'jwt-decode';
-import { useAuth } from '@/context/AuthContext';
+import { loginAction } from './actions';
 
-interface DecodedToken {
-  role: string;
-}
+const initialState: { message: string; success: boolean; } = {
+  message: '',
+  success: false,
+};
 
-function getRedirectUrl(role: string) {
-  switch (role) {
-    case "ADMIN": return "/supervisor";
-    case "MANAGER": return "/manager1";
-    // case "manager2": return "/manager2";
-    // case "manager3": return "/manager3";
-    default: return "/";
-  }
+function LoginButton() {
+  // 3. useFormStatus 훅으로 폼의 제출 상태(pending)를 가져옴
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-md text-sm disabled:bg-indigo-300"
+      disabled={pending} // 4. 로딩 중일 때 버튼 비활성화
+    >
+      {pending ? '로그인 중...' : '로그인'}
+    </button>
+  );
 }
 
 // ✅ default export 되는 로그인 컴포넌트
 export default function LoginPage() {
-  const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const { login } = useAuth();
-  const router = useRouter();
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // ✅ apiClient(Axios)를 사용한 올바른 API 요청
-      const response = await apiClient.post('/public/login', {
-        // JavaScript 객체를 바로 전달하면 Axios가 JSON으로 변환해줍니다.
-        userId,
-        password
-      });
-      const authHeader = response.headers['authorization'] || response.headers['Authorization'];
-
-      console.log('로그인 성공:', response.data);
-
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        // "Bearer " 접두사를 제거하고 실제 토큰 값만 추출합니다.
-        const token = authHeader.split(' ')[1];
-        console.log('로그인 성공! 헤더에서 토큰을 추출했습니다.');
-        
-        const decoded: DecodedToken = jwtDecode(token);
-        const role = decoded.role;
-        const storage = rememberMe ? localStorage : sessionStorage;
-
-        storage.setItem('accessToken', token);
-        storage.setItem('role', role);
-
-        login(token, rememberMe);
-
-        router.push(getRedirectUrl(role));
-      } else {
-        // 성공 응답(2xx)을 받았지만, 예상과 달리 헤더에 토큰이 없는 경우의 에러 처리
-        throw new Error('로그인 응답이 올바르지 않습니다. (토큰 없음)');
-      }
-
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        // 위에서 throw한 Error도 이쪽으로 올 수 있습니다.
-        const errorMessage = err.response?.data?.message || err.message || '아이디 또는 비밀번호가 잘못되었습니다.';
-        alert(errorMessage);
-        console.error('로그인 API 에러:', err.response || err);
-      } else {
-        alert('로그인 중 알 수 없는 오류가 발생했습니다.');
-        console.error('로그인 중 일반 에러:', err);
-      }
-    }
-  };
+  const [state, formAction] = useFormState(loginAction, initialState);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -110,15 +62,14 @@ export default function LoginPage() {
             <hr className="w-full border-gray-300" />
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form action={formAction} className="space-y-4">
             <div>
               <label className="text-sm text-gray-600">아이디</label>
               <input
                 type="text"
+                name="userId"
                 placeholder="아이디 입력"
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={userId}
-                onChange={e => setUserId(e.target.value)}
                 required
               />
             </div>
@@ -126,10 +77,9 @@ export default function LoginPage() {
               <label className="text-sm text-gray-600">비밀번호</label>
               <input
                 type="password"
+                value="password"
                 placeholder="••••••••"
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
                 required
               />
             </div>
@@ -138,20 +88,19 @@ export default function LoginPage() {
               <label className="flex items-center gap-1">
                 <input
                   type="checkbox"
+                  name="rememberMe"
                   className="form-checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 로그인 상태 유지
               </label>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-md text-sm"
-            >
-              로그인
-            </button>
+            <LoginButton />
+
+            {/* 10. 서버로부터 받은 에러 메시지 표시 */}
+            {!state.success && state.message && (
+              <p className="text-sm text-red-500 text-center">{state.message}</p>
+            )}
           </form>
 
           <p className="text-sm text-center text-gray-700">

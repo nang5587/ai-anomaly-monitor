@@ -19,6 +19,11 @@ const getColumnName = (index: number) => {
 
 export default function BarcodeLogUploadPage() {
   const { user } = useAuth();
+  // const user = {
+  //   userId: "user1",
+  //   role: "ADMIN",
+  //   locationId: 0
+  // }
 
   const [fileName, setFileName] = useState('');
   const [factoryName, setFactoryName] = useState('');

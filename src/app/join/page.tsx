@@ -8,14 +8,11 @@ export default function page() {
     // 모든 컴포넌트가 공유할 step 상태
     const [step, setStep] = useState(1);
     const backgroundStyle: React.CSSProperties = {
-        position: 'relative', // 자식 요소의 absolute 포지셔닝 기준
-        // width: '100vw',
-        // height: '100vh',
-        backgroundImage: "url('/images/bgTruck.png')", // public 폴더의 이미지 경로
+        position: 'relative',
+        backgroundImage: "url('/images/bgTruck.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        // zIndex: 1
     };
     return (
         <main className="flex items-center justify-center w-full h-full"

@@ -13,15 +13,22 @@ const factoryCodeNameMap: { [key: number]: string } = {
     4: '구미',
 };
 
-export default function UserSettings() {
+interface UserSettingsProps {
+    initialProfile: {
+        userName: string;
+        email: string;
+    };
+}
+
+export default function UserSettings({ initialProfile }: UserSettingsProps) {
     const { user, updateUserContext } = useAuth(); // ✨ AuthContext에서 user 정보와 업데이트 함수를 가져옴
 
     // 폼 데이터를 관리할 상태
-    const [formData, setFormData] = useState({ userName: '', email: '' });
+    const [formData, setFormData] = useState(initialProfile);
     // 비밀번호 변경 폼 데이터를 관리할 상태
     const [passwordData, setPasswordData] = useState({ password: '', newPassword: '', confirmPassword: '' });
 
-    const [originalProfile, setOriginalProfile] = useState({ userName: '', email: '' });
+    const [originalProfile, setOriginalProfile] = useState(initialProfile);
     const [isProfileChanged, setIsProfileChanged] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 

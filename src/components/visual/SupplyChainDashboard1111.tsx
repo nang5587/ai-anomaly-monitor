@@ -1,144 +1,96 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Filter } from 'lucide-react';
 
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+
+// 1. Jotai 훅: 전역 상태 '설정' 또는 '공유 상태 읽기'에만 사용
+import { useAtom, useSetAtom, useAtomValue } from 'jotai';
 import {
-    nodesAtom,
-    tripsAtom,
-    selectedObjectAtom,
     appliedFiltersAtom,
     activeTabAtom,
-    isLoadingAtom,
-    isFetchingMoreAtom,
-    nextCursorAtom,
-    loadInitialDataAtom,
-    loadTripsDataAtom,
-    loadMoreTripsAtom
+    selectedObjectAtom,
+    loadTripsDataAtom, // 탭/필터 변경 시 데이터 로딩 트리거
+    loadMoreTripsAtom, // '더 보기' 트리거
+    tripsAtom as jotaiTripsAtom // 💡 Jotai 상태와 로컬 상태 이름 충돌 방지
 } from '@/stores/mapDataAtoms';
 
+// 2. 타입 및 하위 컴포넌트 import
 import type { Node, AnalyzedTrip, FilterOptions } from './data';
-
 import { SupplyChainMap } from './SupplyChainMap';
 import { HeatmapView } from './HeatmapView';
-
-// --- 하위 컴포넌트 import ---
 import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
 import FilterPanel from './FilterPanel';
 import TripList from './TripList';
 
-interface DashboardData {
+// 3. Props 타입 정의
+interface DashboardProps {
     initialNodes: Node[];
     initialTrips: TripWithId[];
     initialFilterOptions: FilterOptions | null;
     initialNextCursor: string | null;
 }
 
-// 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 export type Tab = 'anomalies' | 'all' | 'heatmap';
 export type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][]; timestamps?: number[] };
 
-// 탭 버튼 스타일
-const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '10px 20px',
-    fontSize: '16px',
-    fontWeight: isActive ? 'bold' : 'normal',
-    color: isActive ? '#FFFFFF' : '#AAAAAA',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderTop: isActive ? '2px solid #3399FF' : '2px solid transparent',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease-in-out',
-});
+const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({ /* ... 스타일 ... */ });
 
-export const SupplyChainDashboard: React.FC = () => {
-    const [initialData, setInitialData] = useState<DashboardData | null>(null);
+export const SupplyChainDashboard: React.FC<DashboardProps> = ({
+    initialNodes,
+    initialTrips,
+    initialFilterOptions,
+    initialNextCursor,
+}) => {
 
-    // 2. useEffect를 사용해, 클라이언트 사이드에서만 실행되는 코드로 데이터를 읽어옵니다.
-    useEffect(() => {
-        // 이 코드는 브라우저에서 컴포넌트가 마운트된 후 단 한 번 실행됩니다.
-        const dataElement = document.getElementById('__INITIAL_DATA__');
-        if (dataElement?.textContent) {
-            try {
-                const data = JSON.parse(dataElement.textContent);
-                console.log('✅ script 태그에서 데이터를 성공적으로 읽었습니다:', data);
-                setInitialData(data); // 읽어온 데이터로 상태를 설정
-            } catch (e) {
-                console.error('Failed to parse initial data from script tag', e);
-            }
-        }
-    }, []); // 의존성 배열이 비어있어, 마운트 시 한 번만 실행됩니다.
+    const isInitialMount = useRef(true);
 
-    // 3. 데이터가 로드될 때까지 로딩 UI를 보여줍니다.
-    //    이것은 loading.tsx와는 다른, "컴포넌트 초기화" 로딩입니다.
-    if (!initialData) {
-        return (
-            <div className="flex items-center justify-center w-full h-full">
-                <p className="text-white text-lg">Initializing Dashboard...</p>
-            </div>
-        );
-    }
+    // --- 4. UI 렌더링을 위한 로컬 상태(useState) ---
+    // 초기값은 서버에서 받은 props로 설정합니다.
+    const [nodes, setNodes] = useState<Node[]>(initialNodes);
+    const [trips, setTrips] = useState<TripWithId[]>(initialTrips);
+    const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(initialFilterOptions);
+    const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
 
-    // 4. initialData가 설정되면, 그 값을 사용해 나머지 로직을 실행합니다.
-    const {
-        initialNodes,
-        initialTrips,
-        initialFilterOptions,
-        initialNextCursor
-    } = initialData;
-
-    console.log('드디어 받았다 이 데이터:', initialFilterOptions);
-
-    // --- Jotai 스토어에서 가져온 상태 관리 ---
-    const trips = useAtomValue(tripsAtom);
-    const nextCursor = useAtomValue(nextCursorAtom);
-    const isLoading = useAtomValue(isLoadingAtom);
-    const isFetchingMore = useAtomValue(isFetchingMoreAtom);
-
-    // 읽고 쓰기가 모두 필요한 상태
+    // --- 5. Jotai 상태는 UI 렌더링에 직접 사용하지 않고, 트리거나 공유 상태 관리에만 사용 ---
     const [activeTab, setActiveTab] = useAtom(activeTabAtom);
-    const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [appliedFilters, setAppliedFilters] = useAtom(appliedFiltersAtom);
+    const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
 
-    // 액션(쓰기 전용) 아톰
-    const setNodes = useSetAtom(nodesAtom);
-    const setTrips = useSetAtom(tripsAtom);
-    const setNextCursor = useSetAtom(nextCursorAtom);
+    // Jotai 액션 아톰 (데이터 로딩 트리거용)
     const loadTrips = useSetAtom(loadTripsDataAtom);
     const loadMore = useSetAtom(loadMoreTripsAtom);
 
+    // Jotai 상태가 변경될 때 로컬 상태를 업데이트하기 위한 로직
+    // 이렇게 하면 loadTripsDataAtom이 내부적으로 tripsAtom을 업데이트했을 때,
+    // 이 컴포넌트의 로컬 상태도 동기화됩니다.
+    const jotaiTrips = useAtomValue(jotaiTripsAtom);
+    useEffect(() => {
+        // Jotai 상태가 변경되면 로컬 상태도 업데이트
+        // (단, 초기 렌더링 시에는 props로 받은 값을 우선)
+        if (!isInitialMount.current) {
+            setTrips(jotaiTrips);
+        }
+    }, [jotaiTrips]);
+
+
+    // --- 로컬 상태 (UI 제어용) ---
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [isHighlightMode, setIsHighlightMode] = useState(false);
 
-    // 히트맵에 쓰일 
-    const [isAllDataLoaded, setIsAllDataLoaded] = useState(false);
-
-
+    // --- 6. 탭/필터 변경 시 Jotai 액션을 호출하는 로직 ---
     useEffect(() => {
-        if (!initialFilterOptions) return;
-
-        console.log("✅ setting initial filter options:", initialFilterOptions);
-
-        setNodes(initialNodes);
-        setTrips(initialTrips);
-
-        setNextCursor(initialNextCursor);
-    }, [initialNodes, initialTrips, initialFilterOptions, initialNextCursor, setNodes, setTrips, setNextCursor]);
-
-    // // 컴포넌트 마운트 시 초기 데이터(노드, 필터옵션) 로드
-    // useEffect(() => {
-    //     loadInitialData();
-    // }, [loadInitialData]);
-
-    // 탭이나 필터가 변경될 때마다 Trip 데이터 로드
-    useEffect(() => {
-        if (activeTab === 'heatmap') {
-            return; // 함수를 즉시 종료
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
         }
+        if (activeTab === 'heatmap') return;
 
+        // Jotai 액션을 호출하면, Jotai 내부 로직이 실행됩니다.
+        // 실행 후 tripsAtom이 업데이트되고, 위의 useEffect가 감지하여 로컬 trips 상태를 업데이트합니다.
         loadTrips();
+
     }, [activeTab, appliedFilters, loadTrips]);
 
 
@@ -148,7 +100,6 @@ export const SupplyChainDashboard: React.FC = () => {
     };
 
     const handleTabClick = (tab: Tab) => {
-        // activeTabAtom의 값을 변경하면, 위의 useEffect가 자동으로 트리거됩니다.
         setActiveTab(tab);
     };
 
@@ -160,11 +111,6 @@ export const SupplyChainDashboard: React.FC = () => {
             width: '100%',
             height: '100%',
         }}>
-            {isLoading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <p className="text-white">데이터 업데이트 중...</p>
-                </div>
-            )}
 
             {activeTab === 'heatmap' ? (
                 <>
@@ -239,9 +185,9 @@ export const SupplyChainDashboard: React.FC = () => {
                         display: activeTab === 'all' ? 'block' : 'none', // '전체' 탭에서만 활성화
                     }}>
                         <FilterPanel
-                            options={initialFilterOptions}
+                            options={filterOptions}
                             onApplyFilters={handleApplyFilters}
-                            isFiltering={isLoading}
+                            isFiltering={false}
                             onClose={() => setShowFilterPanel(false)}
                         />
                     </div>
@@ -301,8 +247,9 @@ export const SupplyChainDashboard: React.FC = () => {
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
                                         <p className="mb-2">현재 {trips?.length || 0}개의 이상 징후 표시 중</p>
                                         {nextCursor && (
-                                            <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
-                                                {isFetchingMore ? '로딩 중...' : '더 보기'}
+                                            <button onClick={loadMore} disabled={false} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
+                                                {/* {isFetchingMore ? '로딩 중...' : '더 보기'} */}
+                                                '더 보기'
                                             </button>
                                         )}
                                     </div>
@@ -324,8 +271,8 @@ export const SupplyChainDashboard: React.FC = () => {
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
                                         <p className="mb-2">현재 {trips?.length || 0}개의 경로 표시 중</p>
                                         {nextCursor && (
-                                            <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
-                                                {isFetchingMore ? '로딩 중...' : '더 보기'}
+                                            <button onClick={loadMore} disabled={false} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
+                                                '더 보기'
                                             </button>
                                         )}
                                     </div>

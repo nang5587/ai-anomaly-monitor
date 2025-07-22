@@ -1,6 +1,9 @@
 import UserManagementClient from "@/components/user-management/UserManagementClient"
+import { getUsers_server } from "@/api/apiServer";
 
-export default function page() {
+export default async function page() {
+    const users = await getUsers_server();
+
     return (
         <div className="w-full h-full">
             <div className="w-full h-full bg-[rgba(40,40,40)] p-10">
@@ -11,7 +14,7 @@ export default function page() {
                     </div>
                 </div>
                 <div className="flex justify-center">
-                    <UserManagementClient />
+                    <UserManagementClient initialUsers={users} />
                 </div>
             </div>
         </div>

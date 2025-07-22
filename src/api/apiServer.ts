@@ -1,0 +1,187 @@
+import axios, { AxiosInstance } from 'axios';
+import { cookies } from 'next/headers';
+import path from 'path';
+import { promises as fs } from 'fs';
+import type { Node, PaginatedTripsResponse, KpiSummary, InventoryDistributionResponse } from '@/components/visual/data'; // 필요한 타입 import
+
+const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!baseURL) {
+    throw new Error('NEXT_PUBLIC_BACKEND_URL 환경변수를 찾을 수 없습니다.');
+}
+
+const apiServer: AxiosInstance = axios.create({
+    baseURL: `${baseURL}/api`,
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 10000,
+});
+
+// =================================================================
+// 🚀 실제 백엔드 API 호출을 위한 함수 (나중에 사용할 코드)
+// =================================================================
+export const serverRequest = async <T>(config: import('axios').AxiosRequestConfig): Promise<T> => {
+    try {
+        const token = cookies().get('accessToken')?.value;
+        if (token) {
+            config.headers = { ...config.headers, 'Authorization': `Bearer ${token}` };
+        }
+        const response = await apiServer(config);
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+            console.error('Server API Error: 401 Unauthorized.');
+        } else {
+            console.error('Server API Error:', error);
+        }
+        throw error;
+    }
+};
+
+
+// =================================================================
+// 📝 더미 데이터(.json 파일)를 읽기 위한 함수 (지금 사용할 코드)
+// =================================================================
+async function readJsonFile_server(filePath: string) {
+    try {
+        const jsonDirectory = path.join(process.cwd(), 'public');
+        const fullPath = jsonDirectory + filePath;
+        console.log(`[readJsonFile_server] Reading file from: ${fullPath}`);
+        const fileContents = await fs.readFile(fullPath, 'utf8');
+        console.log(`[readJsonFile_server] File contents:`, fileContents);
+        return JSON.parse(fileContents);
+    } catch (error) {
+        console.error(`[readJsonFile_server] Error reading JSON file at ${filePath}:`, error);
+        throw error;
+    }
+}
+
+// -----------------------------------------------------------------
+// ✨ 프로젝트의 모든 서버용 데이터 함수들
+// -----------------------------------------------------------------
+// 지금은 더미 데이터 함수를 사용하고, 나중에 실제 백엔드 함수로 교체하면 됩니다.
+
+export const getNodes_server = async (): Promise<Node[]> => {
+    // return serverRequest<Node[]>({ url: '/nodes', method: 'GET' }); // 🚀 실제 백엔드용
+    return readJsonFile_server('/api/nodes.json'); // 📝 더미 데이터용
+};
+
+export const getAnomalies_server = async (params?: any): Promise<PaginatedTripsResponse> => {
+    // return serverRequest<PaginatedTripsResponse>({ url: '/anomalies', method: 'GET', params }); // 🚀 실제 백엔드용
+    const data: PaginatedTripsResponse['data'] = await readJsonFile_server('/api/anomalies.json'); // 📝 더미 데이터용
+    // (더미 데이터는 페이지네이션/필터링 로직이 필요하다면 여기에 추가)
+    return { data: data.slice(0, params?.limit || 50), nextCursor: null };
+};
+
+export const getTrips_server = async (params?: any): Promise<PaginatedTripsResponse> => {
+    // return serverRequest<PaginatedTripsResponse>({ url: '/trips', method: 'GET', params }); // 🚀 실제 백엔드용
+    const data: PaginatedTripsResponse['data'] = await readJsonFile_server('/api/trips.json'); // 📝 더미 데이터용
+    return { data: data.slice(0, params?.limit || 50), nextCursor: null };
+};
+
+export const getRouteGeometries_server = async (): Promise<any> => {
+    // return serverRequest<any>({ url: '/route-geometries', method: 'GET' }); // 🚀 실제 백엔드용
+    return readJsonFile_server('/api/route-geometries.json'); // 📝 더미 데이터용
+}
+
+// fetch를 사용하지 않는 순수 더미 데이터 함수들은 그대로 사용 가능
+export const getKpiSummary_server = async (params?: Record<string, any>): Promise<KpiSummary> => {
+    return { totalTripCount: 854320000, uniqueProductCount: 128, codeCount: 2000000, anomalyCount: 125, anomalyRate: 0.0146, salesRate: 92.5, dispatchRate: 95.1, inventoryRate: 78.2, avgLeadTime: "12.5" };
+}
+export const getInventoryDistribution_server = async (params?: Record<string, any>): Promise<InventoryDistributionResponse> => {
+    return { inventoryDistribution: [{ "businessStep": "Factory", "value": 12050 }, { "businessStep": "WMS", "value": 25800 }, { "businessStep": "LogiHub", "value": 17300 }, { "businessStep": "Wholesaler", "value": 35100 }, { "businessStep": "Reseller", "value": 48200 }, { "businessStep": "POS", "value": 31540 }] };
+}
+
+// ... lib/apiServer.ts 파일의 기존 코드 맨 아래 ...
+
+// =================================================================
+// 📝 admin.ts의 서버 버전 함수들
+// =================================================================
+
+import type { AdminUser } from '@/api/adminApi';
+
+export const getUsers_server = async (): Promise<AdminUser[]> => {
+    // 🚀 실제 백엔드용
+    // return serverRequest<AdminUser[]>({ url: '/admin/users', method: 'GET' });
+
+    // 📝 더미 데이터용
+    return readJsonFile_server('/api/admin_users.json'); // public/api/admin_users.json 파일이 필요합니다.
+};
+
+export const updateUser_server = async (userId: string, data: Partial<AdminUser>): Promise<AdminUser> => {
+    // 🚀 실제 백엔드용
+    // return serverRequest<AdminUser>({ url: `/admin/users/${userId}`, method: 'PATCH', data });
+
+    // 📝 더미 데이터용 (업데이트 시뮬레이션 - 실제 파일 변경은 안 함)
+    console.log(`[Server Dummy] Updating user ${userId} with`, data);
+    const users: AdminUser[] = await readJsonFile_server('/api/admin_users.json');
+    const user = users.find(u => u.userId === userId);
+    if (!user) throw new Error('User not found');
+    return { ...user, ...data };
+};
+
+export const changeUserFactory_server = async (userId: string, locationId: number) => {
+    // 🚀 실제 백엔드용
+    // return serverRequest<any>({ url: '/admin/users/factory', method: 'PATCH', data: { userId, locationId } });
+
+    // 📝 더미 데이터용
+    console.log(`[Server Dummy] Changing factory for user ${userId} to ${locationId}`);
+    return { success: true, message: 'Factory changed successfully' };
+};
+
+
+// =================================================================
+// 📝 settings.ts의 서버 버전 함수들
+// =================================================================
+
+import type { User } from '@/context/AuthContext';
+
+export const getMyProfile_server = async (): Promise<{ userName: string; email: string; }> => {
+    // 🚀 실제 백엔드용
+    // return serverRequest<{ userName: string; email: string; }>({ url: '/manager/settings/user', method: 'GET' });
+
+    // 📝 더미 데이터용
+    // 이 API는 "현재 로그인한 나"의 정보를 가져오므로, 쿠키를 읽어 사용자 ID를 알아내야 합니다.
+    const token = cookies().get('accessToken')?.value;
+    if (!token) throw new Error('Not authenticated');
+    // const { userId } = jwtDecode(token); // 토큰에서 userId 추출
+
+    // 더미 데이터에서는 특정 사용자 정보를 그냥 반환합니다.
+    return { userName: '테스트 관리자', email: 'admin@test.com' };
+};
+
+export const updateProfileInfo_server = async (data: { userName: string; email: string }) => {
+    // 🚀 실제 백엔드용
+    // return serverRequest<any>({ url: '/manager/settings/info', method: 'PATCH', data });
+
+    // 📝 더미 데이터용
+    console.log('[Server Dummy] Updating profile with', data);
+    return { success: true, message: 'Profile updated' };
+};
+
+export const changePassword_server = async (data: { password: string; newPassword: string; }) => {
+    // 🚀 실제 백엔드용
+    // return serverRequest<any>({ url: '/manager/settings/password', method: 'POST', data });
+
+    // 📝 더미 데이터용
+    console.log('[Server Dummy] Changing password');
+    return { success: true, message: 'Password changed successfully' };
+};
+
+
+// =================================================================
+// 📝 
+// =================================================================
+
+
+import type { FilterOptions } from '@/components/visual/data'; // FilterOptions 타입 import 추가
+
+/**
+ * [더미 데이터용] 필터 옵션 목록을 가져옵니다.
+ */
+export const getFilterOptions_server = async (): Promise<FilterOptions> => {
+    // 🚀 실제 백엔드용 (나중에 사용할 코드)
+    // return serverRequest<FilterOptions>({ url: '/filters', method: 'GET' });
+
+    // 📝 더미 데이터용 (지금 사용할 코드)
+    return readJsonFile_server('/api/filter.json');
+};

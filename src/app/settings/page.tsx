@@ -1,6 +1,8 @@
 import UserSettings from "@/components/user-settings/UserSettings"
+import { getMyProfile_server } from '@/api/apiServer';
+export default async function page() {
+    const profile = await getMyProfile_server();
 
-export default function page() {
     return (
         <div className="w-full h-full">
             <div className="w-full h-full bg-[rgba(40,40,40)] p-10">
@@ -11,7 +13,7 @@ export default function page() {
                     </div>
                 </div>
                 <div className="flex justify-center">
-                    <UserSettings />
+                    <UserSettings initialProfile={profile} />
                 </div>
             </div>
         </div>

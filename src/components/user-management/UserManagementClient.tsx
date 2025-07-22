@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useTransition  } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import ChangeFactoryModal from './ChangeFactoryModal';
 import { toast } from 'sonner';
 import { UserPlusIcon, UserMinusIcon, ArchiveBoxXMarkIcon, TrashIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
 import { getUsers, updateUser, changeUserFactory, type AdminUser } from '@/api/adminApi';
 
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { usersAtom, usersLoadingAtom, loadUsersAtom, refetchUsersAtom  } from '@/stores/userAtoms';
+import { usersAtom, usersLoadingAtom, loadUsersAtom, refetchUsersAtom } from '@/stores/userAtoms';
 
 import { dummyAllUsers, type User as DummyUser } from './dummyData';
 
@@ -50,20 +50,23 @@ type ActiveTab = 'pending' | 'active' | 'rejected' | 'del';
 // ⚠️ api 연동 시 env로 가서 false로 바꿔야 함
 const USE_DUMMY_DATA = process.env.NEXT_PUBLIC_USE_DUMMY_DATA === 'true';
 
-export default function UserManagementClient() {
+type Props = {
+    initialUsers: AdminUser[];
+};
+
+export default function UserManagementClient({ initialUsers }: Props) {
     const [activeTab, setActiveTab] = useState<ActiveTab>('pending');
     const [selectedUserForFactoryChange, setSelectedUserForFactoryChange] = useState<AdminUser | DummyUser | null>(null);
-    
+
     const [isProcessing, startTransition] = useTransition(); // API 호출 시 UI 블로킹 방지용
 
     const setUsersAtom = useSetAtom(usersAtom);
-    const loadUsers = useSetAtom(loadUsersAtom);
     const isLoadingFromApi = useAtomValue(usersLoadingAtom);
     const apiUsers = useAtomValue(usersAtom);
     const refetchUsers = useSetAtom(refetchUsersAtom); // 데이터 새로고침용
-    
+
     const [dummyUsers, setDummyUsers] = useState<DummyUser[]>(dummyAllUsers);
-    
+
     // 최종적으로 사용할 데이터와 로딩 상태를 결정
     const allUsers = USE_DUMMY_DATA ? dummyUsers : apiUsers;
     const isLoading = USE_DUMMY_DATA ? false : isLoadingFromApi;
@@ -71,12 +74,11 @@ export default function UserManagementClient() {
     // 실제 API 모드일 때만 데이터를 로드
     useEffect(() => {
         if (!USE_DUMMY_DATA) {
-            loadUsers();
-        }
-        else{
+            setUsersAtom(initialUsers);  // <- 처음만 이걸로 초기화
+        } else {
             setUsersAtom(dummyAllUsers as unknown as AdminUser[]);
         }
-    }, [USE_DUMMY_DATA, loadUsers, setUsersAtom]);
+    }, [USE_DUMMY_DATA, initialUsers, setUsersAtom]);
 
     // --- 핸들러 함수: 모드에 따라 다르게 작동 ---
     const handleUpdateUser = (user: AdminUser | DummyUser, updates: Partial<AdminUser | DummyUser>, confirmMessage: string) => {
@@ -99,7 +101,7 @@ export default function UserManagementClient() {
             }
         }
     };
-    
+
     const handleApprove = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'active', role: 'MANAGER' }, `'${user.userName}'님을 승인하시겠습니까?`);
     const handleReject = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'rejected' }, `'${user.userName}'님의 요청을 거절하시겠습니까?`);
     const handleDelete = (user: AdminUser | DummyUser) => handleUpdateUser(user, { status: 'del' }, `'${user.userName}'님을 삭제 처리하시겠습니까?`);
@@ -125,11 +127,11 @@ export default function UserManagementClient() {
             });
         }
     };
-    
+
     // --- 필터링 로직 ---
     const filteredUsers = useMemo(() => {
         // isLoading은 Jotai 스토어에서 직접 가져오므로 로컬 state가 필요 없음
-        if (!allUsers) return []; 
+        if (!allUsers) return [];
         switch (activeTab) {
             case 'pending':
                 return allUsers.filter(u => u.status === 'pending');

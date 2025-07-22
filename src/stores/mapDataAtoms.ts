@@ -5,10 +5,10 @@ import {
     getNodes,
     getAnomalies,
     getTrips,
-    getFilterOptions,
+    // getFilterOptions,
     type Node,
     type AnalyzedTrip,
-    type FilterOptions,
+    // type FilterOptions,
     type PaginatedTripsResponse,
 } from '@/components/visual/data';
 
@@ -34,7 +34,7 @@ export const activeTabAtom = atom<Tab>('all');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
 export const selectedObjectAtom = atom<TripWithId | Node | null>(null);
 export const nodesAtom = atom<Node[]>([]);
-export const filterOptionsAtom = atom<FilterOptions | null>(null);
+// export const filterOptionsAtom = atom<FilterOptions | null>(null);
 export const tripsAtom = atom<TripWithId[]>([]);
 export const isLoadingAtom = atom<boolean>(true);
 export const nextCursorAtom = atom<string | null>(null);
@@ -102,12 +102,8 @@ export const loadRouteGeometriesAtom = atom(null, async (get, set) => {
 
 export const loadInitialDataAtom = atom(null, async (get, set) => {
     try {
-        const [nodesData, filterOptionsData] = await Promise.all([
-            getNodes(),
-            getFilterOptions()
-        ]);
+        const nodesData = await getNodes();
         set(nodesAtom, nodesData);
-        set(filterOptionsAtom, filterOptionsData);
     } catch (error) {
         console.error("초기 데이터(노드, 필터) 로딩 실패:", error);
     }

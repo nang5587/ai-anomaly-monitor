@@ -6,6 +6,12 @@ import { toast } from 'sonner';
 import { KeyIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { getMyProfile, updateProfileInfo, changePassword } from '@/api/userApi';
 
+interface UserSettingsProps {
+    initialProfile: {
+        userName: string;
+        email: string;
+    };
+}
 
 // --- ✨ 더미 데이터 테스트를 위한 Mock API 함수들 (컴포넌트 내에 유지) ---
 
@@ -40,44 +46,24 @@ const factoryCodeNameMap: { [key: number]: string } = {
     1: '인천', 2: '화성', 3: '양산', 4: '구미',
 };
 
-export default function UserSettings() {
+export default function UserSettings({ initialProfile }: UserSettingsProps) {
     // 2. AuthContext 대신 고정된 목업 user 객체를 사용합니다.
     const user = {
         userName: 'admin_id', // 로그인 ID
         role: 'ADMIN',       // 'ADMIN' 또는 'MANAGER'
         locationId: 0,      // MANAGER일 경우 1, 2, 3, 4 등으로 변경
     };
-    
+
     // 3. updateUserContext는 없으므로 빈 함수로 정의하여 에러 방지
     const updateUserContext = (info: any) => {
         console.log('[MOCK] updateUserContext called with:', info);
     };
 
-    const [formData, setFormData] = useState({ userName: '', email: '' });
+    const [formData, setFormData] = useState(initialProfile);
+    const [originalProfile, setOriginalProfile] = useState(initialProfile);
     const [passwordData, setPasswordData] = useState({ password: '', newPassword: '', confirmPassword: '' });
-    
-    const [originalProfile, setOriginalProfile] = useState({ userName: '', email: '' });
     const [isProfileChanged, setIsProfileChanged] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-
-    // 상세 프로필 정보를 가져오는 로직 (목업 API 사용)
-    useEffect(() => {
-        async function fetchProfile() {
-            if (user) {
-                setIsLoading(true);
-                try {
-                    const profileFromServer = await mockGetMyProfile(user.userName);
-                    setFormData(profileFromServer);
-                    setOriginalProfile(profileFromServer);
-                } catch (error) {
-                    toast.error("프로필 정보를 불러오는 데 실패했습니다.");
-                } finally {
-                    setIsLoading(false);
-                }
-            }
-        }
-        fetchProfile();
-    }, []); // user가 바뀌면 다시 fetch (지금은 고정이라 한 번만 실행됨)
 
     // 변경사항 감지 로직
     useEffect(() => {
@@ -102,7 +88,7 @@ export default function UserSettings() {
             toast.error("프로필 업데이트에 실패했습니다.");
         }
     };
-    
+
     // 비밀번호 변경 핸들러
     const handlePasswordSave = async (e: React.FormEvent) => {
         e.preventDefault();
