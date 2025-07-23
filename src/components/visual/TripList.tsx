@@ -4,11 +4,11 @@ import { getAnomalyName } from '../visual/colorUtils';
 import { Truck, Shuffle, ShieldAlert, Copy, MapPinOff, ArrowRight } from 'lucide-react';
 
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 type TripListProps = {
-    trips: TripWithId[];
-    onCaseClick: (trip: TripWithId) => void;
+    trips: AnalyzedTrip[];
+    onCaseClick: (trip: AnalyzedTrip) => void;
     selectedObjectId: string | null;
 };
 
@@ -109,13 +109,13 @@ export default function TripList({ trips, onCaseClick, selectedObjectId }: TripL
                 className="hide-scrollbar"
             >
                 {trips.map((trip) => {
-                    const isSelected = selectedObjectId === trip.id;
+                    const isSelected = selectedObjectId === trip.roadId;
                     // ✨ trip.anomalyTypeList가 유효한 배열인지 확인
                     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
 
                     return (
                         <div
-                            key={trip.id}
+                            key={trip.roadId}
                             onClick={() => onCaseClick(trip)}
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >

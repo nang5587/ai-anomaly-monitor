@@ -21,7 +21,7 @@ import {
   getKpiSummary,
   getInventoryDistribution,
   getUploadHistory,
-  type Node,
+  type LocationNode,
   type AnalyzedTrip,
   type KpiSummary,
   type InventoryDataPoint,
@@ -39,7 +39,6 @@ import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
 import { getAnomalyName, getAnomalyColor } from '@/components/visual/colorUtils';
 
 import dynamic from 'next/dynamic';
-import { v4 as uuidv4 } from 'uuid';
 
 const DynamicAnomalyChart = dynamic(
   () => import('@/components/dashboard/AnomalyEventsChart'),
@@ -104,7 +103,7 @@ type EventTimelineDataPoint = {
   count: number;
 };
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 const factoryCodeNameMap: { [key: number]: string } = {
   1: '인천',
@@ -150,8 +149,8 @@ export default function SupervisorDashboard() {
   const nodes = useAtomValue(nodesAtom);
   const setNodes = useSetAtom(nodesAtom);
 
-  const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
-  const [allTripsForMap, setAllTripsForMap] = useState<TripWithId[]>([]);
+  const [anomalyTrips, setAnomalyTrips] = useState<AnalyzedTrip[]>([]);
+  const [allTripsForMap, setAllTripsForMap] = useState<AnalyzedTrip[]>([]);
 
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false)
@@ -323,8 +322,9 @@ export default function SupervisorDashboard() {
     try {
       // getAnomalies 호출 시 cursor 정보도 함께 전달
       const response = await getAnomalies({ ...params, cursor: nextCursor });
-      const newTripsWithId = response.data.map(trip => ({ ...trip, id: uuidv4() }));
-      setAnomalyTrips(prev => [...prev, ...newTripsWithId]);
+      const newMergedTrips = mergeAndGenerateTimestamps(response.data, routeGeometries);
+
+      setAnomalyTrips(prev => [...prev, ...newMergedTrips]);
       setNextCursor(response.nextCursor);
     } catch (error) {
       console.error("추가 데이터 로딩 실패:", error);
@@ -415,7 +415,7 @@ export default function SupervisorDashboard() {
     setAnomalyChartData(newAnomalyChartData);
 
     // 2. 공급망 단계별 이상 이벤트
-    const nodeMapByLocation = new Map<string, Node>(nodes.map(n => [n.businessStep, n]));
+    const nodeMapByLocation = new Map<string, LocationNode>(nodes.map(n => [n.businessStep, n]));
 
     const STAGES = [
       { from: 'Factory', to: 'WMS', name: '공장 → 창고' },

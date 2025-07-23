@@ -20,7 +20,7 @@ import {
     getKpiSummary,
     getInventoryDistribution,
     getUploadHistory,
-    type Node,
+    type LocationNode,
     type AnalyzedTrip,
     type KpiSummary,
     type InventoryDataPoint,
@@ -403,7 +403,7 @@ export default function SupervisorDashboard() {
         setAnomalyChartData(newAnomalyChartData);
 
         // 2. 공급망 단계별 이상 이벤트
-        const nodeMapByLocation = new Map<string, Node>(nodes.map(n => [n.businessStep, n]));
+        const nodeMapByLocation = new Map<string, LocationNode>(nodes.map(n => [n.businessStep, n]));
 
         const STAGES = [
             { from: 'Factory', to: 'WMS', name: '공장 → 창고' },

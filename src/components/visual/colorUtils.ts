@@ -1,8 +1,8 @@
-import { Node, AnomalyType } from '../visual/data';
+import { LocationNode, AnomalyType } from '../visual/data';
 
 
 // 노드 타입에 따른 색상을 반환하는 함수
-export const getNodeColor = (type: Node['hubType']): [number, number, number, number] => {
+export const getNodeColor = (type: LocationNode['hubType']): [number, number, number, number] => {
     const alpha = 100;
     switch (type) {
         case 'Factory': return [0, 255, 255, alpha];

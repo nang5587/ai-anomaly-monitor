@@ -36,9 +36,6 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  * 2초의 딜레이를 포함하여 로딩 화면을 테스트할 수 있습니다.
  */
 export async function getAuthStatus_mock(): Promise<User | null> {
-    console.log(" MOCK: 인증 상태 확인 중... (2초 대기)");
-    await delay(2000);
-
     // 👇 여기를 바꿔가면서 테스트하세요!
 
     // 시나리오 1: 관리자(ADMIN)로 로그인된 상황

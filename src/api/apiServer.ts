@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { cookies } from 'next/headers';
 import path from 'path';
 import { promises as fs } from 'fs';
-import type { Node, PaginatedTripsResponse, KpiSummary, InventoryDistributionResponse } from '@/components/visual/data'; // 필요한 타입 import
+import type { LocationNode, PaginatedTripsResponse, KpiSummary, InventoryDistributionResponse } from '@/components/visual/data'; // 필요한 타입 import
 
 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -60,8 +60,8 @@ async function readJsonFile_server(filePath: string) {
 // -----------------------------------------------------------------
 // 지금은 더미 데이터 함수를 사용하고, 나중에 실제 백엔드 함수로 교체하면 됩니다.
 
-export const getNodes_server = async (): Promise<Node[]> => {
-    // return serverRequest<Node[]>({ url: '/nodes', method: 'GET' }); // 🚀 실제 백엔드용
+export const getNodes_server = async (): Promise<LocationNode[]> => {
+    // return serverRequest<LocationNode[]>({ url: '/nodes', method: 'GET' }); // 🚀 실제 백엔드용
     return readJsonFile_server('/api/nodes.json'); // 📝 더미 데이터용
 };
 

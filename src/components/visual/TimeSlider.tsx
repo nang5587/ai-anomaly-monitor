@@ -16,7 +16,7 @@ const formatTimestamp = (time: number): string => {
     }).replace(/\. /g, '-').replace('.', '');
 };
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 interface TimeSliderProps {
     minTime: number;
@@ -25,8 +25,8 @@ interface TimeSliderProps {
     isPlaying: boolean;
     onChange: (time: number) => void;
     onTogglePlay: () => void;
-    anomalies: TripWithId[];
-    onMarkerClick: (trip: TripWithId) => void;
+    anomalies: AnalyzedTrip[];
+    onMarkerClick: (trip: AnalyzedTrip) => void;
 }
 
 type TooltipInfo = {
@@ -173,7 +173,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                         const positionPercent = ((trip.from.eventTime - minTime) / duration) * 100;
                         return (
                             <div
-                                key={trip.id}
+                                key={trip.roadId}
                                 style={{
                                     position: 'absolute', top: '50%', left: `${positionPercent}%`, padding: '5px',
                                     transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 10, background: 'rgba(0, 0, 0, 0.001)',

@@ -4,11 +4,11 @@ import { type AnalyzedTrip, type AnomalyType } from '../visual/data';
 import { getAnomalyColor, getAnomalyName } from './colorUtils';
 
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 interface AnomalyListProps {
-    anomalies: TripWithId[];
-    onCaseClick: (trip: TripWithId) => void;
+    anomalies: AnalyzedTrip[];
+    onCaseClick: (trip: AnalyzedTrip) => void;
     selectedObjectId: string | null;
 }
 
@@ -68,11 +68,11 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                         return null; 
                     }
 
-                    const isSelected = selectedObjectId === trip.id;
+                    const isSelected = selectedObjectId === trip.roadId;
 
                     return (
                         <div
-                            key={trip.id}
+                            key={trip.roadId}
                             onClick={() => onCaseClick(trip)}
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >

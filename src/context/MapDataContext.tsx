@@ -1,12 +1,12 @@
 // src/context/MapDataContext.tsx
 'use client'
 import { createContext, useContext, useState } from 'react';
-import type { Node, AnalyzedTrip, FilterOptions } from '../components/visual/data'; // 실제 타입을 import하세요
+import type { LocationNode, AnalyzedTrip, FilterOptions } from '../components/visual/data'; // 실제 타입을 import하세요
 export type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][]; timestamps?: number[] };
 
 // initialData의 타입을 정의합니다. (page.js와 동일한 구조)
 interface InitialMapData {
-    nodes: Node[]; // 실제 Node 타입으로 변경하세요
+    nodes: LocationNode[]; // 실제 LocationNode 타입으로 변경하세요
     trips: TripWithId[]; // 실제 TripWithId 타입으로 변경하세요
     filterOptions: FilterOptions; // 실제 FilterOptions 타입으로 변경하세요
     nextCursor: string | null;

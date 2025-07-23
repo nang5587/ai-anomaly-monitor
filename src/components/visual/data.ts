@@ -3,7 +3,7 @@ import apiClient from "@/api/apiClient";
 // --- 1. 타입 정의 ---
 // 최종 논의된 내용에 맞춰 타입을 정의합니다.
 
-export interface Node {
+export interface LocationNode {
     hubType: string;
     scanLocation: string;
     businessStep: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller' | 'POS';
@@ -218,7 +218,7 @@ export async function getTrips(params?: Record<string, any>): Promise<PaginatedT
 
 // --- 나머지 더미 API 함수들 (수정 필요 없음) ---
 
-export async function getNodes(): Promise<Node[]> {
+export async function getNodes(): Promise<LocationNode[]> {
     const response = await fetch('/api/nodes.json');
     if (!response.ok) {
         throw new Error('Failed to fetch nodes');

@@ -72,7 +72,7 @@ export default function FactoryDetailView({ factoryTabs, activeFactory, onTabCli
                     <MiniStatCard title="총 처리 건수" value={formatNumberCompact(kpiData.totalTripCount)} icon={<ListChecks size={32} className="text-white" />} />
                     <MiniStatCard title="평균 리드타임" value={`${kpiData.avgLeadTime}일`} icon={<Clock size={32} className="text-white" />} />
                     <MiniStatCard title="총 생산 제품 수" value={kpiData.uniqueProductCount.toLocaleString()} icon={<Package size={32} className="text-white" />} />
-                    <MiniStatCard title="총 생산 EPC" value={formatNumberCompact(kpiData.codeCount)} icon={<Barcode size={32} className="text-white" />} />
+                    <MiniStatCard title="총 생산 EPC" value={`${formatNumberCompact(kpiData.codeCount)}`} icon={<Barcode size={32} className="text-white" />} />
                 </div>
 
                 {/* 2. [수정] 차트 컨테이너가 "남은 모든 공간"을 차지하도록 변경 */}

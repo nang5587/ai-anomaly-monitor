@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import {
-    type Node,
+    type LocationNode,
     type AnalyzedTrip,
     type AnomalyType,
     getAnomalies,
@@ -104,7 +104,7 @@ const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
     );
 };
 
-const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ node, allAnomalies }) => {
+const NodeDetails: React.FC<{ node: LocationNode; allAnomalies: AnalyzedTrip[]; }> = ({ node, allAnomalies }) => {
     const relatedAnomalies = useMemo(() => {
         return allAnomalies.filter(
             trip => (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation) &&
@@ -127,7 +127,7 @@ const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ no
                         // 각 trip의 대표 이상 유형을 찾음
                         const representativeAnomaly = trip.anomalyTypeList[0];
                         return (
-                            <div key={trip.id} className="text-xs p-2 rounded-md bg-white/5">
+                            <div key={trip.roadId} className="text-xs p-2 rounded-md bg-white/5">
                                 <div className="font-bold" style={{ color: `rgb(${getAnomalyColor(representativeAnomaly).join(',')})` }}>
                                     {getAnomalyName(representativeAnomaly)}
                                     {trip.anomalyTypeList.length > 1 && ` 외 ${trip.anomalyTypeList.length - 1}건`}
@@ -147,12 +147,12 @@ const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ no
 // --- 메인 컴포넌트 ---
 
 interface DetailsPanelProps {
-    selectedObject: TripWithId | Node | null;
+    selectedObject: AnalyzedTrip | LocationNode | null;
     onClose: () => void;
 }
 
 const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) => {
-    const [allAnomalies, setAllAnomalies] = useState<TripWithId[]>([]);
+    const [allAnomalies, setAllAnomalies] = useState<AnalyzedTrip[]>([]);
 
     useEffect(() => {
         getAnomalies().then(response => {
@@ -185,7 +185,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#FFFFFF' }}>
                     {isTrip
                         ? `운송 상세`
-                        : (selectedObject as Node).scanLocation
+                        : (selectedObject as LocationNode).scanLocation
                     }
                 </h3>
                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '20px', cursor: 'pointer' }}>
@@ -195,7 +195,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             <div style={{ overflowY: 'auto', paddingRight: '10px' }} className="hide-scrollbar">
                 {isTrip
                     ? <TripDetails trip={selectedObject as TripWithId} />
-                    : <NodeDetails node={selectedObject as Node} allAnomalies={allAnomalies} />
+                    : <NodeDetails node={selectedObject as LocationNode} allAnomalies={allAnomalies} />
                 }
             </div>
         </div>

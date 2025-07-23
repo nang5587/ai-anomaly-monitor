@@ -23,7 +23,7 @@ import { parseSync } from '@loaders.gl/core';
 import { default as ReactMapGL, Marker, ViewState, } from 'react-map-gl';
 import type { PickingInfo } from '@deck.gl/core';
 
-import { type Node, type AnalyzedTrip } from './data';
+import { type LocationNode, type AnalyzedTrip } from './data';
 import { cubeModel, factoryBuildingModel } from './models';
 
 import TutorialOverlay from './TutorialOverlay';
@@ -43,7 +43,7 @@ const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const INITIAL_VIEW_STATE = {
     longitude: 127.9,
     latitude: 36.5,
-    zoom: 6.5,
+    zoom: 7,
     pitch: 60,
     bearing: 0,
 };
@@ -137,15 +137,37 @@ export const SupplyChainMap: React.FC = () => {
 
     // 애니메이션 재생 타이머
     useEffect(() => {
-        if (!isPlaying || minTime >= maxTime) return;
+        if (!isPlaying || minTime >= maxTime) {
+            return;
+        }
+
         let animationFrame: number;
+
         const animate = () => {
-            setCurrentTime(time => (time + ANIMATION_SPEED > maxTime ? minTime : time + ANIMATION_SPEED));
+            setCurrentTime(prevTime => {
+                const nextTime = prevTime + ANIMATION_SPEED;
+
+                // 다음 시간이 maxTime을 넘어서는지 확인
+                if (nextTime >= maxTime) {
+                    // maxTime을 넘어서면, 재생을 멈추고 시간을 maxTime으로 고정
+                    setIsPlaying(false);
+                    return maxTime;
+                }
+
+                // 아직 maxTime에 도달하지 않았으면 계속 진행
+                return nextTime;
+            });
+            // isPlaying이 true일 때만 다음 프레임을 요청하도록 조건 추가 (더 안전함)
             animationFrame = requestAnimationFrame(animate);
         };
+
+        // 애니메이션 시작
         animationFrame = requestAnimationFrame(animate);
+
+        // 클린업 함수: 컴포넌트가 언마운트되거나, isPlaying이 false로 바뀌면 애니메이션 중지
         return () => cancelAnimationFrame(animationFrame);
-    }, [isPlaying, minTime, maxTime]);
+
+    }, [isPlaying, minTime, maxTime, setIsPlaying]);
 
     // 이상 노드 pulse 효과
     useEffect(() => {
@@ -160,9 +182,9 @@ export const SupplyChainMap: React.FC = () => {
 
     const nodeMap = useMemo(() => {
         if (!nodes) {
-            return new Map<string, Node>();
+            return new Map<string, LocationNode>();
         }
-        return new Map<string, Node>(nodes.map(n => [n.hubType, n]));
+        return new Map<string, LocationNode>(nodes.map(n => [n.hubType, n]));
     }, [nodes]);
 
     // 툴팁 렌더링 함수
@@ -192,7 +214,7 @@ export const SupplyChainMap: React.FC = () => {
         const isNode = 'coord' in object;
 
         if (isNode) {
-            const node = object as Node;
+            const node = object as LocationNode;
             return {
                 html: `
                     <div style="font-weight: semi-bold; font-size: 16px; margin-bottom: 4px;">${node.scanLocation}</div>
@@ -242,9 +264,9 @@ export const SupplyChainMap: React.FC = () => {
 
             // 중간 지점으로 날아가는 액션 호출
             flyTo({
-                longitude: (x1 + x2) / 2,
-                latitude: (y1 + y2) / 2,
-                zoom: 10
+                longitude: x1,
+                latitude: y1,
+                zoom: 17
             });
 
         } else if ('coord' in selectedObject) {
@@ -254,7 +276,7 @@ export const SupplyChainMap: React.FC = () => {
             flyTo({
                 longitude: node.coord[0],
                 latitude: node.coord[1],
-                zoom: 13
+                zoom: 17
             });
         }
 
@@ -264,6 +286,18 @@ export const SupplyChainMap: React.FC = () => {
     const handleCaseClick = (trip: TripWithId) => {
         setSelectedObject(trip);
         setCurrentTime(trip.from.eventTime);
+    };
+
+    const handleTogglePlay = () => {
+        // 만약 애니메이션이 끝난 상태(또는 거의 끝난 상태)에서 재생 버튼을 누른다면,
+        if (currentTime >= maxTime - ANIMATION_SPEED) {
+            // 시간을 맨 처음으로 되돌리고 재생을 시작합니다.
+            setCurrentTime(minTime);
+            setIsPlaying(true);
+        } else {
+            // 그 외의 경우에는 단순히 재생/일시정지 상태만 토글합니다.
+            setIsPlaying(prev => !prev);
+        }
     };
 
     // 노드 분류
@@ -282,7 +316,7 @@ export const SupplyChainMap: React.FC = () => {
         const filteredNodes = otherNodes.filter(node => node.businessStep === type);
         if (filteredNodes.length === 0) return null;
 
-        return new SimpleMeshLayer<Node>({
+        return new SimpleMeshLayer<LocationNode>({
             id: `mesh-layer-${type}`,
             data: filteredNodes,
             mesh: OTHER_MODEL_MAPPING[type],
@@ -293,14 +327,14 @@ export const SupplyChainMap: React.FC = () => {
             getTranslation: [0, 0, 50],
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => setSelectedObject(info.object as Node),
+            onClick: info => setSelectedObject(info.object as LocationNode),
             material
         });
     }).filter(Boolean);
 
     // 공장 레이어
     const factoryLayers = [
-        new SimpleMeshLayer<Node>({
+        new SimpleMeshLayer<LocationNode>({
             id: 'factory-building-layer',
             data: factoryNodes,
             mesh: parsedFactoryBuildingModel,
@@ -311,7 +345,7 @@ export const SupplyChainMap: React.FC = () => {
             getTranslation: [0, 0, 50],
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => setSelectedObject(info.object as Node),
+            onClick: info => setSelectedObject(info.object as LocationNode),
             material
         }),
     ];
@@ -344,7 +378,7 @@ export const SupplyChainMap: React.FC = () => {
             getPath: d => d.path || [d.from.coord, d.to.coord],
             getColor: d => {
                 // 👇 getColor에서도 동일한 로직 적용
-                let isSelected = selectedObject && 'id' in selectedObject && selectedObject.id === d.id;
+                let isSelected = selectedObject && 'roadId' in selectedObject && selectedObject.roadId === d.roadId;
                 if (selectedObject && !isSelected) return [255, 255, 255, 10];
 
                 // ✨ 수정: trip.anomalyType -> trip.anomalyTypeList
@@ -382,7 +416,7 @@ export const SupplyChainMap: React.FC = () => {
             getColor: d => {
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 if (representativeAnomaly) {
-                    return getAnomalyColor(representativeAnomaly);
+                    return [255, 64, 64];;
                 }
                 return [0, 255, 127];
             },
@@ -488,7 +522,7 @@ export const SupplyChainMap: React.FC = () => {
                     currentTime={currentTime}
                     isPlaying={isPlaying}
                     onChange={setCurrentTime}
-                    onTogglePlay={() => setIsPlaying(prev => !prev)}
+                    onTogglePlay={handleTogglePlay}
                     anomalies={anomalyList}
                     onMarkerClick={handleCaseClick}
                 />

@@ -6,7 +6,7 @@ import {
     getAnomalies,
     getTrips,
     getFilterOptions,
-    type Node,
+    type LocationNode,
     type AnalyzedTrip,
     type FilterOptions,
     type PaginatedTripsResponse,
@@ -32,10 +32,10 @@ type RouteGeometryMap = Record<string, RouteGeometry>;
 // --- 상태(State) 아톰 정의 ---
 export const activeTabAtom = atom<Tab>('all');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
-export const selectedObjectAtom = atom<TripWithId | Node | null>(null);
-export const nodesAtom = atom<Node[]>([]);
+export const selectedObjectAtom = atom<AnalyzedTrip | LocationNode | null>(null);
+export const nodesAtom = atom<LocationNode[]>([]);
 export const filterOptionsAtom = atom<FilterOptions | null>(null);
-export const tripsAtom = atom<TripWithId[]>([]);
+export const tripsAtom = atom<AnalyzedTrip[]>([]);
 export const isLoadingAtom = atom<boolean>(false);
 export const nextCursorAtom = atom<string | null>(null);
 export const isFetchingMoreAtom = atom<boolean>(false);
@@ -43,7 +43,7 @@ export const isFetchingMoreAtom = atom<boolean>(false);
 const INITIAL_VIEW_STATE: MapViewState = {
     longitude: 127.9,
     latitude: 36.5,
-    zoom: 6.5,
+    zoom: 10,
     pitch: 60,
     bearing: 0,
     transitionDuration: 0 // 초기 전환 효과는 없음
@@ -102,8 +102,12 @@ export const loadRouteGeometriesAtom = atom(null, async (get, set) => {
 
 export const loadInitialDataAtom = atom(null, async (get, set) => {
     try {
-        const nodesData = await getNodes();
+        const [nodesData, filterOptionsData] = await Promise.all([
+            getNodes(),
+            getFilterOptions()
+        ]);
         set(nodesAtom, nodesData);
+        set(filterOptionsAtom, filterOptionsData);
     } catch (error) {
         console.error("초기 데이터(노드, 필터) 로딩 실패:", error);
     }
@@ -182,10 +186,10 @@ export const flyToLocationAtom = atom(
             ...prevViewState,
             longitude: location.longitude,
             latitude: location.latitude,
-            zoom: location.zoom || 12, // zoom 값이 없으면 기본값 12
+            zoom: location.zoom || 20, // zoom 값이 없으면 기본값 12
             pitch: 50,
             bearing: 0,
-            transitionDuration: 2000, // 2초 동안 날아가는 애니메이션
+            transitionDuration: 3000,
             transitionInterpolator: new FlyToInterpolator(),
         }));
     }

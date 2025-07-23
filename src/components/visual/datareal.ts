@@ -4,7 +4,7 @@ import apiClient from '@/api/apiClient'; // 만들어둔 apiClient 인스턴스�
 
 // --- 1. 타입 정의 ---
 // 기존 타입 정의는 API 명세서와 일치하므로 그대로 사용합니다.
-export interface Node {
+export interface LocationNode {
     hubType: string;
     scanLocation: string;
     businessStep: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller' | 'POS';
@@ -83,12 +83,12 @@ export interface UploadFile {
 // --- 2. 실제 API 호출 함수들 ---
 
 /**
- * ✅ 1. 노드(Node) 정보 조회
- * @returns {Promise<Node[]>}
+ * ✅ 1. 노드(LocationNode) 정보 조회
+ * @returns {Promise<LocationNode[]>}
  */
-export async function getNodes(): Promise<Node[]> {
+export async function getNodes(): Promise<LocationNode[]> {
     try {
-        const response = await apiClient.get<Node[]>('/manager/nodes');
+        const response = await apiClient.get<LocationNode[]>('/manager/nodes');
         return response.data;
     } catch (error) {
         console.error('노드 데이터 로딩 실패:', error);

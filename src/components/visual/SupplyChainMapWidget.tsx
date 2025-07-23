@@ -12,7 +12,7 @@ import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
 import Map from 'react-map-gl';
 
-import { type Node, type AnalyzedTrip } from './data';
+import { type LocationNode, type AnalyzedTrip } from './data';
 import { type TripWithId } from './SupplyChainDashboard';
 import { cubeModel, factoryBuildingModel } from './models';
 import { getNodeColor, getAnomalyColor } from '../visual/colorUtils';
@@ -51,7 +51,7 @@ const OTHER_MODEL_MAPPING: Record<string, any> = {
 };
 
 type SupplyChainMapWidgetProps = {
-    nodes: Node[];
+    nodes: LocationNode[];
     analyzedTrips: AnalyzedTrip[];
     minTime: number;
     maxTime: number;
@@ -115,7 +115,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
         const filteredNodes = otherNodes.filter(node => node.businessStep === type);
         if (filteredNodes.length === 0) return null;
 
-        return new SimpleMeshLayer<Node>({
+        return new SimpleMeshLayer<LocationNode>({
             id: `widget-mesh-layer-${type}`,
             data: filteredNodes,
             mesh: OTHER_MODEL_MAPPING[type],
@@ -130,7 +130,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
     }).filter(Boolean);
 
     const factoryLayers = [
-        new SimpleMeshLayer<Node>({
+        new SimpleMeshLayer<LocationNode>({
             id: 'widget-factory-building-layer',
             data: factoryNodes,
             mesh: parsedFactoryBuildingModel,
@@ -156,7 +156,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 if (representativeAnomaly) {
                     const color = getAnomalyColor(representativeAnomaly);
-                    return [...color, 80];
+                    return [...color, 50];
                 }
                 return [255,255,255, 50];
             },
@@ -174,14 +174,13 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             getColor: d => {
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 // 대표 이상 유형이 있으면 해당 색상을, 없으면 기본 초록색을 반환
-                return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [144, 238, 144];
+                return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [0, 255, 127];
             },
-            opacity: 0.8,
             widthMinPixels: 5,
             capRounded: true,
             jointRounded: true,
             trailLength: 180,
-            currentTime, // 부모로부터 받은 currentTime 사용
+            currentTime,
         }),
     ];
 

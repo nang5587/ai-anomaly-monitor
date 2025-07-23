@@ -1,12 +1,12 @@
 import React from 'react';
-import { type AnalyzedTrip, type Node } from '@/components/visual/data';
+import { type AnalyzedTrip, type LocationNode } from '@/components/visual/data';
 import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
 import { Truck, Shuffle, ShieldAlert, Copy, MapPinOff } from 'lucide-react';
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 type AnomalyListProps = {
-    anomalies: TripWithId[];
+    anomalies: AnalyzedTrip[];
 };
 
 const anomalyIconMap: { [key: string]: JSX.Element } = {
@@ -91,7 +91,7 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                 return (
                     // ✨ 2. onClick 이벤트와 선택/호버 관련 클래스 제거
                     <div
-                        key={trip.id}
+                        key={trip.roadId}
                         className={`group font-noto-400 border-b border-b-[#e0e0e034] hover:bg-[rgba(30,30,30)]
                                     sm:grid sm:grid-cols-[2fr_1.5fr_2.5fr_3fr_2fr] sm:gap-x-4 sm:items-center sm:text-center
                                     flex flex-col gap-2 py-4 px-6 sm:px-12`}
