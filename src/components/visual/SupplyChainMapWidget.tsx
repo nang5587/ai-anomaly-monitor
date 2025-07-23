@@ -13,7 +13,7 @@ import { parseSync } from '@loaders.gl/core';
 import Map from 'react-map-gl';
 
 import { type LocationNode, type AnalyzedTrip } from './data';
-import { type TripWithId } from './SupplyChainDashboard';
+import { type MergeTrip } from './SupplyChainDashboard';
 import { cubeModel, factoryBuildingModel } from './models';
 import { getNodeColor, getAnomalyColor } from '../visual/colorUtils';
 
@@ -147,7 +147,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
     // 모든 레이어를 합침
     const layers = [
         // 정적 연결선 레이어 (선택 하이라이트 로직 제거)
-        new PathLayer<TripWithId>({
+        new PathLayer<MergeTrip>({
             id: 'widget-static-paths',
             data: validTrips,
             getPath: d => d.path || [d.from.coord, d.to.coord],
@@ -166,7 +166,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
         ...otherMeshLayers,
         ...factoryLayers,
         // 동적 이동 애니메이션 레이어
-        new TripsLayer<TripWithId>({
+        new TripsLayer<MergeTrip>({
             id: 'widget-trips-layer',
             data: validTrips,
             getPath: d => d.path || [d.from.coord, d.to.coord],

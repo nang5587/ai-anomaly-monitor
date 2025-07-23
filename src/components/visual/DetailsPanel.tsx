@@ -10,7 +10,7 @@ import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
 
 import { v4 as uuidv4 } from 'uuid';
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 interface WaypointItemProps {
     title: string;
@@ -42,7 +42,7 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) 
     );
 };
 
-const TripTimeline: React.FC<{ trip: TripWithId }> = ({ trip }) => {
+const TripTimeline: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const waypoints = [
         { type: '도착지', location: trip.to.scanLocation },
         { type: '출발지', location: trip.from.scanLocation },
@@ -62,7 +62,7 @@ const TripTimeline: React.FC<{ trip: TripWithId }> = ({ trip }) => {
     );
 };
 
-const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
+const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
 
     return (
@@ -194,7 +194,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             </div>
             <div style={{ overflowY: 'auto', paddingRight: '10px' }} className="hide-scrollbar">
                 {isTrip
-                    ? <TripDetails trip={selectedObject as TripWithId} />
+                    ? <TripDetails trip={selectedObject as AnalyzedTrip} />
                     : <NodeDetails node={selectedObject as LocationNode} allAnomalies={allAnomalies} />
                 }
             </div>

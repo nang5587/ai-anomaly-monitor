@@ -1,6 +1,5 @@
 import { atom } from 'jotai';
 import { FlyToInterpolator } from 'deck.gl';
-import { v4 as uuidv4 } from 'uuid';
 import {
     getNodes,
     getAnomalies,
@@ -12,7 +11,7 @@ import {
     type PaginatedTripsResponse,
 } from '@/components/visual/data';
 
-import { TripWithId, Tab } from '@/components/visual/SupplyChainDashboard';
+import { MergeTrip, Tab } from '@/components/visual/SupplyChainDashboard';
 
 export interface MapViewState {
     longitude: number;
@@ -32,7 +31,7 @@ type RouteGeometryMap = Record<string, RouteGeometry>;
 // --- 상태(State) 아톰 정의 ---
 export const activeTabAtom = atom<Tab>('all');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
-export const selectedObjectAtom = atom<AnalyzedTrip | LocationNode | null>(null);
+export const selectedObjectAtom = atom<MergeTrip | LocationNode | null>(null);
 export const nodesAtom = atom<LocationNode[]>([]);
 export const filterOptionsAtom = atom<FilterOptions | null>(null);
 export const tripsAtom = atom<AnalyzedTrip[]>([]);
@@ -51,7 +50,7 @@ const INITIAL_VIEW_STATE: MapViewState = {
 export const mapViewStateAtom = atom<MapViewState>(INITIAL_VIEW_STATE);
 export const routeGeometriesAtom = atom<RouteGeometryMap | null>(null);
 
-export const mergeAndGenerateTimestamps = (tripsFromApi: AnalyzedTrip[], geometries: RouteGeometryMap | null): TripWithId[] => {
+export const mergeAndGenerateTimestamps = (tripsFromApi: AnalyzedTrip[], geometries: RouteGeometryMap | null): MergeTrip[] => {
     if (!tripsFromApi) return [];
 
     return tripsFromApi.map(trip => {
@@ -79,7 +78,6 @@ export const mergeAndGenerateTimestamps = (tripsFromApi: AnalyzedTrip[], geometr
 
         return {
             ...trip,
-            id: trip.roadId || uuidv4(),
             path: finalPath,
             timestamps: finalTimestamps,
         };
@@ -178,19 +176,42 @@ export const loadMoreTripsAtom = atom(null, async (get, set) => {
     }
 });
 
-// (선택사항) 특정 위치로 날아가는 효과를 주는 쓰기 전용 액션 아톰
+
+
+// 특정 위치로 날아가는 효과를 주는 쓰기 전용 액션 아톰
+type FlyToOptions = Partial<Pick<MapViewState, 'longitude' | 'latitude' | 'zoom' | 'pitch' | 'bearing'>>;
 export const flyToLocationAtom = atom(
     null,
-    (get, set, location: { longitude: number, latitude: number, zoom?: number }) => {
-        set(mapViewStateAtom, (prevViewState: MapViewState) => ({
-            ...prevViewState,
-            longitude: location.longitude,
-            latitude: location.latitude,
-            zoom: location.zoom || 20, // zoom 값이 없으면 기본값 12
-            pitch: 50,
-            bearing: 0,
-            transitionDuration: 3000,
-            transitionInterpolator: new FlyToInterpolator(),
-        }));
+    (get, set, location: FlyToOptions) => {
+        const currentViewState = get(mapViewStateAtom);
+        set(mapViewStateAtom, {
+            ...currentViewState,
+            longitude: location.longitude ?? currentViewState.longitude,
+            latitude: location.latitude ?? currentViewState.latitude,
+            zoom: location.zoom ?? 17,
+            pitch: location.pitch ?? 50, // 기본 pitch
+            bearing: location.bearing ?? 0, // 기본 bearing
+            transitionDuration: 2000, // 전환 시간을 2초로 늘림
+            transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+        });
     }
 );
+
+// --- EPC 복제 기능 관련 아톰 ---
+
+// 1. 사용자가 클릭한 EPC 복제 Trip의 epcCode를 저장하는 아톰
+export const epcDupTargetAtom = atom<string | null>(null);
+
+// 2. epcDupTargetAtom이 설정되면, 해당하는 모든 Trip 목록을 파생시키는 읽기 전용 아톰
+export const epcDupListAtom = atom<MergeTrip[]>((get) => {
+    const targetEpc = get(epcDupTargetAtom);
+    const allTrips = get(tripsAtom);
+
+    // 타겟 EPC 코드가 없으면 빈 배열 반환
+    if (!targetEpc) {
+        return [];
+    }
+
+    // 전체 Trip 목록에서 동일한 epcCode를 가진 Trip들만 필터링
+    return allTrips.filter(trip => trip.epcCode === targetEpc);
+});

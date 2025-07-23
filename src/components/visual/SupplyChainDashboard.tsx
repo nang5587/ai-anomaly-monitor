@@ -32,7 +32,7 @@ import TripList from './TripList';
 
 // 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 export type Tab = 'anomalies' | 'all' | 'heatmap';
-export type TripWithId = AnalyzedTrip & { path?: [number, number][]; timestamps?: number[] };
+export type MergeTrip = AnalyzedTrip & { path?: [number, number][]; timestamps?: number[] };
 
 // 탭 버튼 스타일
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
