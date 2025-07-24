@@ -27,15 +27,15 @@ import {
     type AnomalyType,
     type PaginatedTripsResponse,
     type UploadFile,
-} from '@/components/visual/data';
+} from '../../types/data';
 
 import StatCard from '@/components/dashboard/StatCard';
 import AnomalyList from '@/components/dashboard/AnomalyList';
-import { SupplyChainMapWidget } from '@/components/visual/SupplyChainMapWidget';
+import { SupplyChainMapWidget } from '../../components/dashboard/widget/SupplyChainMapWidget';
 import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
 import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
 
-import { getAnomalyName, getAnomalyColor } from '@/components/visual/colorUtils';
+import { getAnomalyName, getAnomalyColor } from '../../types/colorUtils';
 
 import dynamic from 'next/dynamic';
 import { v4 as uuidv4 } from 'uuid';

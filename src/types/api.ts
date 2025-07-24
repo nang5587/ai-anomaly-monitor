@@ -51,7 +51,7 @@ export interface TripPoint {
 /**
  * 이상 징후의 유형을 나타내는 타입 (유니언 타입이므로 'type'으로 정의)
  */
-export type AnomalyType = "jump" | "evtOrderErr" | "epcFake" | "epcDup" | "locErr";
+export type AnomalyType = "fake" | "tamper" | "clone";
 
 /**
  * 5 & 6. 이상 징후 및 전체 Trip 조회 시, 운송(Trip) 한 개의 상세 정보

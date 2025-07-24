@@ -1,8 +1,8 @@
 import React from 'react';
-import { LocationNode } from '../visual/data';
+import { LocationNode } from '../../types/data';
 
 // 노드 타입별 SVG 아이콘 컴포넌트
-export const NodeIcon: React.FC<{ type: LocationNode['type'] }> = ({ type }) => {
+export const NodeIcon: React.FC<{ type: LocationNode['businessStep'] }> = ({ type }) => {
     const style = { width: '70%', height: '70%', fill: 'white' };
     switch (type) {
         case 'Factory':

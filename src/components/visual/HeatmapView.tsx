@@ -5,7 +5,7 @@ import type { PickingInfo, Color } from 'deck.gl';
 import { useAtom, useAtomValue } from 'jotai';
 
 // 타입 임포트
-import { getTrips, getNodes, type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from './data';
+import { getTrips, getNodes, type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from '../../types/data';
 import { HeatmapViewProps, type EventTypeStats, type NodeWithEventStats, type StatValue } from '@/types/map';
 import {
     mapViewStateAtom,
@@ -24,11 +24,9 @@ import DetailsPanel from './DetailsPanel';
 
 // 이벤트 타입별 색상 정의
 const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
-    'jump': [215, 189, 226],   // 시공간 점프
-    'evtOrderErr': [250, 215, 160], // 이벤트 순서 오류
-    'epcFake': [245, 183, 177],   // EPC 위조
-    'epcDup': [252, 243, 207],   // EPC 복제
-    'locErr': [169, 204, 227]    // 경로 위조
+    'fake': [215, 189, 226],   // 시공간 점프
+    'tamper': [250, 215, 160], // 이벤트 순서 오류
+    'clone': [252, 243, 207],   // EPC 복제
 };
 const DEFAULT_COLOR: Color = [201, 203, 207];
 
@@ -298,10 +296,10 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
             </div>
 
             {/* 상세 패널 */}
-            <DetailsPanel
+            {/* <DetailsPanel
                 selectedObject={selectedObject}
                 onClose={() => setSelectedObject(null)}
-            />
+            /> */}
         </div>
     );
 };

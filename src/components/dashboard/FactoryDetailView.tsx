@@ -17,7 +17,7 @@ const MiniStatCard = ({ title, value, icon }: { title: string, value: string, ic
 
 
 // KPI 데이터 타입 정의
-import type { KpiSummary } from '../visual/data';
+import type { KpiSummary } from '../../types/data';
 
 type FactoryDetailViewProps = {
     factoryTabs: string[];

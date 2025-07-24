@@ -9,7 +9,8 @@ import {
     type AnalyzedTrip,
     type FilterOptions,
     type PaginatedTripsResponse,
-} from '@/components/visual/data';
+    type AnomalyType,
+} from '../types/data';
 
 import { MergeTrip, Tab } from '@/components/visual/SupplyChainDashboard';
 
@@ -29,7 +30,7 @@ type RouteGeometry = {
 type RouteGeometryMap = Record<string, RouteGeometry>;
 
 // --- 상태(State) 아톰 정의 ---
-export const activeTabAtom = atom<Tab>('all');
+export const activeTabAtom = atom<Tab>('heatmap');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
 export const selectedObjectAtom = atom<MergeTrip | LocationNode | null>(null);
 export const nodesAtom = atom<LocationNode[]>([]);
@@ -215,3 +216,15 @@ export const epcDupListAtom = atom<MergeTrip[]>((get) => {
     // 전체 Trip 목록에서 동일한 epcCode를 가진 Trip들만 필터링
     return allTrips.filter(trip => trip.epcCode === targetEpc);
 });
+
+// --- 이상 유형 필터 상태 ---
+export const anomalyFilterAtom = atom<AnomalyType | null>(null);
+
+// ✨ anomalyFilterAtom을 null로 리셋하는 쓰기 전용 atom 추가
+export const resetAnomalyFilterAtom = atom(
+    null, // 읽기 전용 값 (사용 안 함)
+    (get, set) => {
+        // 이 atom이 호출되면, anomalyFilterAtom의 값을 null로 설정합니다.
+        set(anomalyFilterAtom, null);
+    }
+);

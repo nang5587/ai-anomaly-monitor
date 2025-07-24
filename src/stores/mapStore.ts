@@ -1,6 +1,6 @@
 // zustand
 import { create } from 'zustand';
-import { type LocationNode, type AnalyzedTrip } from '@/components/visual/data'; // 실제 타입 경로 확인
+import { type LocationNode, type AnalyzedTrip } from '../types/data'; // 실제 타입 경로 확인
 
 // --- 타입 정의 ---
 type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][] }; // ✨ path 속성 추가

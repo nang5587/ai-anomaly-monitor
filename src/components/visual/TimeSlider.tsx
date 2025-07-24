@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 
-import type { AnalyzedTrip, AnomalyType } from "./data";
-import { getAnomalyColor, getAnomalyName } from "./colorUtils";
+import type { AnalyzedTrip, AnomalyType } from "../../types/data";
+import { getAnomalyColor, getAnomalyName } from "../../types/colorUtils";
+import { pastelColorMap } from '../../types/anomalyUtils';
 
 const SIMULATION_START_DATE = new Date('2025-02-17T00:00:00Z');
 const TIME_UNIT_IN_HOURS = 1;
@@ -33,15 +34,6 @@ type TooltipInfo = {
     trip: AnalyzedTrip;
     top: number;
     left: number;
-};
-
-const pastelColorMap: { [key: string]: string } = {
-    'jump': '#D7BDE2',      // 연한 라벤더
-    'evtOrderErr': '#FAD7A0', // 부드러운 살구
-    'epcFake': '#F5B7B1',     // 매우 연한 핑크
-    'epcDup': '#FCF3CF',      // 부드러운 크림
-    'locErr': '#A9CCE3',      // 매우 연한 하늘색
-    'default': '#E5E7E9',     // 연한 회색
 };
 
 const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, isPlaying, onChange, onTogglePlay, anomalies,

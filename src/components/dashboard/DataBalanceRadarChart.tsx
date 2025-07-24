@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { ResponsiveRadar } from '@nivo/radar';
-import { type InventoryDataPoint } from "../visual/data";
+import { type InventoryDataPoint } from "../../types/data";
 
 interface DataBalanceRadarChartProps {
     data: InventoryDataPoint[];

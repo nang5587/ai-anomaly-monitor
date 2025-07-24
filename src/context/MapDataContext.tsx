@@ -1,7 +1,7 @@
 // src/context/MapDataContext.tsx
 'use client'
 import { createContext, useContext, useState } from 'react';
-import type { LocationNode, AnalyzedTrip, FilterOptions } from '../components/visual/data'; // 실제 타입을 import하세요
+import type { LocationNode, AnalyzedTrip, FilterOptions } from '../types/data'; // 실제 타입을 import하세요
 export type MergeTrip = AnalyzedTrip & { path?: [number, number][]; timestamps?: number[] };
 
 // initialData의 타입을 정의합니다. (page.js와 동일한 구조)

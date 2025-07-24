@@ -5,24 +5,20 @@ import { scaleLinear } from 'd3-scale';
 
 // 필요한 타입들을 import 합니다.
 import type { NodeWithEventStats } from '@/types/map';
-import type { AnomalyType } from './data';
+import type { AnomalyType } from '../../types/data';
 import { type StatValue } from '@/types/map'
 
 // AnomalyType을 기준으로 색상을 정의합니다.
 const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
-    'jump': [215, 189, 226, 200],   // 시공간 점프 (연한 라벤더)
-    'evtOrderErr': [250, 215, 160, 200], // 이벤트 순서 오류 (부드러운 살구)
-    'epcFake': [245, 183, 177, 200],   // EPC 위조 (매우 연한 핑크)
-    'epcDup': [252, 243, 207, 200],   // EPC 복제 (부드러운 크림)
-    'locErr': [169, 204, 227, 200]    // 경로 위조 (매우 연한 하늘색)
+    'fake': [215, 189, 226, 200],   // 시공간 점프 (연한 라벤더)
+    'tamper': [250, 215, 160, 200], // 이벤트 순서 오류 (부드러운 살구)
+    'clone': [252, 243, 207, 200],   // EPC 복제 (부드러운 크림)
 };
 
 const ANOMALY_TYPE_ORDER: AnomalyType[] = [
-    'jump',
-    'evtOrderErr',
-    'epcFake',
-    'epcDup',
-    'locErr'
+    'fake',
+    'tamper',
+    'clone',
 ];
 const DEFAULT_COLOR: Color = [201, 203, 207];
 

@@ -8,7 +8,7 @@ import {
     selectedObjectAtom,
     mapViewStateAtom,
     epcDupTargetAtom,
-    // flyToLocationAtom,
+    anomalyFilterAtom,
     type MapViewState
 } from '@/stores/mapDataAtoms';
 
@@ -26,14 +26,14 @@ import { parseSync } from '@loaders.gl/core';
 import { default as ReactMapGL, Marker, ViewState, } from 'react-map-gl';
 import type { PickingInfo } from '@deck.gl/core';
 
-import { type LocationNode, type AnalyzedTrip } from './data';
+import { type LocationNode, type AnalyzedTrip } from '../../types/data';
 import { cubeModel, factoryBuildingModel } from './models';
 
 import TutorialOverlay from './TutorialOverlay';
 import TimeSlider from './TimeSlider';
 import MapLegend from './MapLegend';
 
-import { getNodeColor, getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
+import { getNodeColor, getAnomalyColor, getAnomalyName } from '../../types/colorUtils';
 import { NodeIcon, getIconAltitude } from '../visual/icons';
 import { toast } from 'sonner';
 import { MergeTrip } from './SupplyChainDashboard';
@@ -41,17 +41,8 @@ import { MergeTrip } from './SupplyChainDashboard';
 // Mapbox 액세스 토큰
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-// 초기 지도 뷰 상태 (지도 시작 위치 및 시야 각도)
-const INITIAL_VIEW_STATE = {
-    longitude: 127.9,
-    latitude: 36.5,
-    zoom: 7,
-    pitch: 60,
-    bearing: 0,
-};
-
 // 애니메이션 설정
-const ANIMATION_SPEED = 0.2; // 속도 조절
+const ANIMATION_SPEED = 0.4; // 속도 조절
 
 // 3D 모델 파싱 (DeckGL에서 사용할 수 있도록 준비)
 const parsedCubeModel = parseSync(cubeModel, OBJLoader);
@@ -81,11 +72,11 @@ const material = {
 export const SupplyChainMap: React.FC = () => {
     const nodes = useAtomValue(nodesAtom);
     const analyzedTrips = useAtomValue(tripsAtom); // 상세 경로가 포함된 데이터
-    // const flyTo = useSetAtom(flyToLocationAtom);
+    const anomalyFilter = useAtomValue(anomalyFilterAtom);
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [viewState, setViewState] = useAtom(mapViewStateAtom); // 지도 뷰 상태도 Jotai로 관리
-    const setEpcDupTarget = useSetAtom(epcDupTargetAtom);
-
+    // const setEpcDupTarget = useSetAtom(epcDupTargetAtom);
+    const [epcDupTarget, setEpcDupTarget] = useAtom(epcDupTargetAtom);
     const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom);
 
     // 이 컴포넌트 내에서만 사용하는 로컬 상태는 그대로 유지합니다.
@@ -100,8 +91,15 @@ export const SupplyChainMap: React.FC = () => {
 
     const validTrips = useMemo(() => {
         if (!analyzedTrips) return [];
-        return analyzedTrips.filter(trip => trip && trip.from?.coord && trip.to?.coord);
-    }, [analyzedTrips]);
+        let filtered = analyzedTrips.filter(trip => trip && trip.from?.coord && trip.to?.coord);
+        if (anomalyFilter) {
+            filtered = filtered.filter(trip =>
+                trip.anomalyTypeList?.includes(anomalyFilter)
+            );
+        }
+
+        return filtered;
+    }, [analyzedTrips, anomalyFilter]);
 
     // 전체 시간 범위
     const globalTimeRange = useMemo(() => {
@@ -113,15 +111,37 @@ export const SupplyChainMap: React.FC = () => {
         return { minTime: Math.min(...startTimes), maxTime: Math.max(...endTimes) };
     }, [validTrips]);
 
-    const { minTime: activeMinTime, maxTime: activeMaxTime } = useMemo(() => {
+    const activeTimeRange = useMemo(() => {
+        // EPC 복제 모드가 활성화되면, 관련된 모든 경로의 시간 범위를 계산합니다.
+        if (epcDupTarget) {
+            const dupTrips = validTrips.filter(t => t.epcCode === epcDupTarget);
+            if (dupTrips.length > 0) {
+                const startTimes = dupTrips.map(t => t.from.eventTime);
+                const endTimes = dupTrips.map(t => t.to.eventTime);
+                return { minTime: Math.min(...startTimes), maxTime: Math.max(...endTimes) };
+            }
+        }
+        // 일반적인 Trip이 선택된 경우
         if (selectedObject && 'from' in selectedObject) {
-            // Trip이 선택되었다면, 해당 Trip의 시간을 활성 시간 범위로 사용합니다.
             const trip = selectedObject as MergeTrip;
             return { minTime: trip.from.eventTime, maxTime: trip.to.eventTime };
         }
-        // 아무것도 선택되지 않았다면, 전역 시간 범위를 사용합니다.
+        // 아무것도 선택되지 않은 경우, 전체 시간 범위를 사용합니다.
         return globalTimeRange;
-    }, [selectedObject, globalTimeRange]);
+    }, [selectedObject, epcDupTarget, validTrips, globalTimeRange]);
+
+    const { minTime: activeMinTime, maxTime: activeMaxTime } = activeTimeRange;
+
+
+    // const { minTime: activeMinTime, maxTime: activeMaxTime } = useMemo(() => {
+    //     if (selectedObject && 'from' in selectedObject) {
+    //         // Trip이 선택되었다면, 해당 Trip의 시간을 활성 시간 범위로 사용합니다.
+    //         const trip = selectedObject as MergeTrip;
+    //         return { minTime: trip.from.eventTime, maxTime: trip.to.eventTime };
+    //     }
+    //     // 아무것도 선택되지 않았다면, 전역 시간 범위를 사용합니다.
+    //     return globalTimeRange;
+    // }, [selectedObject, globalTimeRange]);
 
     // 선택된 오브젝트의 경로를 따라서 카메라 이동시키는 함수
     const animateCameraAlongTrip = useCallback((trip: MergeTrip, initialViewState: MapViewState) => {
@@ -207,14 +227,65 @@ export const SupplyChainMap: React.FC = () => {
 
     }, [setViewState, cameraAnimationRef]);
 
-
     useEffect(() => {
-        if (activeMinTime > 0) {
-            setCurrentTime(activeMinTime);
-        } else {
-            setCurrentTime(0); // 데이터가 없을 때 초기화
+        // 이전 카메라 애니메이션이 있다면 중지
+        if (cameraAnimationRef.current) {
+            cancelAnimationFrame(cameraAnimationRef.current);
+            cameraAnimationRef.current = null;
         }
-    }, [activeMinTime]);
+
+        // 선택이 해제된 경우: 초기 상태로 복귀
+        if (!selectedObject) {
+            setEpcDupTarget(null);
+            setIsPlaying(true); // 전체 애니메이션 다시 시작
+            setCurrentTime(globalTimeRange.minTime);
+            return;
+        }
+
+        // Trip이 선택된 경우
+        if ('from' in selectedObject) {
+            const trip = selectedObject as MergeTrip;
+            if (!trip.from?.coord || !trip.to?.coord) return;
+
+            // 애니메이션 상태 및 시간 설정
+            setCurrentTime(trip.from.eventTime);
+            setIsPlaying(true);
+
+            // EPC 복제 유형인지 확인
+            const hasEpcDup = trip.anomalyTypeList?.includes('clone');
+
+            if (hasEpcDup) {
+                setEpcDupTarget(trip.epcCode);
+                // 모든 관련 경로를 포함하는 뷰로 이동
+                const dupTrips = validTrips.filter(t => t.epcCode === trip.epcCode);
+                if (dupTrips.length > 0) {
+                    const allCoords = dupTrips.flatMap(t => [t.from.coord, t.to.coord]);
+                    const avgLon = allCoords.reduce((sum, c) => sum + c[0], 0) / allCoords.length;
+                    const avgLat = allCoords.reduce((sum, c) => sum + c[1], 0) / allCoords.length;
+                    setViewState({ longitude: avgLon, latitude: avgLat, zoom: 7, pitch: 50, bearing: 0, transitionDuration: 1500, transitionInterpolator: new FlyToInterpolator({ speed: 1.2 }) });
+                }
+            } else {
+                // 일반 Trip은 카메라 애니메이션 실행
+                setEpcDupTarget(null);
+                animateCameraAlongTrip(trip, viewState);
+            }
+        }
+        // Node가 선택된 경우
+        else if ('coord' in selectedObject) {
+            setEpcDupTarget(null);
+            setIsPlaying(false); // 노드 선택 시 애니메이션 정지
+            const node = selectedObject as LocationNode;
+            setViewState({
+                ...viewState,
+                longitude: node.coord[0],
+                latitude: node.coord[1],
+                zoom: 17,
+                transitionDuration: 1500,
+                transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+            });
+        }
+
+    }, [selectedObject, setViewState, setEpcDupTarget, animateCameraAlongTrip, validTrips, globalTimeRange.minTime]);
 
     // 튜토리얼 자동으로 숨김 (5초)
     useEffect(() => {
@@ -272,13 +343,6 @@ export const SupplyChainMap: React.FC = () => {
         animationFrame = requestAnimationFrame(animatePulse);
         return () => cancelAnimationFrame(animationFrame);
     }, []);
-
-    const nodeMap = useMemo(() => {
-        if (!nodes) {
-            return new Map<string, LocationNode>();
-        }
-        return new Map<string, LocationNode>(nodes.map(n => [n.hubType, n]));
-    }, [nodes]);
 
     // 툴팁 렌더링 함수
     const renderTooltip = ({ object }: PickingInfo) => {
@@ -364,6 +428,9 @@ export const SupplyChainMap: React.FC = () => {
             const trip = selectedObject as MergeTrip;
             if (!trip.from?.coord || !trip.to?.coord) return;
 
+            setCurrentTime(trip.from.eventTime);
+            setIsPlaying(true);
+
             const anomalyType = trip.anomalyTypeList?.[0];
 
             // 1. 타임 슬라이더의 현재 시간을 trip의 시작 시간으로 설정
@@ -371,7 +438,7 @@ export const SupplyChainMap: React.FC = () => {
             // 2. 애니메이션 레이어가 보이도록 재생 상태로 만듦
             // setIsPlaying(true);
 
-            if (anomalyType === 'epcDup') {
+            if (anomalyType === 'clone') {
                 // EPC 복제 모드 진입
                 setEpcDupTarget(trip.epcCode);
                 // 간단히 중간 지점으로 이동
@@ -402,14 +469,12 @@ export const SupplyChainMap: React.FC = () => {
             });
         }
 
-    }, [selectedObject, setViewState, setEpcDupTarget, animateCameraAlongTrip]);
+    }, [selectedObject, setViewState, setEpcDupTarget, animateCameraAlongTrip, globalTimeRange.minTime]);
 
     // AnomalyList 항목 클릭 시 해당 경로를 중앙에 보여주는 함수
-    const handleCaseClick = (trip: MergeTrip) => {
-        setCurrentTime(trip.from.eventTime);
-        setIsPlaying(true);
+    const handleCaseClick = useCallback((trip: MergeTrip) => {
         setSelectedObject(trip);
-    };
+    }, [setSelectedObject]);
 
     const handleTogglePlay = () => {
         // 만약 애니메이션이 끝난 상태(또는 거의 끝난 상태)에서 재생 버튼을 누른다면,
@@ -495,6 +560,19 @@ export const SupplyChainMap: React.FC = () => {
     const layers = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as AnalyzedTrip : null;
 
+        let animatedTripsData = validTrips;
+        if (epcDupTarget) {
+            animatedTripsData = validTrips.filter(t => t.epcCode === epcDupTarget);
+        } else if (selectedTrip) {
+            animatedTripsData = [selectedTrip];
+        }
+
+        const epcDupMarkerCoords = epcDupTarget
+            ? validTrips
+                .filter(trip => trip.epcCode === epcDupTarget)
+                .flatMap(trip => [trip.from.coord, trip.to.coord])
+            : [];
+
         return [
             // 1. 정적 연결선 레이어
             new PathLayer<MergeTrip>({
@@ -503,33 +581,31 @@ export const SupplyChainMap: React.FC = () => {
                 widthMinPixels: 5,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getColor: d => {
-                    const isSelected = selectedObject && 'roadId' in selectedObject && selectedObject.roadId === d.roadId;
-                    const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
-                    const baseColor = representativeAnomaly ? [255, 64, 64] : [0, 255, 127];
+                    const representativeAnomaly = d.anomalyTypeList?.[0];
+                    const baseColor = representativeAnomaly ? [255, 64, 64] as Color : [0, 255, 127] as Color;
 
-                    if (selectedTrip) {
-                        // 무언가 선택되었다면
-                        if (isSelected) {
-                            // 선택된 경로는 흰색으로 강조
-                            return baseColor as Color;
-                        } else {
-                            // 나머지 경로는 매우 투명하게 처리
-                            return [...baseColor, 15] as Color;
-                        }
+                    // --- 상태 1: EPC 복제 모드 ---
+                    // 가장 높은 우선순위를 가집니다.
+                    if (epcDupTarget) {
+                        // 복제 대상 EPC와 같으면 노란색, 아니면 완전히 투명하게.
+                        return d.epcCode === epcDupTarget ? [252, 243, 207, 255] as Color : [0, 0, 0, 0] as Color;
                     }
 
-                    // 아무것도 선택되지 않았을 때는 기본 색상으로 표시
+                    // --- 상태 2: 단일 경로 선택 모드 ---
+                    if (selectedTrip) {
+                        // 선택된 경로와 ID가 같으면 불투명하게, 아니면 완전히 투명하게.
+                        return d.roadId === selectedTrip.roadId ? [...baseColor, 255] as Color : [0, 0, 0, 0] as Color;
+                    }
+
+                    // --- 상태 3: 기본 모드 ---
+                    // 아무것도 선택되지 않았을 때 모든 경로를 기본 투명도로 표시합니다.
                     return [...baseColor, 50] as Color;
                 },
                 pickable: true,
                 onHover: info => setHoverInfo(info),
-                onClick: info => {
-                    const trip = info.object as MergeTrip;
-                    // 1. 상태를 먼저 설정하고
-                    setCurrentTime(trip.from.eventTime);
-                    setIsPlaying(true);
-                    // 2. 그 다음에 selectedObject를 설정합니다.
-                    setSelectedObject(trip);
+                onClick: info => handleCaseClick(info.object as MergeTrip),
+                updateTriggers: { // selectedObject atom의 값이 변경될 때마다 getColor 함수를 모든 경로에 대해 다시 계산하도록 Deck.gl에 지시
+                    getColor: [selectedObject, epcDupTarget],
                 },
             }),
             // 3. 이상 노드 pulse
@@ -542,17 +618,31 @@ export const SupplyChainMap: React.FC = () => {
                 stroked: false,
                 pickable: false,
             }),
+            new ScatterplotLayer({
+                id: 'epc-dup-markers-layer',
+                data: epcDupMarkerCoords,
+                getPosition: d => d,
+                getFillColor: [255, 236, 154, 255], // 노란색
+                getRadius: 500, // 미터 단위
+                radiusMinPixels: 8,
+                stroked: true,
+                getLineColor: [255, 255, 255, 255],
+                lineWidthMinPixels: 1,
+                pickable: false,
+            }),
             // 4. 건물 레이어
             ...otherMeshLayers,
             ...factoryLayers,
             // 5. 동적 연결선 레이어
             new TripsLayer<MergeTrip>({
                 id: 'trips-layer',
-                data: validTrips,
+                data: selectedTrip ? [selectedTrip] : (epcDupTarget ? validTrips.filter(t => t.epcCode === epcDupTarget) : animatedTripsData),
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-
                 getColor: d => {
+                    if (epcDupTarget) {
+                        return [252, 243, 207, 255];
+                    }
                     const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                     if (representativeAnomaly) {
                         return [255, 64, 64];
@@ -566,7 +656,7 @@ export const SupplyChainMap: React.FC = () => {
                 currentTime,
             }),
         ];
-    }, [validTrips, selectedObject, currentTime, anomalyNodes, pulseRadius, factoryNodes, otherNodes]);
+    }, [validTrips, selectedObject, currentTime, anomalyNodes, pulseRadius, factoryLayers, otherMeshLayers, handleCaseClick]);
 
     //최종 렌더링
     return (

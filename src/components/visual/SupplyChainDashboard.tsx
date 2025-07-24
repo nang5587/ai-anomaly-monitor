@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { Filter } from 'lucide-react';
 
@@ -16,10 +16,12 @@ import {
     nextCursorAtom,
     loadInitialDataAtom,
     loadTripsDataAtom,
-    loadMoreTripsAtom
+    loadMoreTripsAtom,
+    anomalyFilterAtom,
+    resetAnomalyFilterAtom,
 } from '@/stores/mapDataAtoms';
 
-import type { LocationNode, AnalyzedTrip } from './data';
+import type { LocationNode, AnalyzedTrip } from '../../types/data';
 
 import { SupplyChainMap } from './SupplyChainMap';
 import { HeatmapView } from './HeatmapView';
@@ -29,6 +31,7 @@ import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
 import FilterPanel from './FilterPanel';
 import TripList from './TripList';
+import AnomalyFilterTabs from './AnomalyFilterTabs';
 
 // 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 export type Tab = 'anomalies' | 'all' | 'heatmap';
@@ -51,6 +54,7 @@ export const SupplyChainDashboard: React.FC = () => {
     // --- Jotai 스토어에서 가져온 상태 관리 ---
     // const nodes = useAtomValue(nodesAtom);
     const trips = useAtomValue(tripsAtom);
+    const selectedAnomalyFilter = useAtomValue(anomalyFilterAtom);
     const filterOptions = useAtomValue(filterOptionsAtom);
     const nextCursor = useAtomValue(nextCursorAtom);
     const isLoading = useAtomValue(isLoadingAtom);
@@ -65,6 +69,7 @@ export const SupplyChainDashboard: React.FC = () => {
     const loadInitialData = useSetAtom(loadInitialDataAtom);
     const loadTrips = useSetAtom(loadTripsDataAtom);
     const loadMore = useSetAtom(loadMoreTripsAtom);
+    const resetAnomalyFilter = useSetAtom(resetAnomalyFilterAtom);
 
     // 필터 패널 표시 여부는 이 컴포넌트의 로컬 상태로 유지하는 것이 적합합니다.
     const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -80,6 +85,10 @@ export const SupplyChainDashboard: React.FC = () => {
         loadInitialData();
     }, [loadInitialData]);
 
+    useEffect(() => {
+        resetAnomalyFilter();
+    }, [activeTab, appliedFilters, resetAnomalyFilter]);
+
     // 탭이나 필터가 변경될 때마다 Trip 데이터 로드
     useEffect(() => {
         if (activeTab === 'heatmap') {
@@ -89,6 +98,14 @@ export const SupplyChainDashboard: React.FC = () => {
         loadTrips();
     }, [activeTab, appliedFilters, loadTrips]);
 
+    const filteredTrips = useMemo(() => {
+        if (!selectedAnomalyFilter) {
+            return trips; // 필터가 없으면 전체 데이터를 반환
+        }
+        return trips.filter(trip =>
+            trip.anomalyTypeList?.includes(selectedAnomalyFilter)
+        );
+    }, [trips, selectedAnomalyFilter]);
 
     const handleApplyFilters = (filters: Record<string, any>) => {
         setAppliedFilters(filters);
@@ -108,7 +125,20 @@ export const SupplyChainDashboard: React.FC = () => {
             width: '100%',
             height: '100%',
         }}>
+            {/* 지도 위 이상타입 필터 탭 */}
+            {(activeTab === 'all' || activeTab === 'anomalies') && (
+                <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                }}>
+                    <AnomalyFilterTabs disabled={isLoading} />
+                </div>
+            )}
 
+            {/* 히트맵 or 경로 지도 */}
             {!isLoading && (
                 activeTab === 'heatmap' ? (
                     <>
@@ -181,8 +211,8 @@ export const SupplyChainDashboard: React.FC = () => {
                         <div style={{
                             width: '300px',
                             height: 'calc(100vh - 250px)',
-                            // flex: 1, // 남은 공간을 모두 차지
                             minHeight: 0,
+                            top: 0,
                             background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                             borderRadius: '25px',
@@ -193,13 +223,13 @@ export const SupplyChainDashboard: React.FC = () => {
                                 <>
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <AnomalyList
-                                            anomalies={trips}
+                                            anomalies={filteredTrips}
                                             onCaseClick={(trip) => setSelectedObject(trip)}
                                             selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
                                     </div>
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
-                                        <p className="mb-2">현재 {trips.length}개의 이상 징후 표시 중</p>
+                                        <p className="mb-2">현재 {filteredTrips.length}개의 이상 징후 표시 중</p>
                                         {nextCursor && (
                                             <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
                                                 {isFetchingMore ? '로딩 중...' : '더 보기'}
@@ -214,7 +244,7 @@ export const SupplyChainDashboard: React.FC = () => {
                                     {/* 리스트 본문 */}
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <TripList
-                                            trips={trips}
+                                            trips={filteredTrips}
                                             onCaseClick={(trip) => setSelectedObject(trip)}
                                             selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
@@ -222,7 +252,7 @@ export const SupplyChainDashboard: React.FC = () => {
 
                                     {/* '더 보기' 버튼 (푸터) */}
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
-                                        <p className="mb-2">현재 {trips.length}개의 경로 표시 중</p>
+                                        <p className="mb-2">현재 {filteredTrips.length}개의 경로 표시 중</p>
                                         {nextCursor && (
                                             <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
                                                 {isFetchingMore ? '로딩 중...' : '더 보기'}
@@ -239,12 +269,13 @@ export const SupplyChainDashboard: React.FC = () => {
 
             </div>
 
-            {activeTab !== 'heatmap' && (
-                <DetailsPanel
-                    selectedObject={selectedObject}
-                    onClose={() => setSelectedObject(null)}
-                />
-            )}
+
+            <DetailsPanel
+                selectedObject={selectedObject}
+                onClose={() => setSelectedObject(null)}
+                allAnomalies={trips}
+            />
+
 
         </div>
     );
