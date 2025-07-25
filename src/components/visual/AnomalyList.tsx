@@ -48,7 +48,7 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                     if (!hasAnomalies) {
                         return null; 
                     }
-                    const uniqueKey = trip.roadId || `${trip.epcCode}-${trip.from.eventTime}-${index}`;
+                    const uniqueKey = `${trip.epcCode}-${trip.from.eventTime}-${index}`;
 
                     const isSelected = trip.roadId ? selectedObjectId === trip.roadId : false;
 
@@ -61,14 +61,14 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                             <div className="flex items-center justify-between mb-2">
                                 {/* ✨ 수정: 여러 개의 태그를 렌더링하기 위한 컨테이너 */}
                                 <div className="flex items-center gap-1 flex-wrap">
-                                    {trip.anomalyTypeList.map(typeCode => {
+                                    {trip.anomalyTypeList.map((typeCode, index) => {
                                         const pastel = pastelColorMap[typeCode] || pastelColorMap['default'];
                                         const bgColor = `${pastel}26`;
                                         const textColor = pastel;
 
                                         return (
                                             <span
-                                                key={typeCode} // 각 태그는 고유한 키가 필요
+                                                key={`${typeCode}-${index}`} // 각 태그는 고유한 키가 필요
                                                 className="px-2 py-0.5 text-xs font-bold rounded-full"
                                                 style={{ backgroundColor: bgColor, color: textColor }}
                                             >

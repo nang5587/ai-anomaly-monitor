@@ -64,14 +64,14 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
             </div>
 
             {/* 바디 */}
-            {anomalies.map((trip) => {
+            {anomalies.map((trip, index) => {
                 const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
                 if (!hasAnomalies) return null;
 
                 return (
                     // ✨ 2. onClick 이벤트와 선택/호버 관련 클래스 제거
                     <div
-                        key={trip.roadId}
+                        key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
                         className={`group font-noto-400 border-b border-b-[#e0e0e034] hover:bg-[rgba(30,30,30)]
                                     sm:grid sm:grid-cols-[2fr_1.5fr_2.5fr_3fr_2fr] sm:gap-x-4 sm:items-center sm:text-center
                                     flex flex-col gap-2 py-4 px-6 sm:px-12`}

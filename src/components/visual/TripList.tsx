@@ -87,14 +87,14 @@ export default function TripList({ trips, onCaseClick, selectedObjectId }: TripL
                 }}
                 className="hide-scrollbar"
             >
-                {trips.map((trip) => {
+                {trips.map((trip, index) => {
                     const isSelected = selectedObjectId === trip.roadId;
                     // ✨ trip.anomalyTypeList가 유효한 배열인지 확인
                     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
 
                     return (
                         <div
-                            key={trip.roadId}
+                            key={`${trip.roadId}-${index}`}
                             onClick={() => onCaseClick(trip)}
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >

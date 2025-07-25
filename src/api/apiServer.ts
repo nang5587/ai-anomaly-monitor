@@ -2,7 +2,9 @@ import axios, { AxiosInstance } from 'axios';
 import { cookies } from 'next/headers';
 import path from 'path';
 import { promises as fs } from 'fs';
-import type { LocationNode, PaginatedTripsResponse, KpiSummary, InventoryDistributionResponse } from '@/components/visual/data'; // 필요한 타입 import
+
+import type { LocationNode, PaginatedTripsResponse, KpiSummary, InventoryDistributionResponse, FilterOptions } from '../types/data';
+import type { FileItem } from '@/types/file';
 
 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -10,7 +12,7 @@ if (!baseURL) {
     throw new Error('NEXT_PUBLIC_BACKEND_URL 환경변수를 찾을 수 없습니다.');
 }
 
-const apiServer: AxiosInstance = axios.create({
+export const apiServer: AxiosInstance = axios.create({
     baseURL: `${baseURL}/api`,
     headers: { 'Content-Type': 'application/json' },
     timeout: 10000,
@@ -168,13 +170,6 @@ export const changePassword_server = async (data: { password: string; newPasswor
 };
 
 
-// =================================================================
-// 📝 
-// =================================================================
-
-
-import type { FilterOptions } from '@/components/visual/data'; // FilterOptions 타입 import 추가
-
 /**
  * [더미 데이터용] 필터 옵션 목록을 가져옵니다.
  */
@@ -185,3 +180,50 @@ export const getFilterOptions_server = async (): Promise<FilterOptions> => {
     // 📝 더미 데이터용 (지금 사용할 코드)
     return readJsonFile_server('/api/filter.json');
 };
+
+
+// =================================================================
+// 📝 filelist page
+// =================================================================
+// export async function getFiles_server(): Promise<FileItem[]> {
+//     return serverRequest<FileItem[]>({ 
+//         url: '/manager/upload/filelist', 
+//         method: 'GET' 
+//     });
+
+//     // 📝 더미 데이터용 (개발 시 사용)
+//     // const response = await readJsonFile_server('/api/upload_history.json');
+//     // return response.files || []; 
+// }
+
+export async function getFiles_server(): Promise<FileItem[]> {
+    try {
+        // serverRequest는 response.data를 반환합니다. 
+        // 이 data의 실제 타입을 any로 받고 구조를 확인합니다.
+        const responseData: any = await serverRequest({ 
+            url: '/manager/upload/filelist', 
+            method: 'GET' 
+        });
+
+        // ✨ 1. 응답 데이터가 있고, 그 안에 'data' 또는 'files' 키가 배열인지 확인합니다.
+        if (responseData && Array.isArray(responseData.data)) {
+            return responseData.data;
+        }
+        if (responseData && Array.isArray(responseData.files)) {
+            return responseData.files;
+        }
+        // ✨ 2. 응답 데이터 자체가 배열인 경우를 확인합니다.
+        if (Array.isArray(responseData)) {
+            return responseData;
+        }
+
+        // ✨ 3. 위의 모든 경우에 해당하지 않으면, 빈 배열을 반환하여 에러를 방지합니다.
+        console.warn("getFiles_server: API 응답이 예상된 배열 형식이 아닙니다.", responseData);
+        return [];
+
+    } catch (error) {
+        console.error("getFiles_server에서 에러 발생:", error);
+        // 에러 발생 시에도 빈 배열을 반환하여 프론트엔트가 깨지지 않도록 합니다.
+        return [];
+    }
+}

@@ -86,6 +86,12 @@ export interface ProductCount {
     total: number;
 }
 export type ByProductResponse = ProductCount[];
+
+// 페이지네이션 없는 이상 trips 응답
+export interface AllAnomaliesResponse {
+    data: AnalyzedTrip[];
+}
+
 // --- 2. 실제 API 호출 함수들 ---
 
 /**
@@ -216,6 +222,27 @@ export async function getAnomalyCountsByProduct(params?: Record<string, any>): P
     } catch (error) {
         console.error('제품별 이상 건수 데이터 로딩 실패:', error);
         // 에러를 다시 throw하여 호출한 컴포넌트에서 처리할 수 있도록 합니다.
+        throw error;
+    }
+}
+
+/**
+ * 특정 파일의 모든 이상 징후 Trip 목록을 가져옵니다. (페이지네이션 없음)
+ * @param params fileId를 포함하는 객체. { fileId: 'some-id' }
+ * @returns AnalyzedTrip 객체의 배열
+ */
+export async function getAllAnomalies(params: { fileId: number }): Promise<AnalyzedTrip[]> {
+    try {
+        console.log(`Requesting all anomalies with params:`, params);
+
+        // apiClient.get을 사용하여 '/manager/allanomalies' 엔드포인트에 요청합니다.
+        // 두 번째 인자로 { params }를 전달하면 axios가 자동으로 쿼리 스트링으로 변환해줍니다.
+        // 예: /manager/allanomalies?fileId=some-id
+        const response = await apiClient.get<AllAnomaliesResponse>('/manager/allanomalies', { params });
+
+        return response.data.data || [];
+    } catch (error) {
+        console.error(`fileId [${params.fileId}]의 전체 이상 징후 데이터 로딩 실패:`, error);
         throw error;
     }
 }

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 
 import { Filter } from 'lucide-react';
 
@@ -19,6 +19,7 @@ import {
     loadMoreTripsAtom,
     anomalyFilterAtom,
     resetAnomalyFilterAtom,
+    selectTripAndFocusAtom,
 } from '@/stores/mapDataAtoms';
 
 import type { LocationNode, AnalyzedTrip } from '../../types/data';
@@ -70,15 +71,10 @@ export const SupplyChainDashboard: React.FC = () => {
     const loadTrips = useSetAtom(loadTripsDataAtom);
     const loadMore = useSetAtom(loadMoreTripsAtom);
     const resetAnomalyFilter = useSetAtom(resetAnomalyFilterAtom);
+    const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
     // 필터 패널 표시 여부는 이 컴포넌트의 로컬 상태로 유지하는 것이 적합합니다.
     const [showFilterPanel, setShowFilterPanel] = useState(false);
-
-    // 이상징후 히트맵만 잘 보이게 상태 관리
-    const [isHighlightMode, setIsHighlightMode] = useState(false);
-
-    // 히트맵에 쓰일 
-    const [isAllDataLoaded, setIsAllDataLoaded] = useState(false);
 
     // 컴포넌트 마운트 시 초기 데이터(노드, 필터옵션) 로드
     useEffect(() => {
@@ -94,9 +90,13 @@ export const SupplyChainDashboard: React.FC = () => {
         if (activeTab === 'heatmap') {
             return; // 함수를 즉시 종료
         }
+        if (selectedObject && trips.some(t => t.roadId === (selectedObject as MergeTrip).roadId)) {
+            console.log("Trip is already in the list, skipping redundant load.");
+            return;
+        }
 
         loadTrips();
-    }, [activeTab, appliedFilters, loadTrips]);
+    }, [activeTab, appliedFilters, loadTrips, selectedObject]);
 
     const filteredTrips = useMemo(() => {
         if (!selectedAnomalyFilter) {
@@ -138,21 +138,28 @@ export const SupplyChainDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* 히트맵 or 경로 지도 */}
-            {!isLoading && (
-                activeTab === 'heatmap' ? (
-                    <>
-                        <HeatmapView isHighlightMode={isHighlightMode} />
-                    </>
-                ) : (
-                    <SupplyChainMap />
-                )
+            {activeTab === 'heatmap' && (
+                <Suspense fallback={
+                    <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
+                        <p>히트맵 데이터를 불러오는 중입니다...</p>
+                    </div>
+                }>
+                    <HeatmapView />
+                </Suspense>
             )}
 
-            {isLoading && !isFetchingMore && (
-                <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
-                    <p>데이터를 불러오는 중입니다...</p>
-                </div>
+            {/* 2. 경로 지도 뷰 렌더링 */}
+            {/* activeTab이 'heatmap'이 아닐 때 렌더링합니다. */}
+            {activeTab !== 'heatmap' && (
+                <>
+                    <SupplyChainMap />
+
+                    {isLoading && !isFetchingMore && (
+                        <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
+                            <p>경로 목록을 불러오는 중입니다...</p>
+                        </div>
+                    )}
+                </>
             )}
 
             {activeTab !== 'heatmap' && (
@@ -224,7 +231,7 @@ export const SupplyChainDashboard: React.FC = () => {
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <AnomalyList
                                             anomalies={filteredTrips}
-                                            onCaseClick={(trip) => setSelectedObject(trip)}
+                                            onCaseClick={(trip) => selectTripAndFocus(trip)}
                                             selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
                                     </div>
@@ -245,7 +252,7 @@ export const SupplyChainDashboard: React.FC = () => {
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <TripList
                                             trips={filteredTrips}
-                                            onCaseClick={(trip) => setSelectedObject(trip)}
+                                            onCaseClick={(trip) => selectTripAndFocus(trip)}
                                             selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
                                     </div>
@@ -269,13 +276,10 @@ export const SupplyChainDashboard: React.FC = () => {
 
             </div>
 
-
             <DetailsPanel
                 selectedObject={selectedObject}
-                onClose={() => setSelectedObject(null)}
-                allAnomalies={trips}
+                onClose={() => selectTripAndFocus(null)}
             />
-
 
         </div>
     );

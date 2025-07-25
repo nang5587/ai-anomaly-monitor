@@ -1,26 +1,24 @@
 'use client'
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import type { PickingInfo, Color } from 'deck.gl';
 
 import { useAtom, useAtomValue } from 'jotai';
 
 // 타입 임포트
-import { getTrips, getNodes, type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from '../../types/data';
-import { HeatmapViewProps, type EventTypeStats, type NodeWithEventStats, type StatValue } from '@/types/map';
+import { type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from '../../types/data';
+import { type EventTypeStats, type NodeWithEventStats, type StatValue } from '@/types/map';
 import {
     mapViewStateAtom,
     selectedObjectAtom,
-    type MapViewState
+    allAnomalyTripsAtom,
+    type MapViewState,
+    nodesAtom
 } from '@/stores/mapDataAtoms';
 
 import DeckGL from 'deck.gl';
-import { ColumnLayer } from '@deck.gl/layers';
-import { ScatterplotLayer } from '@deck.gl/layers';
 import { default as ReactMapGL } from 'react-map-gl';
 
 import { StackedColumnLayer } from './StackedColumnLayer';
-
-import DetailsPanel from './DetailsPanel';
 
 // 이벤트 타입별 색상 정의
 const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
@@ -34,49 +32,30 @@ const DEFAULT_COLOR: Color = [201, 203, 207];
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 
-export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => {
-    const [localNodes, setLocalNodes] = useState<LocationNode[]>([]);
-    const [localTrips, setLocalTrips] = useState<AnalyzedTrip[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
+export const HeatmapView: React.FC = () => {
     const [viewState, setViewState] = useAtom(mapViewStateAtom);
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                const [nodesData, tripsResponse] = await Promise.all([
-                    getNodes(),
-                    getTrips()
-                ]);
-                setLocalNodes(nodesData);
-                setLocalTrips(tripsResponse.data);
-            } catch (error) {
-                console.error("Failed to fetch data for Heatmap:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
+    const allAnomalies = useAtomValue(allAnomalyTripsAtom);
+    const allNodes = useAtomValue(nodesAtom);
 
     const nodesWithStats = useMemo((): NodeWithEventStats[] => {
-        if (!localTrips.length || !localNodes.length) return [];
+        // 1. 의존성 배열의 데이터 소스를 로컬 상태에서 Jotai 아톰 값으로 변경
+        if (!allAnomalies || allAnomalies.length === 0 || !allNodes || allNodes.length === 0) {
+            return [];
+        }
 
+        // 각 위치(scanLocation)별 통계를 저장할 Map
         const locationStats = new Map<string, {
             total: number;
+            // EventTypeStats 타입에 맞게 수정
             eventTypeStats: EventTypeStats;
         }>();
 
-        localTrips.forEach(trip => {
-            // 이 Trip에 anomaly가 없으면 히트맵 집계에서 제외합니다.
-            if (!trip.anomalyTypeList || trip.anomalyTypeList.length === 0) {
-                return;
-            }
-
-            // 3. anomalyTypeList에 있는 각 anomaly를 하나의 이벤트로 간주합니다.
+        // 2. localTrips -> allAnomalies
+        // allAnomalyTripsAtom은 이미 이상 징후만 포함하므로 추가 필터링이 필요 없습니다.
+        allAnomalies.forEach(trip => {
+            // anomalyTypeList의 각 anomaly를 하나의 이벤트로 간주합니다.
             trip.anomalyTypeList.forEach(anomalyType => {
                 // 이벤트가 발생한 위치들을 배열로 만듭니다. (중복 제거)
                 const affectedLocations = [...new Set([trip.from.scanLocation, trip.to.scanLocation])];
@@ -84,66 +63,69 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
                 affectedLocations.forEach(location => {
                     if (!location) return; // 위치 정보가 없으면 건너뜁니다.
 
-                    // 4. 해당 위치의 통계 객체를 가져오거나 새로 생성합니다.
+                    // 해당 위치의 통계 객체를 가져오거나 새로 생성합니다.
                     let stats = locationStats.get(location);
                     if (!stats) {
                         stats = {
                             total: 0,
-                            // EventTypeStats 초기화
-                            eventTypeStats: {},
+                            eventTypeStats: {}, // EventTypeStats 초기화
                         };
                         locationStats.set(location, stats);
                     }
 
-                    // 5. 통계를 업데이트합니다.
+                    // 통계를 업데이트합니다.
                     stats.total += 1;
 
                     // AnomalyType을 이벤트 타입으로 사용하여 카운트를 올립니다.
-                    const eventType = anomalyType;
+                    const eventType: AnomalyType = anomalyType;
                     if (!stats.eventTypeStats[eventType]) {
                         stats.eventTypeStats[eventType] = {
                             count: 0,
                             hasAnomaly: true, // 이 뷰의 모든 이벤트는 Anomaly입니다.
                         };
                     }
-                    stats.eventTypeStats[eventType].count += 1;
+                    stats.eventTypeStats[eventType]!.count += 1;
                 });
             });
         });
 
-        const mappedNodes = localNodes.map(node => { // 1. 먼저 map을 실행하여 중간 배열을 만듭니다.
+        // 3. localNodes -> allNodes
+        // node 정보와 집계된 통계를 결합합니다.
+        const mappedNodes = allNodes.map(node => {
             const stats = locationStats.get(node.scanLocation);
 
+            // 통계가 없는 노드는 히트맵에 표시되지 않도록 null을 반환합니다.
             if (!stats) {
-                return null; // 통계가 없으면 null을 반환합니다.
+                return null;
             }
 
-            let dominantType = '';
+            // 가장 빈도가 높은 이상 징후 타입을 찾습니다 (dominant type).
+            let dominantType: AnomalyType | '' = '';
             let dominantCount = 0;
             Object.entries(stats.eventTypeStats).forEach(([type, typeStats]) => {
                 if (typeStats.count > dominantCount) {
-                    dominantType = type;
+                    dominantType = type as AnomalyType;
                     dominantCount = typeStats.count;
                 }
             });
 
+            // 최종적으로 레이어에 전달될 객체를 구성합니다.
             return {
                 ...node,
                 totalEventCount: stats.total,
-                hasAnomaly: true,
+                hasAnomaly: true, // 통계가 존재하면 항상 true
                 eventTypeStats: stats.eventTypeStats,
                 dominantEventType: dominantType,
                 dominantEventCount: dominantCount,
             } as NodeWithEventStats;
         });
 
-        // 2. filter를 사용하여 null 값을 제거하고 타입을 확정합니다.
+        // 4. filter를 사용하여 null 값을 제거하고 타입을 확정합니다.
         return mappedNodes.filter(
             (node): node is NodeWithEventStats => node !== null
-        ); // null 값을 제거하고 타입 가드를 적용합니다.
+        );
 
-    }, [localTrips, localNodes]);
-    console.log('🚀 Final Processed Data (nodesWithStats):', nodesWithStats);
+    }, [allAnomalies, allNodes]);
 
     const handleClick = (info: PickingInfo) => {
         if (info.object) setSelectedObject(info.object);
@@ -210,38 +192,17 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
             id: 'stacked-column-layer',
             data: nodesWithStats,
             pickable: true,
-            isHighlightMode: isHighlightMode,
             zoom: viewState.zoom,
             radius: 120,
             getElevationScale: 250,
             updateTriggers: {
-                isHighlightMode: [isHighlightMode],
                 zoom: [viewState.zoom] // 줌 레벨이 변경될 때 레이어가 다시 렌더링되도록 함
             },
         }),
-        // 투명한 ScatterplotLayer는 제거 (ColumnLayer가 이미 pickable)
-    ], [nodesWithStats, isHighlightMode, viewState.zoom],);
+    ], [nodesWithStats, viewState.zoom],);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-            {isLoading && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    zIndex: 20,
-                    fontSize: '1.2rem'
-                }}>
-                    데이터 로딩 중...
-                </div>
-            )}
 
             <DeckGL
                 layers={layers}
@@ -295,11 +256,6 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
                 </div>
             </div>
 
-            {/* 상세 패널 */}
-            {/* <DetailsPanel
-                selectedObject={selectedObject}
-                onClose={() => setSelectedObject(null)}
-            /> */}
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import type { LocationNode } from '@/components/visual/data';
+import type { LocationNode } from './data';
 
 export interface HeatmapViewProps {
     isHighlightMode: boolean;

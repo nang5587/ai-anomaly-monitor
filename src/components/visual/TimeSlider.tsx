@@ -161,11 +161,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 <div style={{ flexGrow: 1, position: 'relative', height: '15px', display: 'flex', alignItems: 'center' }}>
 
                     {/* ✨ 6. 마커들을 렌더링하는 부분 */}
-                    {anomalies.map(trip => {
+                    {anomalies.map((trip, index) => {
                         const positionPercent = ((trip.from.eventTime - minTime) / duration) * 100;
                         return (
                             <div
-                                key={trip.roadId}
+                                key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
                                 style={{
                                     position: 'absolute', top: '50%', left: `${positionPercent}%`, padding: '5px',
                                     transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 10, background: 'rgba(0, 0, 0, 0.001)',

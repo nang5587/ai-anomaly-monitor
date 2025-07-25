@@ -4,6 +4,10 @@ import { useEffect } from 'react';
 import type { ErrorPageProps } from '@/types/error';
 import { AlertTriangle, RotateCw } from 'lucide-react';
 
+import LottieComponent from '../components/ui/LottieComponent';
+import lottieError from '../assets/lottie/error.json';
+
+
 /**
  * 프로젝트 전체의 에러를 처리하는 전역 에러 바운더리입니다.
  * 특정 경로에 error.tsx가 없을 경우 이 컴포넌트가 사용됩니다.
@@ -20,9 +24,7 @@ export default function GlobalError({ error, reset }: ErrorPageProps) {
         <main className="w-full h-full flex items-center justify-center auto bg-[rgba(40,40,40)] text-white overflow-y-auto hide-scrollbar">
             <div className="text-center p-8 max-w-lg w-full mx-4">
                 <div className="flex justify-center mb-6">
-                    <div className="bg-rose-500 bg-opacity-20 p-4 rounded-full">
-                        <AlertTriangle className="w-12 h-12 text-white" />
-                    </div>
+                        <LottieComponent animationData={lottieError} />
                 </div>
 
                 <h1 className="text-4xl font-bold text-white mb-4">
