@@ -1,16 +1,23 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, Suspense } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
 import {
-    type Node,
+    type LocationNode,
     type AnalyzedTrip,
     type AnomalyType,
     getAnomalies,
-} from '../visual/data';
-import { anomalyDescriptionMap } from '../visual/anomalyUtils';
-import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
+} from '../../types/data';
+import { anomalyDescriptionMap } from '../../types/anomalyUtils';
+import { getAnomalyColor, getAnomalyName } from '../../types/colorUtils';
 
-import { v4 as uuidv4 } from 'uuid';
+import {
+    selectedObjectAtom,
+    allAnomalyTripsAtom,
+    selectTripAndFocusAtom,
+} from '@/stores/mapDataAtoms';
 
-type TripWithId = AnalyzedTrip & { id: string };
+import { MergeTrip } from './SupplyChainDashboard';
+
+import { ChevronsRight } from 'lucide-react';
 
 interface WaypointItemProps {
     title: string;
@@ -42,7 +49,7 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) 
     );
 };
 
-const TripTimeline: React.FC<{ trip: TripWithId }> = ({ trip }) => {
+const TripTimeline: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const waypoints = [
         { type: '도착지', location: trip.to.scanLocation },
         { type: '출발지', location: trip.from.scanLocation },
@@ -52,7 +59,7 @@ const TripTimeline: React.FC<{ trip: TripWithId }> = ({ trip }) => {
         <div>
             {waypoints.map((point, index) => (
                 <WaypointItem
-                    key={point.type}
+                    key={`${point.type}-${index}`}
                     title={point.type}
                     location={point.location}
                     isLast={index === waypoints.length - 1}
@@ -62,7 +69,7 @@ const TripTimeline: React.FC<{ trip: TripWithId }> = ({ trip }) => {
     );
 };
 
-const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
+const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
 
     return (
@@ -70,8 +77,8 @@ const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
             {/* 이상 현상 상세 설명 섹션 */}
             {hasAnomalies && (
                 <div className="flex flex-col gap-4 p-3 mb-6 rounded-lg bg-black/20">
-                    {trip.anomalyTypeList.map(code => (
-                        <div key={code}>
+                    {trip.anomalyTypeList.map((code, index) => (
+                        <div key={`${code}-${index}`}>
                             <p className="font-bold text-base" style={{ color: `rgb(${getAnomalyColor(code).join(',')})` }}>
                                 {getAnomalyName(code)}
                             </p>
@@ -104,13 +111,20 @@ const TripDetails: React.FC<{ trip: TripWithId }> = ({ trip }) => {
     );
 };
 
-const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ node, allAnomalies }) => {
+const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
+    const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
+    const allAnomalies = useAtomValue(allAnomalyTripsAtom);
+
     const relatedAnomalies = useMemo(() => {
+        if (!node || !allAnomalies) return [];
         return allAnomalies.filter(
-            trip => (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation) &&
-                    (trip.anomalyTypeList && trip.anomalyTypeList.length > 0) // 이상이 있는 trip만 필터링
+            trip => (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation)
         );
     }, [node, allAnomalies]);
+
+    const handleAnomalyClick = (trip: AnalyzedTrip) => {
+        selectTripAndFocus(trip);
+    };
 
     return (
         <>
@@ -123,18 +137,23 @@ const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ no
             <h4 className="my-4 text-base font-semibold text-neutral-300">연관된 이상징후 ({relatedAnomalies.length})</h4>
             {relatedAnomalies.length > 0 ? (
                 <div className="flex flex-col gap-2">
-                    {relatedAnomalies.map(trip => {
+                    {relatedAnomalies.map((trip, index) => {
                         // 각 trip의 대표 이상 유형을 찾음
                         const representativeAnomaly = trip.anomalyTypeList[0];
                         return (
-                            <div key={trip.id} className="text-xs p-2 rounded-md bg-white/5">
-                                <div className="font-bold" style={{ color: `rgb(${getAnomalyColor(representativeAnomaly).join(',')})` }}>
+                            // ✨ div를 button으로 바꾸고 onClick 핸들러 추가
+                            <button
+                                key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
+                                onClick={() => handleAnomalyClick(trip)}
+                                className="cursor-pointer text-left text-xs p-2 rounded-md transition-colors bg-white/5 hover:bg-white/10"
+                            >
+                                <div className="font-noto-500" style={{ color: `rgb(${getAnomalyColor(representativeAnomaly).join(',')})` }}>
                                     {getAnomalyName(representativeAnomaly)}
                                     {trip.anomalyTypeList.length > 1 && ` 외 ${trip.anomalyTypeList.length - 1}건`}
                                 </div>
                                 <div>{trip.from.scanLocation} → {trip.to.scanLocation}</div>
                                 <div>상품명: {trip.productName}</div>
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
@@ -144,27 +163,51 @@ const NodeDetails: React.FC<{ node: Node; allAnomalies: TripWithId[]; }> = ({ no
         </>
     );
 };
-// --- 메인 컴포넌트 ---
 
+const EpcDupListItem: React.FC<{ trip: AnalyzedTrip; onClick: () => void; isSelected: boolean }> = ({ trip, onClick, isSelected }) => (
+    <div
+        onClick={onClick}
+        className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 flex items-start gap-3 ${isSelected ? 'bg-black/20' : 'bg-black/20 hover:bg-black/5 overflow-y-auto hide-scrollbar'}`}
+    >
+        <div className="flex-grow">
+            <p className="font-noto-500 text-white text-sm">
+                {trip.productName}
+            </p>
+            <div className="text-xs text-[#E0E0E0] mt-1 flex items-center">
+                <span>{trip.from.scanLocation}</span>
+                <ChevronsRight className="w-4 h-4 mx-1" />
+                <span>{trip.to.scanLocation}</span>
+            </div>
+        </div>
+    </div>
+);
+
+// --- 메인 컴포넌트 ---
 interface DetailsPanelProps {
-    selectedObject: TripWithId | Node | null;
+    selectedObject: AnalyzedTrip | LocationNode | null;
     onClose: () => void;
 }
 
 const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) => {
-    const [allAnomalies, setAllAnomalies] = useState<TripWithId[]>([]);
+    const selectTrip = useSetAtom(selectTripAndFocusAtom);
+    const allAnomalyTrips = useAtomValue(allAnomalyTripsAtom);
 
-    useEffect(() => {
-        getAnomalies().then(response => {
-            // 👇 데이터를 받아와서 상태에 저장하기 전에 ID를 부여합니다.
-            const anomalyTrips = response.data;
-            const anomaliesWithId = anomalyTrips.map(trip => ({
-                ...trip,
-                id: uuidv4()
-            }));
-            setAllAnomalies(anomaliesWithId);
-        });
-    }, []);
+    // ✨ 1. 선택된 객체가 EPC 복제 유형인지 확인
+    const isEpcDup = useMemo(() =>
+        selectedObject && 'anomalyTypeList' in selectedObject && selectedObject.anomalyTypeList?.includes('clone'),
+        [selectedObject]
+    );
+
+    // ✨ 2. EPC 복제와 연관된 모든 경로 찾기
+    const duplicateTrips = useMemo(() => {
+        if (!isEpcDup || !selectedObject || !('epcCode' in selectedObject)) return [];
+        const targetEpc = (selectedObject as AnalyzedTrip).epcCode;
+        return allAnomalyTrips.filter(trip => trip.epcCode === targetEpc && trip.anomalyTypeList.includes('clone'));
+    }, [isEpcDup, selectedObject, allAnomalyTrips]);
+
+    const handleTripSelection = (trip: MergeTrip) => {
+        selectTrip(trip as MergeTrip);
+    }
 
     if (!selectedObject) return null;
 
@@ -183,9 +226,11 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             className='font-noto-400'>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#FFFFFF' }}>
-                    {isTrip
-                        ? `운송 상세`
-                        : (selectedObject as Node).scanLocation
+                    {isEpcDup
+                        ? '복제품 의심 이력' // ✨ 타이틀 변경
+                        : isTrip
+                            ? '운송 상세'
+                            : (selectedObject as LocationNode).scanLocation
                     }
                 </h3>
                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '20px', cursor: 'pointer' }}>
@@ -193,10 +238,35 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                 </button>
             </div>
             <div style={{ overflowY: 'auto', paddingRight: '10px' }} className="hide-scrollbar">
-                {isTrip
-                    ? <TripDetails trip={selectedObject as TripWithId} />
-                    : <NodeDetails node={selectedObject as Node} allAnomalies={allAnomalies} />
-                }
+                {isEpcDup ? (
+                    <div>
+                        {/* 섹션 1: 복제품 의심 목록 */}
+                        <p className="text-xs text-[#E0E0E0] mb-4">선택된 경로와 동일한 EPC를 사용하는 복제품 의심 경로 목록입니다.</p>
+                        <div className="space-y-2">
+                            {duplicateTrips.map((trip, index) => (
+                                <EpcDupListItem
+                                    key={`${trip.roadId}-${index}`}
+                                    trip={trip}
+                                    onClick={() => handleTripSelection(trip)}
+                                    isSelected={selectedObject && 'roadId' in selectedObject && (selectedObject as any).roadId === (trip as any).roadId}
+                                />
+                            ))}
+                        </div>
+
+                        {/* 구분선 */}
+                        <div className="my-6 border-t border-gray-600/50" />
+
+                        {/* 섹션 2: 선택된 경로의 상세 정보 */}
+                        <h4 className="text-base font-semibold text-neutral-300 mb-2">선택된 경로 상세</h4>
+                        {isTrip && <TripDetails trip={selectedObject as AnalyzedTrip} />}
+                    </div>
+                ) : isTrip ? (
+                    <TripDetails trip={selectedObject as AnalyzedTrip} />
+                ) : (
+                    <Suspense fallback={<div>연관 목록 로딩 중...</div>}>
+                        <NodeDetails node={selectedObject as LocationNode} />
+                    </Suspense>
+                )}
             </div>
         </div>
     );

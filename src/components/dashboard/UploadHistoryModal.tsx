@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { type UploadFile } from '@/components/visual/data';
+import { type UploadFile } from '../../types/data';
 import { X, FileText } from 'lucide-react';
 
 interface UploadHistoryModalProps {

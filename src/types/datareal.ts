@@ -4,19 +4,17 @@ import apiClient from '@/api/apiClient'; // 만들어둔 apiClient 인스턴스�
 
 // --- 1. 타입 정의 ---
 // 기존 타입 정의는 API 명세서와 일치하므로 그대로 사용합니다.
-export interface Node {
+export interface LocationNode {
     hubType: string;
     scanLocation: string;
     businessStep: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller' | 'POS';
     coord: [number, number];
 }
-export type AnomalyType = 'jump' | 'evtOrderErr' | 'epcFake' | 'epcDup' | 'locErr';
+export type AnomalyType = 'fake' | 'tamper' | 'clone';
 export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
-    jump: '시공간 점프',
-    evtOrderErr: '이벤트 순서 오류',
-    epcFake: 'EPC 위조',
-    epcDup: 'EPC 복제',
-    locErr: '경로 이탈',
+    fake: '위조',
+    tamper: '변조',
+    clone: '복제',
 };
 
 export function getAnomalyName(code: AnomalyType): string {
@@ -80,15 +78,29 @@ export interface UploadFile {
     locationId: number;
 }
 
+export interface ProductCount {
+    productName: string;
+    fake: number;
+    tamper: number;
+    clone: number;
+    total: number;
+}
+export type ByProductResponse = ProductCount[];
+
+// 페이지네이션 없는 이상 trips 응답
+export interface AllAnomaliesResponse {
+    data: AnalyzedTrip[];
+}
+
 // --- 2. 실제 API 호출 함수들 ---
 
 /**
- * ✅ 1. 노드(Node) 정보 조회
- * @returns {Promise<Node[]>}
+ * ✅ 1. 노드(LocationNode) 정보 조회
+ * @returns {Promise<LocationNode[]>}
  */
-export async function getNodes(): Promise<Node[]> {
+export async function getNodes(): Promise<LocationNode[]> {
     try {
-        const response = await apiClient.get<Node[]>('/manager/nodes');
+        const response = await apiClient.get<LocationNode[]>('/manager/nodes');
         return response.data;
     } catch (error) {
         console.error('노드 데이터 로딩 실패:', error);
@@ -196,5 +208,41 @@ export async function getUploadHistory(): Promise<UploadFile[]> {
     } catch (error) {
         console.error("업로드 내역 로딩 실패:", error);
         throw error; // 에러를 상위로 전파하여 UI에서 처리할 수 있도록 함
+    }
+}
+
+/**
+ * [실제 API] 제품별 이상 건수 데이터를 서버로부터 가져옵니다.
+ * @param params - 필터링을 위한 쿼리 파라미터 (예: { startDate: '2023-10-01' })
+ */
+export async function getAnomalyCountsByProduct(params?: Record<string, any>): Promise<ByProductResponse> {
+    try {
+        const response = await apiClient.get<ByProductResponse>('/manager/byproduct', { params });
+        return response.data;
+    } catch (error) {
+        console.error('제품별 이상 건수 데이터 로딩 실패:', error);
+        // 에러를 다시 throw하여 호출한 컴포넌트에서 처리할 수 있도록 합니다.
+        throw error;
+    }
+}
+
+/**
+ * 특정 파일의 모든 이상 징후 Trip 목록을 가져옵니다. (페이지네이션 없음)
+ * @param params fileId를 포함하는 객체. { fileId: 'some-id' }
+ * @returns AnalyzedTrip 객체의 배열
+ */
+export async function getAllAnomalies(params: { fileId: number }): Promise<AnalyzedTrip[]> {
+    try {
+        console.log(`Requesting all anomalies with params:`, params);
+
+        // apiClient.get을 사용하여 '/manager/allanomalies' 엔드포인트에 요청합니다.
+        // 두 번째 인자로 { params }를 전달하면 axios가 자동으로 쿼리 스트링으로 변환해줍니다.
+        // 예: /manager/allanomalies?fileId=some-id
+        const response = await apiClient.get<AllAnomaliesResponse>('/manager/allanomalies', { params });
+
+        return response.data.data || [];
+    } catch (error) {
+        console.error(`fileId [${params.fileId}]의 전체 이상 징후 데이터 로딩 실패:`, error);
+        throw error;
     }
 }

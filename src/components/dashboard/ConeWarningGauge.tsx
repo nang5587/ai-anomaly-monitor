@@ -31,7 +31,7 @@ export default function ConeWarningGauge({rate}:ConeWarningGaugeProps) {
                         outerRadius="100%"
                         startAngle={90}
                         endAngle={-270}
-                        paddingAngle={2.5} // 분절 사이 간격
+                        paddingAngle={2.5}
                         dataKey="value"
                         stroke='none'
                         cornerRadius={5}

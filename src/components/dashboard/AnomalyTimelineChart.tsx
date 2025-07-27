@@ -28,7 +28,7 @@ export default function AnomalyTimelineChart({ data }: AnomalyTimelineChartProps
                     <div style={{ color: 'white', background: 'rgba(0,0,0,0.85)', padding: 8, borderRadius: '6px' }}>
                         {payload?.[0] && (
                             <>
-                                <p className='font-bold'>시간 {label}</p>
+                                <p className='font-bold'>요일 {label}</p>
                                 <p>{payload[0].name} : {payload[0].value}</p>
                             </>
                         )}

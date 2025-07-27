@@ -17,7 +17,7 @@ export interface User {
   email?: string;
 }
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -60,42 +60,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (token: string, rememberMe: boolean) => {
+  const login = useCallback((token: string, rememberMe: boolean) => {
     const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
-
-    // 토큰과 필수 정보를 스토리지에 저장
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', token);
     const locationId = location_id;
     const newUser: User = { userId, role, locationId };
     setUser(newUser);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.clear();
     sessionStorage.clear();
     setUser(null);
     router.push('/login');
-  };
+  }, [router]);
 
   // 회원정보 변경 적용
-  const updateUserContext = (updatedInfo: Partial<User>) => {
+  const updateUserContext = useCallback((updatedInfo: Partial<User>) => {
     setUser(prevUser => {
-      if (!prevUser) return null; // 이전 사용자가 없으면 아무것도 안 함
-
+      if (!prevUser) return null;
       const newUser = { ...prevUser, ...updatedInfo };
-
-      // 변경된 정보를 스토리지에도 반영하여 새로고침 시 유지되도록 함
       const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
       if (storage) {
         if (updatedInfo.userName) storage.setItem('userName', updatedInfo.userName);
         if (updatedInfo.email) storage.setItem('email', updatedInfo.email);
       }
-
       return newUser;
     });
-  };
-
+  }, []);
+  
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUserContext }}>
       {children}

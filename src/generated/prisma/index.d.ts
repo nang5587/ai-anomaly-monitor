@@ -22,7 +22,7 @@ export type Report = $Result.DefaultSelection<Prisma.$ReportPayload>
 /**
  * ##  Prisma Client ʲˢ
  *
- * Type-safe database client for TypeScript & Node.js
+ * Type-safe database client for TypeScript & LocationNode.js
  * @example
  * ```
  * const prisma = new PrismaClient()
@@ -43,7 +43,7 @@ export class PrismaClient<
     /**
    * ##  Prisma Client ʲˢ
    *
-   * Type-safe database client for TypeScript & Node.js
+   * Type-safe database client for TypeScript & LocationNode.js
    * @example
    * ```
    * const prisma = new PrismaClient()

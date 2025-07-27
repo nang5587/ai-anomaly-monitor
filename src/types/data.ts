@@ -1,23 +1,20 @@
 import apiClient from "@/api/apiClient";
-
 // --- 1. 타입 정의 ---
-// 최종 논의된 내용에 맞춰 타입을 정의합니다.
-
-export interface Node {
+export interface LocationNode {
     hubType: string;
     scanLocation: string;
     businessStep: 'Factory' | 'WMS' | 'LogiHub' | 'Wholesaler' | 'Reseller' | 'POS';
     coord: [number, number];
 }
 
-export type AnomalyType = 'jump' | 'evtOrderErr' | 'epcFake' | 'epcDup' | 'locErr';
+// export type AnomalyType = 'jump' | 'evtOrderErr' | 'epcFake' | 'clone' | 'locErr';
+export type AnomalyType = 'fake' | 'tamper' | 'clone';
 export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
-    jump: '시공간 점프',
-    evtOrderErr: '이벤트 순서 오류',
-    epcFake: 'EPC 위조',
-    epcDup: 'EPC 복제',
-    locErr: '경로 이탈',
+    fake: '위조',
+    tamper: '변조',
+    clone: '복제',
 };
+
 export interface TripEndpoint {
     scanLocation: string;
     coord: [number, number];
@@ -81,6 +78,22 @@ export interface UploadFile {
     locationId: number;
 }
 
+export interface ProductCount {
+    productName: string;
+    fake: number;
+    tamper: number;
+    clone: number;
+    total: number;
+}
+
+// 제품별 추이 응답
+export type ByProductResponse = ProductCount[];
+
+// 페이지네이션 없는 이상 trips 응답
+export interface AllAnomaliesResponse {
+    data: AnalyzedTrip[];
+}
+
 // --- 2. API 호출 함수 (더미 데이터 시뮬레이션) ---
 
 /**
@@ -123,15 +136,16 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 
 /**
  * 필터링된 이상 징후 Trip 목록을 가져옵니다. (더미)
- * @param params 필터 조건
  */
-export async function getAnomalies(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
+export async function getAnomalies(params?: { fileId?: number, [key: string]: any }): Promise<PaginatedTripsResponse> {
     console.log('Fetching Anomalies with params:', params);
     const response = await fetch('/api/anomalies.json');
     console.log(response, 'test 입니다.')
     if (!response.ok) throw new Error('Failed to fetch anomalies');
 
-    let allAnomalies: AnalyzedTrip[] = await response.json();
+    const responseJson: { data: AnalyzedTrip[] } = await response.json();
+    let allAnomalies: AnalyzedTrip[] = responseJson.data || [];
+    
     const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
 
     if (filterKeys.length > 0) {
@@ -172,12 +186,14 @@ export async function getAnomalies(params?: Record<string, any>): Promise<Pagina
  * 필터링 및 페이지네이션된 전체 Trip 목록을 가져옵니다. (더미)
  * @param params 필터 조건 및 페이지네이션 커서
  */
-export async function getTrips(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
+export async function getTrips(params?: { fileId?: number, [key: string]: any }): Promise<PaginatedTripsResponse> {
     console.log('Fetching Trips with params:', params);
     const response = await fetch('/api/trips.json');
     if (!response.ok) throw new Error('Failed to fetch trips');
 
-    let allTrips: AnalyzedTrip[] = await response.json();
+    const responseJson: { data: AnalyzedTrip[] } = await response.json();
+    let allTrips: AnalyzedTrip[] = responseJson.data || [];
+
     const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
 
     if (filterKeys.length > 0) {
@@ -218,7 +234,7 @@ export async function getTrips(params?: Record<string, any>): Promise<PaginatedT
 
 // --- 나머지 더미 API 함수들 (수정 필요 없음) ---
 
-export async function getNodes(): Promise<Node[]> {
+export async function getNodes(): Promise<LocationNode[]> {
     const response = await fetch('/api/nodes.json');
     if (!response.ok) {
         throw new Error('Failed to fetch nodes');
@@ -267,5 +283,42 @@ export async function getUploadHistory(): Promise<UploadFile[]> {
         // 실제 운영 환경에서는 alert보다는 UI에 에러 메시지를 표시하는 것이 좋습니다.
         // alert('업로드 내역을 불러오는 데 실패했습니다.');
         return []; // 에러 발생 시 빈 배열 반환
+    }
+}
+
+
+export async function getAnomalyCountsByProduct(params?: Record<string, any>): Promise<ByProductResponse> {
+    try {
+        const response = await fetch('/api/byproduct.json');
+        if (!response.ok) {
+            throw new Error('Failed to fetch byproduct history');
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Error fetching byproduct history:", error);
+        // 실제 운영 환경에서는 alert보다는 UI에 에러 메시지를 표시하는 것이 좋습니다.
+        // alert('업로드 내역을 불러오는 데 실패했습니다.');
+        return []; // 에러 발생 시 빈 배열 반환
+    }
+}
+
+/**
+ * @param params fileId를 포함하는 객체. 더미 환경에서는 이 값이 사용되지 않습니다.
+ * @returns AnalyzedTrip 객체의 배열
+ */
+export async function getAllAnomalies(params: { fileId: number }): Promise<AnalyzedTrip[]> {
+    try {
+        console.log(`[DUMMY] Fetching all anomalies for fileId: ${params.fileId}`);
+        const response = await fetch('/api/anomalies.json');
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch dummy allanomalies.json');
+        }
+        const responseJson: { data: AnalyzedTrip[] } = await response.json();
+
+        return responseJson.data || [];
+    } catch (error) {
+        console.error(`더미 전체 이상 징후 데이터 로딩 실패 (fileId: ${params.fileId}):`, error);
+        return [];
     }
 }

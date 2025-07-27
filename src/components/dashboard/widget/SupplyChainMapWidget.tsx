@@ -1,8 +1,6 @@
 'use client'
 import React, { useMemo, useState, useEffect } from 'react';
-import DeckGL from 'deck.gl';
-
-import { Maximize } from 'lucide-react';
+import DeckGL, { type Color } from 'deck.gl';
 
 import { PathLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
@@ -12,10 +10,10 @@ import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
 import Map from 'react-map-gl';
 
-import { type Node, type AnalyzedTrip } from './data';
-import { type TripWithId } from './SupplyChainDashboard';
-import { cubeModel, factoryBuildingModel } from './models';
-import { getNodeColor, getAnomalyColor } from '../visual/colorUtils';
+import { type LocationNode, type AnalyzedTrip } from '../../../types/data';
+import { type MergeTrip } from '../../visual/SupplyChainDashboard';
+import { cubeModel, factoryBuildingModel } from '../../visual/models';
+import { getNodeColor, getAnomalyColor } from '../../../types/colorUtils';
 
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
@@ -51,7 +49,7 @@ const OTHER_MODEL_MAPPING: Record<string, any> = {
 };
 
 type SupplyChainMapWidgetProps = {
-    nodes: Node[];
+    nodes: LocationNode[];
     analyzedTrips: AnalyzedTrip[];
     minTime: number;
     maxTime: number;
@@ -115,7 +113,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
         const filteredNodes = otherNodes.filter(node => node.businessStep === type);
         if (filteredNodes.length === 0) return null;
 
-        return new SimpleMeshLayer<Node>({
+        return new SimpleMeshLayer<LocationNode>({
             id: `widget-mesh-layer-${type}`,
             data: filteredNodes,
             mesh: OTHER_MODEL_MAPPING[type],
@@ -130,7 +128,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
     }).filter(Boolean);
 
     const factoryLayers = [
-        new SimpleMeshLayer<Node>({
+        new SimpleMeshLayer<LocationNode>({
             id: 'widget-factory-building-layer',
             data: factoryNodes,
             mesh: parsedFactoryBuildingModel,
@@ -147,7 +145,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
     // 모든 레이어를 합침
     const layers = [
         // 정적 연결선 레이어 (선택 하이라이트 로직 제거)
-        new PathLayer<TripWithId>({
+        new PathLayer<MergeTrip>({
             id: 'widget-static-paths',
             data: validTrips,
             getPath: d => d.path || [d.from.coord, d.to.coord],
@@ -155,18 +153,17 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
                 // ✨ 수정: trip.anomalyType -> trip.anomalyTypeList
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 if (representativeAnomaly) {
-                    const color = getAnomalyColor(representativeAnomaly);
-                    return [...color, 80];
+                    return [255, 64, 64, 30] as Color;
                 }
-                return [255,255,255, 50];
+                return [255, 255, 255, 30];
             },
-            widthMinPixels: 5,
+            widthMinPixels: 3,
         }),
         // 건물 및 굴뚝 레이어
         ...otherMeshLayers,
         ...factoryLayers,
         // 동적 이동 애니메이션 레이어
-        new TripsLayer<TripWithId>({
+        new TripsLayer<MergeTrip>({
             id: 'widget-trips-layer',
             data: validTrips,
             getPath: d => d.path || [d.from.coord, d.to.coord],
@@ -174,73 +171,56 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ node
             getColor: d => {
                 const representativeAnomaly = d.anomalyTypeList && d.anomalyTypeList.length > 0 ? d.anomalyTypeList[0] : null;
                 // 대표 이상 유형이 있으면 해당 색상을, 없으면 기본 초록색을 반환
-                return representativeAnomaly ? getAnomalyColor(representativeAnomaly) : [144, 238, 144];
+                return representativeAnomaly ? [255, 64, 64] as Color : [0, 255, 127];
             },
-            opacity: 0.8,
-            widthMinPixels: 5,
+            widthMinPixels: 3,
             capRounded: true,
             jointRounded: true,
             trailLength: 180,
-            currentTime, // 부모로부터 받은 currentTime 사용
+            currentTime,
         }),
     ];
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
-            <DeckGL
-                layers={layers}
-                initialViewState={WIDGET_VIEW_STATE}
-                controller={false} // 지도 컨트롤(줌, 이동) 비활성화
-            >
-                <Map
-                    mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
-                    mapStyle="mapbox://styles/mapbox/dark-v11"
-                    // 배경을 완전히 검게 만들어 DeckGL과 자연스럽게 어울리게 함
-                    onLoad={e => {
-                        const map = e.target;
+        <div
+            style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                cursor: 'pointer',
+            }}
+            onClick={onWidgetClick}
+        >
+            <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
+                <DeckGL
+                    layers={layers}
+                    initialViewState={WIDGET_VIEW_STATE}
+                    controller={false} // 지도 컨트롤(줌, 이동) 비활성화
+                >
+                    <Map
+                        mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
+                        mapStyle="mapbox://styles/mapbox/dark-v11"
+                        // 배경을 완전히 검게 만들어 DeckGL과 자연스럽게 어울리게 함
+                        onLoad={e => {
+                            const map = e.target;
 
-                        const setCustomColors = () => {
-                            // 레이어가 존재하는지 한번 더 확인하여 에러를 원천 봉쇄합니다.
-                            if (map.getLayer('background')) {
-                                map.setPaintProperty('background', 'background-color', '#000000');
-                            }
-                            if (map.getLayer('water')) {
-                                map.setPaintProperty('water', 'fill-color', '#000000');
-                            }
-                        };
+                            const setCustomColors = () => {
+                                // 레이어가 존재하는지 한번 더 확인하여 에러를 원천 봉쇄합니다.
+                                if (map.getLayer('background')) {
+                                    map.setPaintProperty('background', 'background-color', '#000000');
+                                }
+                                if (map.getLayer('water')) {
+                                    map.setPaintProperty('water', 'fill-color', '#000000');
+                                }
+                            };
 
-                        // 맵이 완전히 유휴 상태가 되면(모든 소스 로드 및 렌더링 완료) 이벤트를 실행합니다.
-                        // 'once'를 사용하여 이 리스너가 단 한 번만 실행되도록 보장합니다.
-                        map.once('idle', setCustomColors);
-                    }}
-                />
-            </DeckGL>
-            <button
-                onClick={onWidgetClick}
-                style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    zIndex: 10,
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    pointerEvents: 'auto',
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'}
-                title="분석지도 확대"
-            >
-                <Maximize size={20} />
-            </button>
+                            // 맵이 완전히 유휴 상태가 되면(모든 소스 로드 및 렌더링 완료) 이벤트를 실행합니다.
+                            // 'once'를 사용하여 이 리스너가 단 한 번만 실행되도록 보장합니다.
+                            map.once('idle', setCustomColors);
+                        }}
+                    />
+                </DeckGL>
+            </div>
         </div>
     );
 };

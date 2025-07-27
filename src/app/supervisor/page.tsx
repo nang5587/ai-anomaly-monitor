@@ -10,10 +10,12 @@ import {
   mergeAndGenerateTimestamps,
   loadRouteGeometriesAtom,
   routeGeometriesAtom,
+  activeTabAtom,
 } from '@/stores/mapDataAtoms';
 
 import { motion, type Variants } from 'framer-motion';
 
+import { type Tab } from '@/components/visual/SupplyChainDashboard';
 import {
   getNodes,
   getAnomalies,
@@ -21,25 +23,32 @@ import {
   getKpiSummary,
   getInventoryDistribution,
   getUploadHistory,
-  type Node,
+  getAnomalyCountsByProduct,
+  type LocationNode,
   type AnalyzedTrip,
   type KpiSummary,
   type InventoryDataPoint,
   type AnomalyType,
   type PaginatedTripsResponse,
   type UploadFile,
-} from '@/components/visual/data';
+  type ByProductResponse,
+} from '../../types/data';
 
 import StatCard from '@/components/dashboard/StatCard';
 import AnomalyList from '@/components/dashboard/AnomalyList';
-import { SupplyChainMapWidget } from '@/components/visual/SupplyChainMapWidget';
+
+import { DashboardMapWidget } from '../../components/dashboard/widget/DashboardMapWidget';
+
+// 삭제예정
+import { SupplyChainMapWidget } from '../../components/dashboard/widget/SupplyChainMapWidget';
+import { HeatmapViewWidget } from '../../components/dashboard/widget/HeatmapViewWidget';
+
 import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
 import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
 
-import { getAnomalyName, getAnomalyColor } from '@/components/visual/colorUtils';
+import { getAnomalyName, getAnomalyColor } from '../../types/colorUtils';
 
 import dynamic from 'next/dynamic';
-import { v4 as uuidv4 } from 'uuid';
 
 const DynamicAnomalyChart = dynamic(
   () => import('@/components/dashboard/AnomalyEventsChart'),
@@ -49,10 +58,12 @@ const DynamicInventoryChart = dynamic(
   () => import('@/components/dashboard/DataBalanceRadarChart'),
   { ssr: false }
 );
+const DynamicProductChart = dynamic(
+  () => import('@/components/dashboard/ProductAnomalyChart'),
+  { ssr: false });
 const DynamicTimelineChart = dynamic(
   () => import('@/components/dashboard/AnomalyTimelineChart'),
   { ssr: false });
-
 const DynamicStageLollipopChart = dynamic(
   () => import('@/components/dashboard/StageLollipopChart'),
   { ssr: false }
@@ -73,7 +84,8 @@ import {
   Play,
   ArrowRightCircle,
   FileText,
-  X
+  X,
+  Repeat,
 } from "lucide-react";
 
 import DatePicker from 'react-datepicker';
@@ -104,7 +116,7 @@ type EventTimelineDataPoint = {
   count: number;
 };
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 const factoryCodeNameMap: { [key: number]: string } = {
   1: '인천',
@@ -130,6 +142,7 @@ export type AnomalyListItem = {
 
 export default function SupervisorDashboard() {
   const router = useRouter();
+  const setActiveTab = useSetAtom(activeTabAtom);
   // ℹ️ 테스트 끝나면 주석 풀기
   // const { user } = useAuth();
   // useEffect(() => {
@@ -150,8 +163,8 @@ export default function SupervisorDashboard() {
   const nodes = useAtomValue(nodesAtom);
   const setNodes = useSetAtom(nodesAtom);
 
-  const [anomalyTrips, setAnomalyTrips] = useState<TripWithId[]>([]);
-  const [allTripsForMap, setAllTripsForMap] = useState<TripWithId[]>([]);
+  const [anomalyTrips, setAnomalyTrips] = useState<AnalyzedTrip[]>([]);
+  const [allTripsForMap, setAllTripsForMap] = useState<AnalyzedTrip[]>([]);
 
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false)
@@ -170,6 +183,7 @@ export default function SupervisorDashboard() {
   const [anomalyChartData, setAnomalyChartData] = useState<any[]>([]);
   const [stageChartData, setStageChartData] = useState<StageBarDataPoint[]>([]);
   const [eventTimelineData, setEventTimelineData] = useState<any[]>([]);
+  const [productAnomalyData, setProductAnomalyData] = useState<ByProductResponse>([]);
 
   // 날짜 선택
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -181,6 +195,9 @@ export default function SupervisorDashboard() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [uploadHistory, setUploadHistory] = useState<UploadFile[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
+
+  // 제품별 or 요일별
+  const [isShowingProductChart, setIsShowingProductChart] = useState(true);
 
   const factoryTabs = useMemo(() => {
     if (user.role === 'ADMIN') {
@@ -271,26 +288,28 @@ export default function SupervisorDashboard() {
       console.log('--- 1. API에 전달되는 파라미터 ---', { ...params, limit: 50, cursor: null });
 
       try {
-        const [kpiRes, inventoryRes, nodesRes, anomaliesRes, allTripsRes] = await Promise.all([
+        const [kpiRes, inventoryRes, nodesRes, anomaliesRes, allTripsRes, productAnomalyRes] = await Promise.all([
           getKpiSummary(params),
           getInventoryDistribution(params),
           getNodes(),
           getAnomalies({ ...params, limit: 50, cursor: null }),
-          getTrips({ ...params, limit: 50 })
+          getTrips({ ...params, limit: 50 }),
+          getAnomalyCountsByProduct(params)
         ]);
 
         // ... 데이터 설정 로직 ...
         setKpiData(kpiRes);
         setInventoryData(inventoryRes.inventoryDistribution);
         setNodes(nodesRes);
-
+        
         const mergedTrips = mergeAndGenerateTimestamps(anomaliesRes.data, routeGeometries);
-
+        
         // 가공된 최종 데이터를 상태에 저장합니다.
         setAnomalyTrips(mergedTrips);
         setNextCursor(anomaliesRes.nextCursor);
         const mergedAllTrips = mergeAndGenerateTimestamps(allTripsRes.data, routeGeometries);
         setAllTripsForMap(mergedAllTrips);
+        setProductAnomalyData(productAnomalyRes);
 
       } catch (error) {
         console.error("대시보드 데이터 로딩 실패:", error);
@@ -323,8 +342,9 @@ export default function SupervisorDashboard() {
     try {
       // getAnomalies 호출 시 cursor 정보도 함께 전달
       const response = await getAnomalies({ ...params, cursor: nextCursor });
-      const newTripsWithId = response.data.map(trip => ({ ...trip, id: uuidv4() }));
-      setAnomalyTrips(prev => [...prev, ...newTripsWithId]);
+      const newMergedTrips = mergeAndGenerateTimestamps(response.data, routeGeometries);
+
+      setAnomalyTrips(prev => [...prev, ...newMergedTrips]);
       setNextCursor(response.nextCursor);
     } catch (error) {
       console.error("추가 데이터 로딩 실패:", error);
@@ -415,7 +435,7 @@ export default function SupervisorDashboard() {
     setAnomalyChartData(newAnomalyChartData);
 
     // 2. 공급망 단계별 이상 이벤트
-    const nodeMapByLocation = new Map<string, Node>(nodes.map(n => [n.businessStep, n]));
+    const nodeMapByLocation = new Map<string, LocationNode>(nodes.map(n => [n.businessStep, n]));
 
     const STAGES = [
       { from: 'Factory', to: 'WMS', name: '공장 → 창고' },
@@ -438,21 +458,30 @@ export default function SupervisorDashboard() {
     setStageChartData(newStageChartData);
 
     // 3. 시간대별 이상 발생 추이 (변경 필요 없음)
-    const timeIntervals: { [key: string]: number } = {
-      '00:00': 0, '03:00': 0, '06:00': 0, '09:00': 0,
-      '12:00': 0, '15:00': 0, '18:00': 0, '21:00': 0,
-    };
+    const dayOfWeekData = [
+      { day: '월', count: 0 }, { day: '화', count: 0 }, { day: '수', count: 0 },
+      { day: '목', count: 0 }, { day: '금', count: 0 }, { day: '토', count: 0 },
+      { day: '일', count: 0 },
+    ];
+    const dayIndexMap = [6, 0, 1, 2, 3, 4, 5];
+
     anomalyTrips.forEach(trip => {
       if (!trip.from || typeof trip.from.eventTime !== 'number') return;
+
       const startTime = new Date(trip.from.eventTime * 1000);
-      const hour = startTime.getHours();
-      const interval = Math.floor(hour / 3) * 3;
-      const intervalKey = interval.toString().padStart(2, '0') + ':00';
-      if (timeIntervals.hasOwnProperty(intervalKey)) {
-        timeIntervals[intervalKey]++;
+      const dayOfWeek = startTime.getDay(); // 0 (일) ~ 6 (토)
+      const targetIndex = dayIndexMap[dayOfWeek];
+
+      if (targetIndex !== undefined) {
+        dayOfWeekData[targetIndex].count++;
       }
     });
-    const newEventTimelineData = Object.entries(timeIntervals).map(([time, count]) => ({ time, count }));
+
+    // 차트 컴포넌트가 기대하는 { time, count } 형태로 최종 변환
+    const newEventTimelineData = dayOfWeekData.map(data => ({
+      time: data.day, // 'day' 프로퍼티를 'time'으로 매핑
+      count: data.count
+    }));
     setEventTimelineData(newEventTimelineData);
 
   }, [anomalyTrips, nodes, isLoading]);
@@ -496,7 +525,10 @@ export default function SupervisorDashboard() {
     );
   }
 
-  const handleWidgetClick = (path: string) => router.push(path);
+  const handleWidgetClick = (tab: Tab) => {
+    setActiveTab(tab);
+    router.push('/graph');
+  };
 
   // 애니메이션 정의
   const containerVariants: Variants = {
@@ -519,6 +551,10 @@ export default function SupervisorDashboard() {
         ease: "easeOut",
       },
     },
+  };
+
+  const handleChartToggle = () => {
+    setIsShowingProductChart(prevState => !prevState);
   };
 
   // if (!user || user.role !== 'ADMIN') { 📛서버 연결하면 다시 주석 풀어야 함
@@ -564,22 +600,23 @@ export default function SupervisorDashboard() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 bg-[rgba(30,30,30)] text-white border border-gray-400 px-4 py-2 rounded-[50px]">
-                <CalendarIcon size={20} className="text-gray-300" />
-                <DatePicker
-                  selected={selectedDate}
-                  onChange={(date: Date | null) => {
-                    setSelectedDate(date);
-                    setSelectedFileId(null);
-                  }}
-                  dateFormat="yyyy/MM/dd"
-                  isClearable
-                  placeholderText="날짜 선택"
-                  className="bg-transparent text-white outline-none w-28"
-                  popperPlacement="bottom-start"
-                  maxDate={new Date()}
-                />
-              </div>
+              <></>
+              // <div className="flex items-center gap-2 bg-[rgba(30,30,30)] text-white border border-gray-400 px-4 py-2 rounded-[50px]">
+              //   <CalendarIcon size={20} className="text-gray-300" />
+              //   <DatePicker
+              //     selected={selectedDate}
+              //     onChange={(date: Date | null) => {
+              //       setSelectedDate(date);
+              //       setSelectedFileId(null);
+              //     }}
+              //     dateFormat="yyyy/MM/dd"
+              //     isClearable
+              //     placeholderText="날짜 선택"
+              //     className="bg-transparent text-white outline-none w-28"
+              //     popperPlacement="bottom-start"
+              //     maxDate={new Date()}
+              //   />
+              // </div>
             )}
           </div>
           <div className="flex items-center gap-4 pr-4">
@@ -641,11 +678,27 @@ export default function SupervisorDashboard() {
 
                   {/* 2. 시간대별 이상 발생 추이 */}
                   <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[260px] flex flex-col flex-grow">
-                    <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">시간대별 이상 발생 추이</h3>
+                    <div className="flex justify-between items-center px-3 pb-3 mb-2 flex-shrink-0">
+                      <h3 className="font-noto-400 text-white text-xl">
+                        {isShowingProductChart ? '제품별 이상 발생 추이' : '요일별 이상 발생 추이'}
+                      </h3>
+                      <button
+                        onClick={handleChartToggle}
+                        className="p-2 rounded-full text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                        title="차트 전환"
+                      >
+                        <Repeat size={18} />
+                      </button>
+                    </div>
                     <div className="flex-grow overflow-hidden">
-                      <DynamicTimelineChart data={eventTimelineData} />
+                      {isShowingProductChart ? (
+                        <DynamicProductChart data={productAnomalyData} />
+                      ) : (
+                        <DynamicTimelineChart data={eventTimelineData} />
+                      )}
                     </div>
                   </div>
+
                 </div>
 
                 {/* --- 오른쪽 열 --- */}
@@ -673,7 +726,7 @@ export default function SupervisorDashboard() {
 
             {/* 3열: 지도 */}
             <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
-              <div className="relative w-full h-full rounded-3xl overflow-hidden">
+              {/* <div className="relative w-full h-full rounded-3xl overflow-hidden">
                 <SupplyChainMapWidget
                   key={replayTrigger}
                   nodes={nodes}
@@ -697,7 +750,17 @@ export default function SupervisorDashboard() {
                 >
                   <Play size={20} />
                 </button>
-              </div>
+              </div> */}
+              <DashboardMapWidget
+                nodes={nodes}
+                anomalyTrips={anomalyTrips} // 히트맵용 데이터 전달
+                allTripsForMap={allTripsForMap} // 경로 지도용 데이터 전달
+                minTime={minTime}
+                maxTime={maxTime}
+                replayTrigger={replayTrigger}
+                onWidgetClick={handleWidgetClick} // 확대 버튼 핸들러
+                onReplayClick={handleReplayAnimation} // 다시보기 버튼 핸들러
+              />
             </motion.div>
           </div>
 
@@ -720,7 +783,7 @@ export default function SupervisorDashboard() {
             </div>
           </motion.div>
         </motion.div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

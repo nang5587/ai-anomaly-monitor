@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 
-import type { AnalyzedTrip, AnomalyType } from "./data";
-import { getAnomalyColor, getAnomalyName } from "./colorUtils";
+import type { AnalyzedTrip, AnomalyType } from "../../types/data";
+import { getAnomalyColor, getAnomalyName } from "../../types/colorUtils";
+import { pastelColorMap } from '../../types/anomalyUtils';
 
 const SIMULATION_START_DATE = new Date('2025-02-17T00:00:00Z');
 const TIME_UNIT_IN_HOURS = 1;
@@ -16,7 +17,7 @@ const formatTimestamp = (time: number): string => {
     }).replace(/\. /g, '-').replace('.', '');
 };
 
-type TripWithId = AnalyzedTrip & { id: string };
+// type TripWithId = AnalyzedTrip & { id: string };
 
 interface TimeSliderProps {
     minTime: number;
@@ -25,23 +26,14 @@ interface TimeSliderProps {
     isPlaying: boolean;
     onChange: (time: number) => void;
     onTogglePlay: () => void;
-    anomalies: TripWithId[];
-    onMarkerClick: (trip: TripWithId) => void;
+    anomalies: AnalyzedTrip[];
+    onMarkerClick: (trip: AnalyzedTrip) => void;
 }
 
 type TooltipInfo = {
     trip: AnalyzedTrip;
     top: number;
     left: number;
-};
-
-const pastelColorMap: { [key: string]: string } = {
-    'jump': '#D7BDE2',      // 연한 라벤더
-    'evtOrderErr': '#FAD7A0', // 부드러운 살구
-    'epcFake': '#F5B7B1',     // 매우 연한 핑크
-    'epcDup': '#FCF3CF',      // 부드러운 크림
-    'locErr': '#A9CCE3',      // 매우 연한 하늘색
-    'default': '#E5E7E9',     // 연한 회색
 };
 
 const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, isPlaying, onChange, onTogglePlay, anomalies,
@@ -169,11 +161,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 <div style={{ flexGrow: 1, position: 'relative', height: '15px', display: 'flex', alignItems: 'center' }}>
 
                     {/* ✨ 6. 마커들을 렌더링하는 부분 */}
-                    {anomalies.map(trip => {
+                    {anomalies.map((trip, index) => {
                         const positionPercent = ((trip.from.eventTime - minTime) / duration) * 100;
                         return (
                             <div
-                                key={trip.id}
+                                key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
                                 style={{
                                     position: 'absolute', top: '50%', left: `${positionPercent}%`, padding: '5px',
                                     transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 10, background: 'rgba(0, 0, 0, 0.001)',

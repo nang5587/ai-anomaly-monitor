@@ -1,33 +1,12 @@
 import React from 'react';
-import { type AnalyzedTrip } from '@/components/visual/data';
-import { getAnomalyName } from '../visual/colorUtils';
-import { Truck, Shuffle, ShieldAlert, Copy, MapPinOff, ArrowRight } from 'lucide-react';
-
-
-type TripWithId = AnalyzedTrip & { id: string };
+import { type AnalyzedTrip } from '../../types/data';
+import { getAnomalyName } from '../../types/colorUtils';
+import { pastelColorMap } from '../../types/anomalyUtils';
 
 type TripListProps = {
-    trips: TripWithId[];
-    onCaseClick: (trip: TripWithId) => void;
+    trips: AnalyzedTrip[];
+    onCaseClick: (trip: AnalyzedTrip) => void;
     selectedObjectId: string | null;
-};
-
-// 아이콘과 색상 맵 (AnomalyList와 동일한 로직)
-const anomalyIconMap: { [key: string]: JSX.Element } = {
-    jump: <Truck className="w-4 h-4" />,
-    evtOrderErr: <Shuffle className="w-4 h-4" />,
-    epcFake: <ShieldAlert className="w-4 h-4" />,
-    epcDup: <Copy className="w-4 h-4" />,
-    locErr: <MapPinOff className="w-4 h-4" />,
-};
-
-const pastelColorMap: { [key: string]: string } = {
-    'jump': '#D7BDE2',
-    'evtOrderErr': '#FAD7A0',
-    'epcFake': '#F5B7B1',
-    'epcDup': '#FCF3CF',
-    'locErr': '#A9CCE3',
-    'default': '#E5E7E9',
 };
 
 const formatUnixTime = (unixTimestamp: number | string | null | undefined): string => {
@@ -108,14 +87,14 @@ export default function TripList({ trips, onCaseClick, selectedObjectId }: TripL
                 }}
                 className="hide-scrollbar"
             >
-                {trips.map((trip) => {
-                    const isSelected = selectedObjectId === trip.id;
+                {trips.map((trip, index) => {
+                    const isSelected = selectedObjectId === trip.roadId;
                     // ✨ trip.anomalyTypeList가 유효한 배열인지 확인
                     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
 
                     return (
                         <div
-                            key={trip.id}
+                            key={`${trip.roadId}-${index}`}
                             onClick={() => onCaseClick(trip)}
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >

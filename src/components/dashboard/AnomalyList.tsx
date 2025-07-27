@@ -1,39 +1,19 @@
 import React from 'react';
-import { type AnalyzedTrip, type Node } from '@/components/visual/data';
-import { getAnomalyColor, getAnomalyName } from '../visual/colorUtils';
-import { Truck, Shuffle, ShieldAlert, Copy, MapPinOff } from 'lucide-react';
-
-type TripWithId = AnalyzedTrip & { id: string };
+import { type AnalyzedTrip, type LocationNode } from '../../types/data';
+import { getAnomalyColor, getAnomalyName } from '../../types/colorUtils';
+import { anomalyDescriptionMap, pastelColorMap } from '../../types/anomalyUtils';
+import { AlertTriangle, Gavel , Copy } from 'lucide-react';
 
 type AnomalyListProps = {
-    anomalies: TripWithId[];
+    anomalies: AnalyzedTrip[];
 };
 
 const anomalyIconMap: { [key: string]: JSX.Element } = {
-    jump: <Truck className="w-4 h-4" />,          // 시공간 점프
-    evtOrderErr: <Shuffle className="w-4 h-4" />, // 이벤트 순서 오류
-    epcFake: <ShieldAlert className="w-4 h-4" />, // 위조 (보안/인증 문제)
-    epcDup: <Copy className="w-4 h-4" />,         // 복제
-    locErr: <MapPinOff className="w-4 h-4" />,    // 경로 위조 (위치 이탈)
+    fake: <AlertTriangle className="w-4 h-4" />,       
+    tamper: <Gavel  className="w-4 h-4" />, 
+    clone: <Copy className="w-4 h-4" />,      
 };
 
-const anomalyDescriptionMap: { [key: string]: string } = {
-    jump: "비논리적인 시공간 이동이 감지되었습니다.",
-    evtOrderErr: "이벤트 발생 순서가 논리적으로 맞지 않습니다.",
-    epcFake: "EPC 생성 규칙에 어긋나는 위조된 코드가 발견되었습니다.",
-    epcDup: "동일한 EPC 코드가 같은 시간에 다른 위치에서 중복으로 존재합니다.",
-    locErr: "예상 경로를 이탈하여, 잘못된 위치에 상품이 존재합니다.",
-};
-
-// ✨ 이상 유형 코드에 맞는 태그 색상 매핑
-const pastelColorMap: { [key: string]: string } = {
-    'jump': '#D7BDE2',
-    'evtOrderErr': '#FAD7A0',
-    'epcFake': '#F5B7B1',
-    'epcDup': '#FCF3CF',
-    'locErr': '#A9CCE3',
-    'default': '#E5E7E9',
-};
 
 const formatUnixTimestamp = (timestamp: number | string): string => {
     // 유효하지 않은 타임스탬프는 'N/A'로 처리
@@ -84,14 +64,14 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
             </div>
 
             {/* 바디 */}
-            {anomalies.map((trip) => {
+            {anomalies.map((trip, index) => {
                 const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
                 if (!hasAnomalies) return null;
 
                 return (
                     // ✨ 2. onClick 이벤트와 선택/호버 관련 클래스 제거
                     <div
-                        key={trip.id}
+                        key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
                         className={`group font-noto-400 border-b border-b-[#e0e0e034] hover:bg-[rgba(30,30,30)]
                                     sm:grid sm:grid-cols-[2fr_1.5fr_2.5fr_3fr_2fr] sm:gap-x-4 sm:items-center sm:text-center
                                     flex flex-col gap-2 py-4 px-6 sm:px-12`}
@@ -130,7 +110,7 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                                     <span
                                         key={code}
                                         style={{ color: tagColor }}
-                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold"
+                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-noto-500"
                                     >
                                         {anomalyIconMap[code]}
                                         {getAnomalyName(code)}

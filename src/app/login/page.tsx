@@ -1,12 +1,28 @@
 'use client';
-
+import { useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { FcGoogle } from 'react-icons/fc';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { loginAction } from './actions';
 
-const initialState: { message: string; success: boolean; } = {
+
+import { FcGoogle } from 'react-icons/fc';
+import jwtDecode from 'jwt-decode';
+interface DecodedToken {
+  role: string;
+}
+function getRedirectUrl(role: string) {
+  switch (role) {
+    case "ADMIN": return "/supervisor";
+    case "MANAGER": return "/admin";
+    default: return "/";
+  }
+}
+const initialState: { message: string; success: boolean; token?: string; rememberMe?: boolean; } = {
   message: '',
   success: false,
+  token: undefined,
+  rememberMe: false,
 };
 
 function LoginButton() {
@@ -27,6 +43,25 @@ function LoginButton() {
 // ✅ default export 되는 로그인 컴포넌트
 export default function LoginPage() {
   const [state, formAction] = useFormState(loginAction, initialState);
+  const router = useRouter();
+  const { login } = useAuth();
+
+  useEffect(() => {
+    // 1. 로그인에 성공했고, state에 토큰이 포함되어 있다면
+    if (state.success && state.token && typeof state.rememberMe === 'boolean') {
+      login(state.token, state.rememberMe);
+
+      try {
+        const decoded: DecodedToken = jwtDecode(state.token);
+        const redirectUrl = getRedirectUrl(decoded.role);
+        router.push(redirectUrl);
+      } catch (error) {
+        console.error("토큰 디코딩 실패:", error);
+        // 디코딩 실패 시 기본 페이지로 이동
+        router.push('/');
+      }
+    }
+  }, [state.success, state.token, state.rememberMe, router, login]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -77,10 +112,11 @@ export default function LoginPage() {
               <label className="text-sm text-gray-600">비밀번호</label>
               <input
                 type="password"
-                value="password"
+                name="password"
                 placeholder="••••••••"
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
                 required
+              // autoComplete="current-password"
               />
             </div>
 

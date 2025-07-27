@@ -1,6 +1,6 @@
 // zustand
 import { create } from 'zustand';
-import { type Node, type AnalyzedTrip } from '@/components/visual/data'; // 실제 타입 경로 확인
+import { type LocationNode, type AnalyzedTrip } from '../types/data'; // 실제 타입 경로 확인
 
 // --- 타입 정의 ---
 type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][] }; // ✨ path 속성 추가
@@ -9,19 +9,19 @@ type RouteGeometryMap = Record<string, RouteGeometry>;
 
 // --- 스토어 상태 타입 정의 ---
 interface MapState {
-    nodes: Node[];
+    nodes: LocationNode[];
     trips: TripWithId[];
     routeGeometries: RouteGeometryMap | null;
-    selectedObject: TripWithId | Node | null;
+    selectedObject: TripWithId | LocationNode | null;
     isLoading: boolean;
     
     // ✨ "병합된 최종 데이터"를 저장할 상태 추가
     tripsWithDetailedPaths: TripWithId[];
 
     // --- 액션 정의 ---
-    setNodes: (nodes: Node[]) => void;
+    setNodes: (nodes: LocationNode[]) => void;
     setTrips: (trips: TripWithId[]) => void;
-    setSelectedObject: (object: TripWithId | Node | null) => void;
+    setSelectedObject: (object: TripWithId | LocationNode | null) => void;
     loadRouteGeometries: () => Promise<void>; // ✨ 상세 경로 로딩 액션
 }
 

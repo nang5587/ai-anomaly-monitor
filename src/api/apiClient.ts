@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-
+import type { FileItem } from '@/types/file';
 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 if (!baseURL) {
@@ -98,5 +98,29 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+// ===================================================================
+// ✨ 여기에 클라이언트 컴포넌트에서 사용할 API 함수들을 정의합니다.
+// ===================================================================
+
+/**
+ * [클라이언트용] 업로드된 파일 목록을 가져옵니다.
+ * apiClient 인터셉터가 localStorage/sessionStorage에서 토큰을 자동으로 주입합니다.
+ */
+export async function getFiles_client(): Promise<FileItem[]> {
+    try {
+        const response = await apiClient.get<FileItem[]>('/manager/upload/filelist');
+        // 백엔드 응답이 { data: [...] } 형태일 경우 response.data.data를,
+        // [...] 형태일 경우 response.data를 반환해야 합니다.
+        // API 명세에 따라 조정이 필요할 수 있습니다. 여기서는 배열을 직접 반환한다고 가정합니다.
+        return response.data || [];
+    } catch (error) {
+        console.error("파일 목록 불러오기 실패 (클라이언트):", error);
+        // 에러를 다시 던져서 호출한 쪽(useEffect)에서 catch 할 수 있도록 함
+        throw error;
+    }
+}
+
+
 
 export default apiClient;

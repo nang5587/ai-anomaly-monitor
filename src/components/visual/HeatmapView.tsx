@@ -1,208 +1,217 @@
 'use client'
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import type { PickingInfo, Color } from 'deck.gl';
 
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
+
+// 타입 임포트
+import { type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from '../../types/data';
+import { type EventTypeStats, type NodeWithEventStats, type StatValue } from '@/types/map';
 import {
     mapViewStateAtom,
-    type MapViewState
+    selectedObjectAtom,
+    allAnomalyTripsAtom,
+    type MapViewState,
+    nodesAtom
 } from '@/stores/mapDataAtoms';
 
 import DeckGL from 'deck.gl';
-import { HeatmapLayer } from '@deck.gl/aggregation-layers'; // 히트맵 레이어
-import { ScatterplotLayer } from '@deck.gl/layers';
 import { default as ReactMapGL } from 'react-map-gl';
 
-import { getTrips, getNodes, type AnalyzedTrip, type Node } from './data';
+import { StackedColumnLayer } from './StackedColumnLayer';
 
-const BLUE_COLOR_PALETTE: Color[] = [
-    [135, 206, 235],
-    [135, 206, 235],
-    [70, 130, 180],
-    [70, 130, 180],
-    [43, 96, 121],
-    [43, 96, 121],
-];
+// 이벤트 타입별 색상 정의
+const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
+    'fake': [215, 189, 226],   // 시공간 점프
+    'tamper': [250, 215, 160], // 이벤트 순서 오류
+    'clone': [252, 243, 207],   // EPC 복제
+};
+const DEFAULT_COLOR: Color = [201, 203, 207];
 
 // Mapbox 액세스 토큰
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-interface HeatmapViewProps {
-    isHighlightMode: boolean;
-}
 
-type NodeWithEventStats = Node & {
-    totalEventCount: number; // 전체 이벤트 건수
-    hasAnomaly: boolean;     // 이상 징후 포함 여부
-};
+export const HeatmapView: React.FC = () => {
+    const [viewState, setViewState] = useAtom(mapViewStateAtom);
+    const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
 
-export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => {
-    const [localNodes, setLocalNodes] = useState<Node[]>([]);
-    const [localTrips, setLocalTrips] = useState<AnalyzedTrip[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const [viewState, setViewState] = useAtom(mapViewStateAtom); // 지도 시점은 다른 맵과 공유될 수 있습니다.
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                // Promise.all을 사용하여 노드와 트립 데이터를 병렬로 가져옵니다.
-                const [nodesData, tripsResponse] = await Promise.all([
-                    getNodes(),
-                    getTrips() // 파라미터 없이 호출하여 전체 데이터를 가져옵니다.
-                ]);
-                setLocalNodes(nodesData);
-                setLocalTrips(tripsResponse.data); // Paginated 응답이므로 .data를 사용
-            } catch (error) {
-                console.error("Failed to fetch data for Heatmap:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
+    const allAnomalies = useAtomValue(allAnomalyTripsAtom);
+    const allNodes = useAtomValue(nodesAtom);
 
     const nodesWithStats = useMemo((): NodeWithEventStats[] => {
-        if (!Array.isArray(localTrips) || !Array.isArray(localNodes) || localTrips.length === 0 || localNodes.length === 0) {
+        // 1. 의존성 배열의 데이터 소스를 로컬 상태에서 Jotai 아톰 값으로 변경
+        if (!allAnomalies || allAnomalies.length === 0 || !allNodes || allNodes.length === 0) {
             return [];
         }
 
-        const eventCounts = new Map<string, { total: number; hasAnomaly: boolean }>();
+        // 각 위치(scanLocation)별 통계를 저장할 Map
+        const locationStats = new Map<string, {
+            total: number;
+            // EventTypeStats 타입에 맞게 수정
+            eventTypeStats: EventTypeStats;
+        }>();
 
-        localTrips.forEach(trip => {
-            if (!trip?.from?.scanLocation || !trip?.to?.scanLocation) return;
+        // 2. localTrips -> allAnomalies
+        // allAnomalyTripsAtom은 이미 이상 징후만 포함하므로 추가 필터링이 필요 없습니다.
+        allAnomalies.forEach(trip => {
+            // anomalyTypeList의 각 anomaly를 하나의 이벤트로 간주합니다.
+            trip.anomalyTypeList.forEach(anomalyType => {
+                // 이벤트가 발생한 위치들을 배열로 만듭니다. (중복 제거)
+                const affectedLocations = [...new Set([trip.from.scanLocation, trip.to.scanLocation])];
 
-            const locations = [trip.from.scanLocation, trip.to.scanLocation];
-            const isAnomaly = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
+                affectedLocations.forEach(location => {
+                    if (!location) return; // 위치 정보가 없으면 건너뜁니다.
 
-            locations.forEach(loc => {
-                const stats = eventCounts.get(loc) || { total: 0, hasAnomaly: false };
-                stats.total += 1;
-                if (isAnomaly) {
-                    stats.hasAnomaly = true;
-                }
-                eventCounts.set(loc, stats);
+                    // 해당 위치의 통계 객체를 가져오거나 새로 생성합니다.
+                    let stats = locationStats.get(location);
+                    if (!stats) {
+                        stats = {
+                            total: 0,
+                            eventTypeStats: {}, // EventTypeStats 초기화
+                        };
+                        locationStats.set(location, stats);
+                    }
+
+                    // 통계를 업데이트합니다.
+                    stats.total += 1;
+
+                    // AnomalyType을 이벤트 타입으로 사용하여 카운트를 올립니다.
+                    const eventType: AnomalyType = anomalyType;
+                    if (!stats.eventTypeStats[eventType]) {
+                        stats.eventTypeStats[eventType] = {
+                            count: 0,
+                            hasAnomaly: true, // 이 뷰의 모든 이벤트는 Anomaly입니다.
+                        };
+                    }
+                    stats.eventTypeStats[eventType]!.count += 1;
+                });
             });
         });
 
-        return localNodes
-            .map(node => {
-                const stats = eventCounts.get(node.scanLocation);
-                return stats ? {
-                    ...node,
-                    totalEventCount: stats.total,
-                    hasAnomaly: stats.hasAnomaly
-                } : null;
-            })
-            .filter((node): node is NodeWithEventStats => node !== null);
-    }, [localTrips, localNodes]);
+        // 3. localNodes -> allNodes
+        // node 정보와 집계된 통계를 결합합니다.
+        const mappedNodes = allNodes.map(node => {
+            const stats = locationStats.get(node.scanLocation);
+
+            // 통계가 없는 노드는 히트맵에 표시되지 않도록 null을 반환합니다.
+            if (!stats) {
+                return null;
+            }
+
+            // 가장 빈도가 높은 이상 징후 타입을 찾습니다 (dominant type).
+            let dominantType: AnomalyType | '' = '';
+            let dominantCount = 0;
+            Object.entries(stats.eventTypeStats).forEach(([type, typeStats]) => {
+                if (typeStats.count > dominantCount) {
+                    dominantType = type as AnomalyType;
+                    dominantCount = typeStats.count;
+                }
+            });
+
+            // 최종적으로 레이어에 전달될 객체를 구성합니다.
+            return {
+                ...node,
+                totalEventCount: stats.total,
+                hasAnomaly: true, // 통계가 존재하면 항상 true
+                eventTypeStats: stats.eventTypeStats,
+                dominantEventType: dominantType,
+                dominantEventCount: dominantCount,
+            } as NodeWithEventStats;
+        });
+
+        // 4. filter를 사용하여 null 값을 제거하고 타입을 확정합니다.
+        return mappedNodes.filter(
+            (node): node is NodeWithEventStats => node !== null
+        );
+
+    }, [allAnomalies, allNodes]);
+
+    const handleClick = (info: PickingInfo) => {
+        if (info.object) setSelectedObject(info.object);
+    };
+
+    // HeatmapView.tsx의 renderTooltip 함수
 
     const renderTooltip = (info: PickingInfo) => {
-        if (info.layer?.id !== 'scatterplot-layer-picking' || !info.object) {
+        if (!info.object) {
             return null;
         }
+
+        // 1. 참고용 코드에서 가져온 기본 스타일 객체를 정의합니다.
         const baseTooltipStyle = {
             position: 'absolute',
             padding: '12px',
-            background: 'rgba(40, 40, 40)', // 어두운 배경색
-            color: '#f8f8f2', // 밝은 글자색
+            background: 'rgba(40, 40, 40, 0.95)', // 투명도를 약간 주어 backdrop-filter 효과를 살립니다.
+            color: '#f8f8f2',
             borderRadius: '8px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
             backdropFilter: 'blur(6px)',
-            fontFamily: '"Noto Sans KR", sans-serif', // Noto Sans KR 폰트 우선 적용
+            WebkitBackdropFilter: 'blur(6px)', // Safari 호환성을 위해 추가
+            fontFamily: '"Noto Sans KR", sans-serif',
             fontSize: '14px',
             lineHeight: '1.6',
-            maxWidth: '250px',
-            pointerEvents: 'none', // 마우스 이벤트가 툴팁에 막히지 않도록 함
+            maxWidth: '280px', // 최대 너비를 약간 늘려 내용이 잘 보이도록 합니다.
+            pointerEvents: 'none' as const, // 타입을 명확히 해줍니다.
             zIndex: '10',
         };
 
-        // const node = info.object as AnomalyNodeWithCount;
+        // 2. 기존 로직은 그대로 유지합니다.
         const node = info.object as NodeWithEventStats;
-        const anomalyText = node.hasAnomaly
-            ? `<div style="color: #ff6384; font-weight: bold; margin-top: 4px;">(이상 징후 포함)</div>`
-            : '';
+        const eventTypesList = (Object.entries(node.eventTypeStats) as [string, StatValue][])
+            .sort((a, b) => b[1].count - a[1].count)
+            .map(([type, stats]) =>
+                // 내부 스타일은 그대로 유지하거나 필요에 따라 수정합니다.
+                `<div style="display: flex; justify-content: space-between; margin: 2px 0;">
+                <span style="color: rgb(${(ANOMALY_TYPE_COLORS[type as AnomalyType] || DEFAULT_COLOR).join(',')}); font-weight: 500;">${anomalyCodeToNameMap[type as AnomalyType] || type}</span>
+                <span>${stats.count}건</span>
+            </div>`
+            ).join('');
+
+        // 3. 반환하는 객체의 html과 style을 수정합니다.
         return {
+            // HTML 구조는 그대로 유지합니다.
             html: `
-                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${node.scanLocation}</div>
-                    <div>전체 이벤트<span style="color: #ff6384; font-size: 1.1em; font-weight: bold;"> ${node.totalEventCount}</span> 건</div>
-                    ${anomalyText}
-            `,
-            style: {
-                ...baseTooltipStyle,
-                pointerEvents: 'none',
-                zIndex: '10',
-            }
+            <div>
+                <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px; color: #ffffff;">${node.scanLocation}</div>
+                <div style="margin-bottom: 8px;">총 이상 징후: <span style="color: #ff6384; font-weight: bold;">${node.totalEventCount}</span>건</div>
+                <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;">
+                    <div style="font-size: 14px; margin-bottom: 4px; color: rgba(255,255,255,0.7);">타입별 상세:</div>
+                    ${eventTypesList}
+                </div>
+            </div>
+        `,
+            // style 속성에 위에서 정의한 baseTooltipStyle 객체를 전달합니다.
+            style: baseTooltipStyle
         };
     };
 
     const layers = useMemo(() => [
-        new HeatmapLayer({
-            id: 'heatmap-layer-visual',
+        new StackedColumnLayer({
+            id: 'stacked-column-layer',
             data: nodesWithStats,
-            getPosition: d => d.coord,
-            radiusPixels: 65,
-            intensity: 1.5,
-            threshold: 0.05,
-
-            // ✅ 2. colorRange 속성에 정의된 파란색 팔레트를 적용합니다.
-            colorRange: BLUE_COLOR_PALETTE,
-            getWeight: (d: NodeWithEventStats) => {
-                if (isHighlightMode) {
-                    // 강조 모드 ON: 이상 징후가 있는 노드만 가중치를 갖고, 나머지는 0
-                    return d.hasAnomaly ? d.totalEventCount : 0;
-                }
-                // 강조 모드 OFF: 모든 노드가 자신의 전체 이벤트 건수를 가중치로 가짐
-                return d.totalEventCount;
-            },
-
-            // ✨ updateTriggers 추가: isHighlightMode가 바뀔 때 getWeight를 다시 계산하도록 함
-            updateTriggers: {
-                getWeight: [isHighlightMode],
-            },
-        }),
-        new ScatterplotLayer({
-            id: 'scatterplot-layer-picking',
-            data: nodesWithStats,
-            getPosition: d => d.coord,
-            getFillColor: [0, 0, 0, 0],
-            getLineColor: [0, 0, 0, 0],
             pickable: true,
-            radiusMinPixels: 30,
+            zoom: viewState.zoom,
+            radius: 120,
+            getElevationScale: 250,
+            updateTriggers: {
+                zoom: [viewState.zoom] // 줌 레벨이 변경될 때 레이어가 다시 렌더링되도록 함
+            },
         }),
-    ], [nodesWithStats, isHighlightMode]);
+    ], [nodesWithStats, viewState.zoom],);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-            {isLoading && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    zIndex: 20,
-                    fontSize: '1.2rem'
-                }}>
-                    데이터 로딩 중...
-                </div>
-            )}
+
             <DeckGL
                 layers={layers}
                 viewState={viewState}
                 onViewStateChange={({ viewState: newViewState }) => {
-                    // 사용자가 지도를 움직이면 전역 상태를 업데이트합니다.
                     setViewState(newViewState as MapViewState);
                 }}
-                controller={true} // 사용자가 지도를 확대/축소/회전할 수 있도록 허용
+                onClick={handleClick}
+                controller={true}
                 getTooltip={renderTooltip}
             >
                 <ReactMapGL
@@ -210,28 +219,43 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ isHighlightMode }) => 
                     mapStyle="mapbox://styles/mapbox/dark-v11"
                     onLoad={e => {
                         const map = e.target;
-
                         const setMapStyle = () => {
-                            // isStyleLoaded()로 스타일이 준비되었는지 확인
                             if (map.isStyleLoaded()) {
-                                // 'background' 레이어가 존재하는지 확인 후 색상 변경
                                 if (map.getLayer('background')) {
                                     map.setPaintProperty('background', 'background-color', '#000000');
                                 }
-                                // 'water' 레이어가 존재하는지 확인 후 색상 변경
                                 if (map.getLayer('water')) {
                                     map.setPaintProperty('water', 'fill-color', '#000000');
                                 }
                             } else {
-                                // 스타일이 아직 로드되지 않았다면, 'styledata' 이벤트를 기다렸다가 다시 시도
                                 map.once('styledata', setMapStyle);
                             }
                         };
-
-                        setMapStyle(); // 최초 시도
+                        setMapStyle();
                     }}
                 />
             </DeckGL>
+
+            {/* 범례 */}
+            <div
+                style={{ position: 'absolute', top: '10px', right: '20px', zIndex: 10 }}
+                className="bg-[rgba(40,40,40)] rounded-2xl p-6 text-white w-48 shadow-lg backdrop-blur-sm"
+            >
+                <h3 className="text-sm font-bold mb-3">이벤트 타입별 분류</h3>
+                <div className="space-y-2">
+                    {Object.entries(ANOMALY_TYPE_COLORS).map(([type, color]) => (
+                        <div key={type} className="flex items-center">
+                            <div className="w-4 h-4 rounded mr-3" style={{ backgroundColor: `rgb(${color.join(',')})` }} />
+                            <span className="text-xs">{anomalyCodeToNameMap[type as AnomalyType]}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="border-t border-white/20 mt-3 pt-3 text-xs text-gray-300">
+                    <p>• 높이: 총 이상 징후 수</p>
+                    <p>• 색상: 이상 징후 타입 비율</p>
+                </div>
+            </div>
+
         </div>
     );
 };

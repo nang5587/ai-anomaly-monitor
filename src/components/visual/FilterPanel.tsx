@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react';
-import { type FilterOptions, getToLocations, anomalyCodeToNameMap  } from './data';
+import { type FilterOptions, getToLocations, anomalyCodeToNameMap  } from '../../types/data';
 import { X } from 'lucide-react';
 
 // 부모 컴포넌트로부터 받을 props 타입 정의

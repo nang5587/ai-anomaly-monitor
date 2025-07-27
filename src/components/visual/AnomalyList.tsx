@@ -1,31 +1,14 @@
 import React from 'react';
 
-import { type AnalyzedTrip, type AnomalyType } from '../visual/data';
-import { getAnomalyColor, getAnomalyName } from './colorUtils';
-
-
-type TripWithId = AnalyzedTrip & { id: string };
+import { type AnalyzedTrip, type AnomalyType } from '../../types/data';
+import { getAnomalyName } from '../../types/colorUtils';
+import { pastelColorMap } from '../../types/anomalyUtils';
 
 interface AnomalyListProps {
-    anomalies: TripWithId[];
-    onCaseClick: (trip: TripWithId) => void;
+    anomalies: AnalyzedTrip[];
+    onCaseClick: (trip: AnalyzedTrip) => void;
     selectedObjectId: string | null;
 }
-
-const pastelColorMap: { [key: string]: string } = {
-    // '시공간 점프': 연한 라벤더 색상
-    'jump': '#D7BDE2',
-    // '이벤트 순서 오류': 부드러운 살구색
-    'evtOrderErr': '#FAD7A0',
-    // '위조': 매우 연한 핑크
-    'epcFake': '#F5B7B1',
-    // '복제': 부드러운 크림색
-    'epcDup': '#FCF3CF',
-    // '경로 위조': 매우 연한 하늘색
-    'locErr': '#A9CCE3',
-    // 기본값: 연한 회색
-    'default': '#E5E7E9',
-};
 
 const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selectedObjectId }) => {
     return (
@@ -59,34 +42,33 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
             }}
                 className="hide-scrollbar"
             >
-                {anomalies.map(trip => {
+                {anomalies.map((trip, index) => {
                     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
-                    
-                    // ✨ anomalyList에 들어온 데이터는 이상이 있다고 가정하므로,
-                    // 만약의 경우를 대비한 방어 코드입니다.
+
                     if (!hasAnomalies) {
                         return null; 
                     }
+                    const uniqueKey = `${trip.epcCode}-${trip.from.eventTime}-${index}`;
 
-                    const isSelected = selectedObjectId === trip.id;
+                    const isSelected = trip.roadId ? selectedObjectId === trip.roadId : false;
 
                     return (
                         <div
-                            key={trip.id}
+                            key={uniqueKey}
                             onClick={() => onCaseClick(trip)}
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >
                             <div className="flex items-center justify-between mb-2">
                                 {/* ✨ 수정: 여러 개의 태그를 렌더링하기 위한 컨테이너 */}
                                 <div className="flex items-center gap-1 flex-wrap">
-                                    {trip.anomalyTypeList.map(typeCode => {
+                                    {trip.anomalyTypeList.map((typeCode, index) => {
                                         const pastel = pastelColorMap[typeCode] || pastelColorMap['default'];
                                         const bgColor = `${pastel}26`;
                                         const textColor = pastel;
 
                                         return (
                                             <span
-                                                key={typeCode} // 각 태그는 고유한 키가 필요
+                                                key={`${typeCode}-${index}`} // 각 태그는 고유한 키가 필요
                                                 className="px-2 py-0.5 text-xs font-bold rounded-full"
                                                 style={{ backgroundColor: bgColor, color: textColor }}
                                             >

@@ -1,16 +1,15 @@
 import React from 'react';
-import { Node } from '../visual/data';
-// import 경로는 실제 프로젝트 구조에 맞게 확인해주세요.
-import { getNodeColor } from '../visual/colorUtils';
+import { LocationNode } from '../../types/data';
+import { getNodeColor } from '../../types/colorUtils';
 import { NodeIcon } from '../visual/icons';
 
 interface MapLegendProps {
-    onHover: (type: Node['type'] | null) => void;
-    onToggleVisibility: (type: Node['type']) => void;
-    visibleTypes: Record<Node['type'], boolean>;
+    onHover: (type: LocationNode['businessStep'] | null) => void;
+    onToggleVisibility: (type: LocationNode['businessStep']) => void;
+    visibleTypes: Record<LocationNode['businessStep'], boolean>;
 }
 
-const LEGEND_TYPES: Node['type'][] = ['Factory', 'WMS', 'LogiHub', 'Wholesaler', 'Reseller'];
+const LEGEND_TYPES: LocationNode['businessStep'][] = ['Factory', 'WMS', 'LogiHub', 'Wholesaler', 'Reseller'];
 
 const MapLegend: React.FC<MapLegendProps> = ({ onHover, onToggleVisibility, visibleTypes }) => {
     return (

@@ -5,7 +5,6 @@ import LeftFormArea from '@/components/LeftFormArea';
 import RightAnimationArea from '@/components/RightAnimationArea';
 
 export default function page() {
-    // 모든 컴포넌트가 공유할 step 상태
     const [step, setStep] = useState(1);
     const backgroundStyle: React.CSSProperties = {
         position: 'relative',

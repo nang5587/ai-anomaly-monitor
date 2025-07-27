@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 
 import { Filter } from 'lucide-react';
 
@@ -16,10 +16,13 @@ import {
     nextCursorAtom,
     loadInitialDataAtom,
     loadTripsDataAtom,
-    loadMoreTripsAtom
+    loadMoreTripsAtom,
+    anomalyFilterAtom,
+    resetAnomalyFilterAtom,
+    selectTripAndFocusAtom,
 } from '@/stores/mapDataAtoms';
 
-import type { Node, AnalyzedTrip } from './data';
+import type { LocationNode, AnalyzedTrip } from '../../types/data';
 
 import { SupplyChainMap } from './SupplyChainMap';
 import { HeatmapView } from './HeatmapView';
@@ -29,10 +32,11 @@ import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
 import FilterPanel from './FilterPanel';
 import TripList from './TripList';
+import AnomalyFilterTabs from './AnomalyFilterTabs';
 
 // 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 export type Tab = 'anomalies' | 'all' | 'heatmap';
-export type TripWithId = AnalyzedTrip & { id: string; path?: [number, number][]; timestamps?: number[] };
+export type MergeTrip = AnalyzedTrip & { path?: [number, number][]; timestamps?: number[] };
 
 // 탭 버튼 스타일
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
@@ -51,6 +55,7 @@ export const SupplyChainDashboard: React.FC = () => {
     // --- Jotai 스토어에서 가져온 상태 관리 ---
     // const nodes = useAtomValue(nodesAtom);
     const trips = useAtomValue(tripsAtom);
+    const selectedAnomalyFilter = useAtomValue(anomalyFilterAtom);
     const filterOptions = useAtomValue(filterOptionsAtom);
     const nextCursor = useAtomValue(nextCursorAtom);
     const isLoading = useAtomValue(isLoadingAtom);
@@ -65,30 +70,42 @@ export const SupplyChainDashboard: React.FC = () => {
     const loadInitialData = useSetAtom(loadInitialDataAtom);
     const loadTrips = useSetAtom(loadTripsDataAtom);
     const loadMore = useSetAtom(loadMoreTripsAtom);
+    const resetAnomalyFilter = useSetAtom(resetAnomalyFilterAtom);
+    const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
     // 필터 패널 표시 여부는 이 컴포넌트의 로컬 상태로 유지하는 것이 적합합니다.
     const [showFilterPanel, setShowFilterPanel] = useState(false);
-
-    // 이상징후 히트맵만 잘 보이게 상태 관리
-    const [isHighlightMode, setIsHighlightMode] = useState(false);
-
-    // 히트맵에 쓰일 
-    const [isAllDataLoaded, setIsAllDataLoaded] = useState(false);
 
     // 컴포넌트 마운트 시 초기 데이터(노드, 필터옵션) 로드
     useEffect(() => {
         loadInitialData();
     }, [loadInitialData]);
 
+    useEffect(() => {
+        resetAnomalyFilter();
+    }, [activeTab, appliedFilters, resetAnomalyFilter]);
+
     // 탭이나 필터가 변경될 때마다 Trip 데이터 로드
     useEffect(() => {
         if (activeTab === 'heatmap') {
             return; // 함수를 즉시 종료
         }
+        if (selectedObject && trips.some(t => t.roadId === (selectedObject as MergeTrip).roadId)) {
+            console.log("Trip is already in the list, skipping redundant load.");
+            return;
+        }
 
         loadTrips();
-    }, [activeTab, appliedFilters, loadTrips]);
+    }, [activeTab, appliedFilters, loadTrips, selectedObject]);
 
+    const filteredTrips = useMemo(() => {
+        if (!selectedAnomalyFilter) {
+            return trips; // 필터가 없으면 전체 데이터를 반환
+        }
+        return trips.filter(trip =>
+            trip.anomalyTypeList?.includes(selectedAnomalyFilter)
+        );
+    }, [trips, selectedAnomalyFilter]);
 
     const handleApplyFilters = (filters: Record<string, any>) => {
         setAppliedFilters(filters);
@@ -108,74 +125,41 @@ export const SupplyChainDashboard: React.FC = () => {
             width: '100%',
             height: '100%',
         }}>
-
-            {!isLoading && (
-                activeTab === 'heatmap' ? (
-                    <>
-                        <HeatmapView isHighlightMode={isHighlightMode} />
-                        <div
-                            style={{ position: 'absolute', top: '60px', left: '20px', zIndex: 5 }}
-                            className='px-6 py-4 flex items-center gap-4'
-                        >
-                            <span className='font-noto-400 text-white select-none'>이상 징후만 강조하기</span>
-
-                            <button
-                                type="button"
-                                role="switch"
-                                aria-checked={isHighlightMode}
-                                onClick={() => setIsHighlightMode(!isHighlightMode)}
-                                className={`
-                                    relative inline-flex items-center h-6 w-11 flex-shrink-0 cursor-pointer rounded-full 
-                                    border-2 border-transparent transition-colors duration-200 ease-in-out 
-                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgba(111,131,175)]
-                                    ${isHighlightMode ? 'bg-[rgba(111,131,175)]' : 'bg-gray-500'}
-                                `}
-                            >
-                                <span className="sr-only">이상 징후 강조 토글</span>
-                                <span
-                                    aria-hidden="true"
-                                    className={`
-                                        pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 
-                                        transition duration-200 ease-in-out
-                                    `}
-                                    style={{
-                                        transform: isHighlightMode ? 'translateX(1.5rem)' : 'translateX(0.1rem)',
-                                    }}
-                                ></span>
-                            </button>
-                        </div>
-
-                        <div
-                            style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}
-                            className="bg-[rgba(40,40,40,0.85)] rounded-lg p-4 text-white w-56 shadow-lg backdrop-blur-sm"
-                        >
-                            <h3 className="text-sm font-bold mb-2">이벤트 밀도</h3>
-                            {/* 색상 그라데이션 바 */}
-                            <div
-                                className="h-3 rounded-md"
-                                style={{
-                                    // 투명한 파랑 -> 진한 파랑
-                                    background: 'linear-gradient(to right, rgba(135,206,235), rgba(43,96,121))'
-                                }}
-                            ></div>
-                            {/* 라벨 */}
-                            <div className="flex justify-between text-xs mt-1 text-gray-300">
-                                <span>낮음</span>
-                                <span>높음</span>
-                            </div>
-                        </div>
-                    </>
-                ) : (
-                    <SupplyChainMap />
-                )
+            {/* 지도 위 이상타입 필터 탭 */}
+            {(activeTab === 'all' || activeTab === 'anomalies') && (
+                <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                }}>
+                    <AnomalyFilterTabs disabled={isLoading} />
+                </div>
             )}
 
-            {/* <SupplyChainMap /> */}
+            {activeTab === 'heatmap' && (
+                <Suspense fallback={
+                    <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
+                        <p>히트맵 데이터를 불러오는 중입니다...</p>
+                    </div>
+                }>
+                    <HeatmapView />
+                </Suspense>
+            )}
 
-            {isLoading && !isFetchingMore && (
-                <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
-                    <p>데이터를 불러오는 중입니다...</p>
-                </div>
+            {/* 2. 경로 지도 뷰 렌더링 */}
+            {/* activeTab이 'heatmap'이 아닐 때 렌더링합니다. */}
+            {activeTab !== 'heatmap' && (
+                <>
+                    <SupplyChainMap />
+
+                    {isLoading && !isFetchingMore && (
+                        <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
+                            <p>경로 목록을 불러오는 중입니다...</p>
+                        </div>
+                    )}
+                </>
             )}
 
             {activeTab !== 'heatmap' && (
@@ -234,8 +218,8 @@ export const SupplyChainDashboard: React.FC = () => {
                         <div style={{
                             width: '300px',
                             height: 'calc(100vh - 250px)',
-                            // flex: 1, // 남은 공간을 모두 차지
                             minHeight: 0,
+                            top: 0,
                             background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                             borderRadius: '25px',
@@ -246,13 +230,13 @@ export const SupplyChainDashboard: React.FC = () => {
                                 <>
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <AnomalyList
-                                            anomalies={trips}
-                                            onCaseClick={(trip) => setSelectedObject(trip)}
-                                            selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                                            anomalies={filteredTrips}
+                                            onCaseClick={(trip) => selectTripAndFocus(trip)}
+                                            selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
                                     </div>
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
-                                        <p className="mb-2">현재 {trips.length}개의 이상 징후 표시 중</p>
+                                        <p className="mb-2">현재 {filteredTrips.length}개의 이상 징후 표시 중</p>
                                         {nextCursor && (
                                             <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
                                                 {isFetchingMore ? '로딩 중...' : '더 보기'}
@@ -267,15 +251,15 @@ export const SupplyChainDashboard: React.FC = () => {
                                     {/* 리스트 본문 */}
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <TripList
-                                            trips={trips}
-                                            onCaseClick={(trip) => setSelectedObject(trip)}
-                                            selectedObjectId={selectedObject && 'id' in selectedObject ? selectedObject.id : null}
+                                            trips={filteredTrips}
+                                            onCaseClick={(trip) => selectTripAndFocus(trip)}
+                                            selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
                                     </div>
 
                                     {/* '더 보기' 버튼 (푸터) */}
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
-                                        <p className="mb-2">현재 {trips.length}개의 경로 표시 중</p>
+                                        <p className="mb-2">현재 {filteredTrips.length}개의 경로 표시 중</p>
                                         {nextCursor && (
                                             <button onClick={loadMore} disabled={isFetchingMore} className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] rounded-lg p-2 disabled:bg-gray-800 transition-colors">
                                                 {isFetchingMore ? '로딩 중...' : '더 보기'}
@@ -292,12 +276,10 @@ export const SupplyChainDashboard: React.FC = () => {
 
             </div>
 
-            {activeTab !== 'heatmap' && (
-                <DetailsPanel
-                    selectedObject={selectedObject}
-                    onClose={() => setSelectedObject(null)}
-                />
-            )}
+            <DetailsPanel
+                selectedObject={selectedObject}
+                onClose={() => selectTripAndFocus(null)}
+            />
 
         </div>
     );
