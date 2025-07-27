@@ -22,13 +22,14 @@ const ReportView = forwardRef<HTMLDivElement>((props, ref) => {
     const {
         coverData,
         kpiData,
+        anomalyTrips,
         anomalyChartData,
         stageChartData,
         productAnomalyData,
         eventTimelineData,
         inventoryData,
         isLoading,
-        user
+        user,
     } = useDashboard();
 
     const coverLetterData = useMemo<CoverLetterProps | null>(() => {
@@ -44,6 +45,26 @@ const ReportView = forwardRef<HTMLDivElement>((props, ref) => {
             companyLogoUrl: '/images/logo.png'
         };
     }, [coverData, user]);
+
+    const calculatedReportKpis = useMemo(() => {
+        // 최다 발생 구간 계산
+        const routeCounts = anomalyTrips.reduce((acc, trip) => {
+            const route = `${trip.from.scanLocation} → ${trip.to.scanLocation}`;
+            acc[route] = (acc[route] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const mostProblematicRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+        
+        // 최다 발생 제품 계산
+        // productAnomalyData가 [{ productName: "...", total: 6 }, ...] 형태라고 가정
+        const mostAffectedProduct = [...productAnomalyData].sort((a, b) => b.total - a.total)[0]?.productName || 'N/A';
+
+        return {
+            mostProblematicRoute,
+            mostAffectedProduct
+        };
+    }, [anomalyTrips, productAnomalyData]);
 
     // --- 렌더링 로직 ---
 
@@ -75,15 +96,17 @@ const ReportView = forwardRef<HTMLDivElement>((props, ref) => {
                     stageChartData={stageChartData}
                     productAnomalyData={productAnomalyData}
                     eventTimelineData={eventTimelineData}
+                    mostProblematicRoute={calculatedReportKpis.mostProblematicRoute}
+                    mostAffectedProduct={calculatedReportKpis.mostAffectedProduct}
                 />
             </div>
 
             {/* 페이지 3: 전체 성과 대시보드 */}
             <div className="page-container bg-white shadow-lg mx-auto" style={{ width: '210mm', minHeight: '297mm' }}>
-                {/* <PerformanceDashboardPage
+                <PerformanceDashboardPage
                     kpiData={kpiData}
                     inventoryData={inventoryData}
-                /> */}
+                />
             </div>
         </div>
     );

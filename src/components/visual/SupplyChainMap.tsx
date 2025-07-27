@@ -19,7 +19,7 @@ import { tutorialSeenAtom } from '@/stores/uiAtoms';
 // Deck.gl 및 기타 라이브러리 import
 import type { Color } from 'deck.gl';
 import DeckGL, { FlyToInterpolator } from 'deck.gl';
-import { PathLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { PathLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
 import { WebMercatorViewport } from '@deck.gl/core';
@@ -422,9 +422,9 @@ export const SupplyChainMap: React.FC = () => {
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getColor: d => {
                     if (selectedTrip) {
-                        if (d.anomalyTypeList.includes('clone')) {
-                            return [252, 243, 207, 200];
-                        }
+                        // if (d.anomalyTypeList.includes('clone')) {
+                        //     return [252, 243, 207, 200];
+                        // }
                         if (d.anomalyTypeList.length > 0) {
                             return [255, 0, 0, 255];
                         }
@@ -439,6 +439,24 @@ export const SupplyChainMap: React.FC = () => {
                     getColor: [selectedObject],
                 },
             }),
+            new IconLayer<[number, number]>({
+                id: 'clone-icon-layer', // ID 변경
+                data: cloneMarkerCoords,
+                iconAtlas: '/icons/clone-alert.png', // public 폴더 기준 경로
+                iconMapping: {
+                    marker: { x: 0, y: 0, width: 24, height: 24, mask: false }
+                },
+                getIcon: d => 'marker',
+                sizeUnits: 'pixels',
+                getSize: 48, // 아이콘 크기를 48px로 설정
+                getPosition: d => d,
+                getColor: d => [255, 236, 154, 255], // 경고를 의미하는 빨간색
+                // pickable: true,
+                // onHover: info => {
+                //     document.body.style.cursor = info.object ? 'pointer' : 'default';
+                //     // setTooltipInfo(info);
+                // },
+            }),
             // 2. 이상 노드 pulse
             new ScatterplotLayer({
                 id: 'pulse-layer',
@@ -450,17 +468,17 @@ export const SupplyChainMap: React.FC = () => {
                 pickable: false,
             }),
             // 3. 클론 마커 레이어
-            new ScatterplotLayer<[number, number]>({
-                id: 'clone-scatter-layer',
-                data: cloneMarkerCoords,
-                getPosition: d => d,
-                getRadius: 12,
-                getFillColor: [255, 236, 154, 255],
-                stroked: false,
-                radiusUnits:'pixels',
-                // radiusMinPixels: 20,
-                pickable: false,
-            }),
+            // new ScatterplotLayer<[number, number]>({
+            //     id: 'clone-scatter-layer',
+            //     data: cloneMarkerCoords,
+            //     getPosition: d => d,
+            //     getRadius: 12,
+            //     getFillColor: [255, 236, 154, 255],
+            //     stroked: false,
+            //     radiusUnits:'pixels',
+            //     // radiusMinPixels: 20,
+            //     pickable: false,
+            // }),
             // 4. 건물 레이어
             ...otherMeshLayers,
             ...factoryLayers,

@@ -6,7 +6,7 @@ export default function ReportCoverLetter({ data }: { data: CoverLetterProps }) 
         >
 
             {/* 2. 헤더: 페이지 상단에 위치 */}
-            <header className="text-center font-serif">
+            <header className="text-center font-sans">
                 <div className="border-y-2 border-black py-4">
                     <h1 className="text-4xl font-bold tracking-widest">
                         물류 경로 이상탐지 분석 보고서
@@ -16,7 +16,7 @@ export default function ReportCoverLetter({ data }: { data: CoverLetterProps }) 
 
             {/* 3. 중앙 본문: 남는 공간을 모두 차지하고(flex-grow), 내부 내용을 중앙에 배치 */}
             <main className="flex-grow flex items-center justify-center">
-                <div className="text-center font-serif">
+                <div className="text-center font-sans">
                     {/* 정보 */}
                     <div className="space-y-4 text-lg leading-relaxed inline-block text-left">
                         <p><span className="font-semibold w-32 inline-block">분석 파일명</span>: {data.fileName}</p>

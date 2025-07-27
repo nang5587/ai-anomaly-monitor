@@ -1,4 +1,4 @@
-import { AnomalyType } from "@/types/api"; // AnomalyType import
+import { AnomalyType } from "@/types/api";
 
 // 각 이상 유형에 대한 설명을 담은 템플릿
 export const INSIGHTS_TEMPLATES: Record<AnomalyType, string> = {

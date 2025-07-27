@@ -15,7 +15,7 @@ const DynamicTimelineChart = dynamic(() => import('@/components/dashboard/Anomal
 import { KpiSummary } from "@/types/api";
 import { ByProductResponse } from "@/types/data";
 import { StageBarDataPoint } from "@/components/dashboard/StageLollipopChart";
-import { INSIGHTS_TEMPLATES, ACTION_ITEMS_TEMPLATES } from './templates'
+import { INSIGHTS_TEMPLATES, ACTION_ITEMS_TEMPLATES } from './Templates'
 import { AnomalyType } from "@/types/api";
 
 // --- 타입 정의 ---
@@ -24,6 +24,8 @@ interface AnomalyChartPoint {
     name: string;
     type: AnomalyType;
     count: number;
+    color1: string;
+    color2: string;
 }
 
 interface AnomalyDashboardProps {
@@ -51,7 +53,9 @@ export default function AnomalyDashboardPage({
     anomalyChartData,
     stageChartData,
     productAnomalyData,
-    eventTimelineData
+    eventTimelineData,
+    mostProblematicRoute,
+    mostAffectedProduct,
 }: AnomalyDashboardProps) {
     // 프론트엔드에서 계산해야 하는 추가적인 KPI
     const mostFrequentAnomaly = useMemo(() => {
@@ -80,7 +84,7 @@ export default function AnomalyDashboardPage({
 
             <main className="flex-grow flex flex-col space-y-10">
                 {/* 1. 핵심 요약 지표 (KPIs) */}
-                <section>
+                <section className="flex-shrink-0">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">1. 핵심 지표 요약 (Executive Summary)</h2>
                     <div className="grid grid-cols-4 gap-4">
                         <ReportKpiCard
@@ -95,7 +99,7 @@ export default function AnomalyDashboardPage({
                         />
                         <ReportKpiCard
                             title="최다 발생 유형"
-                            value={mostFrequentAnomaly}
+                            value={mostFrequentAnomaly.name}
                             description="가장 빈번하게 발생한 이상 유형"
                         />
                         <ReportKpiCard
@@ -106,12 +110,12 @@ export default function AnomalyDashboardPage({
                     </div>
                 </section>
 
-                <section>
-                    <h2 className="...">2. 분석 요약 및 권고</h2>
-                    <div className="grid grid-cols-2 gap-6 ...">
+                <section className="flex-shrink-0">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">2. 분석 요약 및 권고</h2>
+                    <div className="grid grid-cols-2 gap-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
                         <div>
-                            <h3 className="...">주요 발견사항 (Key Insights)</h3>
-                            <ul className="list-disc list-inside ...">
+                            <h3 className="text-base font-bold mb-2">주요 발견사항 (Key Insights)</h3>
+                            <ul className="list-disc list-inside space-y-1">
                                 <li><strong>가장 큰 문제점:</strong> {mainInsight}</li>
                                 <li><strong>집중 발생 구간:</strong> {mostProblematicRoute}</li>
                                 <li><strong>제품별 특이사항:</strong> {mostAffectedProduct}</li>
@@ -119,8 +123,8 @@ export default function AnomalyDashboardPage({
                         </div>
                         {actionItems && (
                             <div>
-                                <h3 className="...">권장 조치 (Action Items)</h3>
-                                <ul className="list-disc list-inside ...">
+                                <h3 className="text-base font-bold mb-2">권장 조치 (Action Items)</h3>
+                                <ul className="list-disc list-inside space-y-1">
                                     <li><strong>단기 조치:</strong> {actionItems.short.replace('[ROUTE]', mostProblematicRoute)}</li>
                                     <li><strong>중기 조치:</strong> {actionItems.mid}</li>
                                     <li><strong>장기 조치:</strong> {actionItems.long}</li>
@@ -130,8 +134,8 @@ export default function AnomalyDashboardPage({
                     </div>
                 </section>
 
-                {/* 2. 시각화 섹션 */}
-                <section className="grid grid-cols-2 grid-rows-2 gap-x-8 gap-y-10 flex-grow">
+                {/* 3. 시각화 섹션 */}
+                <section className="grid grid-cols-2 grid-rows-2 gap-x-8 gap-y-6 flex-grow">
 
                     {/* --- 1행 1열: 이상 탐지 유형별 상세 --- */}
                     <div className="flex flex-col">

@@ -129,13 +129,10 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
 
     return (
         <>
-            <div className="p-3 mb-4 rounded-lg bg-black/20">
-                <p className="text-sm leading-relaxed">
-                    <strong className="text-white">허브 타입:</strong> {node.hubType}<br />
-                    <strong className="text-white">좌표:</strong> {node.coord.join(', ')}
-                </p>
+            <div className="p-3 mb-4 rounded-lg bg-black/20 flex">
+                <p className="text-sm font-noto-500 leading-relaxed text-white">허브 타입 : {node.hubType}</p><br />
             </div>
-            <h4 className="my-4 text-base font-semibold text-neutral-300">연관된 이상징후 ({relatedAnomalies.length})</h4>
+            <h4 className="my-4 text-base font-noto-500 text-white">연관된 이상징후 ({relatedAnomalies.length})</h4>
             {relatedAnomalies.length > 0 ? (
                 <div className="flex flex-col gap-2">
                     {relatedAnomalies.map((trip, index) => {
@@ -146,7 +143,7 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
                             <button
                                 key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
                                 onClick={() => handleAnomalyClick(trip)}
-                                className="cursor-pointer text-left text-xs p-2 rounded-md transition-colors bg-white/5 hover:bg-white/10"
+                                className="cursor-pointer text-left text-xs p-2 rounded-md transition-colors bg-white/15 hover:bg-white/10"
                             >
                                 <div className="font-noto-500" style={{ color: `rgb(${getAnomalyColor(representativeAnomaly).join(',')})` }}>
                                     {getAnomalyName(representativeAnomaly)}
@@ -258,7 +255,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                         <div className="my-6 border-t border-gray-600/50" />
 
                         {/* 섹션 2: 선택된 경로의 상세 정보 */}
-                        <h4 className="text-base font-noto-500 text-neutral-300 mb-2">선택된 경로 상세</h4>
+                        <h4 className="text-base font-noto-500 text-white mb-2">선택된 경로 상세</h4>
                         {isTrip && <TripDetails trip={selectedObject as AnalyzedTrip} />}
                     </div>
                 ) : isTrip ? (
