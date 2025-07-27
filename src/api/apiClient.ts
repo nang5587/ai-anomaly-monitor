@@ -121,6 +121,16 @@ export async function getFiles_client(): Promise<FileItem[]> {
     }
 }
 
+/**
+ * 지정된 fileId의 파일을 논리적으로 삭제 처리합니다. (예: is_deleted 플래그 업데이트)
+ * @param fileId 삭제 처리할 파일의 ID
+ */
+export const markFileAsDeleted = (fileId: number) => {
+    // PATCH 요청을 사용하여 리소스의 일부(상태)를 업데이트합니다.
+    // 백엔드 API는 /upload/del/{fileId} 엔드포인트에서 PATCH 요청을 처리하도록 구현되어야 합니다.
+    return apiClient.patch(`/upload/del/${fileId}`);
+};
+
 
 
 export default apiClient;

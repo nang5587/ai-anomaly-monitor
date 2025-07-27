@@ -16,13 +16,13 @@ import { useAuth } from "@/context/AuthContext";
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const statusBar = useAtomValue(statusBarAtom);
     const pathname = usePathname();
-    // const { user } = useAuth(); ℹ️ 백엔드 연결 시 주석 해제
+    const { user } = useAuth(); // ℹ️ 백엔드 연결 시 주석 해제
 
     // ⚠️백엔드 연결 시 삭제
-    const user = {
-        role: "ADMIN", // 둘 중에 하나 선택해서 test 가능
-        // role: "MANAGER",
-    }
+    // const user = {
+    //     role: "ADMIN", // 둘 중에 하나 선택해서 test 가능
+    //     // role: "MANAGER",
+    // }
 
 
     const [sidebarHovered, setSidebarHovered] = useState(false);

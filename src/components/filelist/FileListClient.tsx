@@ -2,28 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { useSetAtom } from "jotai";
+import { useAuth } from '../../context/AuthContext';
 
-import apiClient, { getFiles_client } from '../../api/apiClient';
+import apiClient, { getFiles_client, markFileAsDeleted } from '../../api/apiClient';
 
 import { selectedFileIdAtom } from "@/stores/mapDataAtoms"; // Jotai 아톰 경로
 import { useRouter } from "next/navigation";
 import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-
-// FileItem 타입을 props로 받기 위해 export 해주는 것이 좋습니다. (data.ts 등에서)
-interface FileItem {
-    fileId: number;
-    fileName: string;
-    memberId: string;
-    fileSize: number;
-    createdAt: string;
-    locationId: number;
-}
+import { FileItem } from "@/types/file";
 
 interface FileListClientProps {
     initialFiles: FileItem[];
 }
 
 export default function FileListClient({ initialFiles }: FileListClientProps) {
+    const { user } = useAuth();
     // 1. 상태 관리 로직
     const [files, setFiles] = useState<FileItem[]>(initialFiles);
     const [isLoading, setIsLoading] = useState(false);
@@ -37,10 +30,26 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
 
     // 3. 파일 선택 핸들러
     const handleFileSelect = (fileId: number) => {
-        // Jotai 아톰에 선택된 fileId를 설정합니다.
+        if (!user || !user.role) {
+            alert("사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.");
+            router.push('/login');
+            return;
+        }
         setFileId(fileId);
-        // 대시보드 페이지로 이동합니다.
-        router.push('/dashboard'); // 실제 대시보드 경로로 변경
+        let dashboardPath = '/';
+        switch (user.role.toUpperCase()) {
+            case 'ADMIN':
+                dashboardPath = '/supervisor';
+                break;
+            case 'MANAGER':
+                dashboardPath = '/admin';
+                break;
+            default:
+                alert("정의되지 않은 역할입니다. 관리자에게 문의하세요.");
+                return;
+        }
+
+        router.push(dashboardPath);
     };
 
     // 4. 필터링 및 페이지네이션 로직 (기존과 동일)
@@ -82,13 +91,29 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
         }
     };
 
+    const handleDelete = async (fileId: number, fileName: string) => {
+        if (!window.confirm(`'${fileName}' 파일을 정말로 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        try {
+            await markFileAsDeleted(fileId);
+
+            setFiles(prevFiles => prevFiles.filter(file => file.fileId !== fileId));
+
+            alert(`'${fileName}' 파일이 성공적으로 삭제되었습니다.`);
+
+        } catch (error) {
+            console.error("파일 삭제 실패:", error);
+            alert("파일을 삭제하는 중 오류가 발생했습니다.");
+        }
+    };
+
     useEffect(() => {
         if (initialFiles && initialFiles.length > 0) {
             return;
         }
 
-        // 서버에서 데이터를 못 가져온 경우 (HttpOnly 쿠키가 없었을 경우),
-        // 클라이언트에서 localStorage 토큰을 사용하여 다시 시도합니다.
         async function fetchFilesOnClient() {
             console.log("서버에서 데이터를 가져오지 못했습니다. 클라이언트에서 재시도합니다.");
             setIsLoading(true);
@@ -154,27 +179,27 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                             <tbody className="divide-y divide-gray-700">
                                 {displayedFiles.length > 0 ? (
                                     displayedFiles.map((file) => (
-                                        <tr key={file.fileId} className="hover:bg-[rgba(55,55,55)] transition-colors">
+                                        <tr key={file.fileId} className="">
                                             <td className="px-6 py-4 font-medium text-white whitespace-nowrap">{file.fileName}</td>
-                                            <td className="px-6 py-4">{file.memberId}</td>
+                                            <td className="px-6 py-4">{file.userId}</td>
                                             <td className="px-6 py-4">{(file.fileSize / 1024).toFixed(1)} KB</td>
                                             <td className="px-6 py-4">{new Date(file.createdAt).toLocaleString()}</td>
                                             <td className="px-6 py-4 text-center space-x-4">
                                                 <button
                                                     onClick={() => handleFileSelect(file.fileId)}
-                                                    className="font-medium text-blue-400 hover:underline"
+                                                    className="font-medium text-blue-300 bg-[rgba(50,50,50)] hover:bg-[rgba(55,55,55)] px-4 py-2 rounded-lg cursor-pointer"
                                                 >
-                                                    미리보기
+                                                    대시보드
                                                 </button>
                                                 <button
                                                     onClick={() => handleDownload(file.fileId, file.fileName)}
-                                                    className="font-medium text-green-400 hover:underline"
+                                                    className="font-medium text-green-300 bg-[rgba(50,50,50)] hover:bg-[rgba(55,55,55)] px-4 py-2 rounded-lg cursor-pointer"
                                                 >
                                                     다운로드
                                                 </button>
                                                 <button
-                                                    className="font-medium text-red-400 hover:underline"
-                                                    onClick={() => alert("삭제 기능은 아직 구현되지 않았습니다.")}
+                                                    className="font-medium text-red-300 bg-[rgba(50,50,50)] hover:bg-[rgba(55,55,55)] px-4 py-2 rounded-lg cursor-pointer"
+                                                    onClick={() => handleDelete(file.fileId, file.fileName)}
                                                 >
                                                     삭제
                                                 </button>

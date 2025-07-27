@@ -160,3 +160,15 @@ export interface UserListItem {
 export interface UserListResponse {
     users: UserListItem[];
 }
+
+/**
+ * report 페이지
+ */
+// 커버 페이지
+export interface CoverReportData {
+    fileName: string;
+    userName: string;
+    locationId: number;
+    createdAt: string; // "YYYY-MM-DD HH:mm:ss" 형식의 문자열
+    period: [string, string];
+}

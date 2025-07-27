@@ -726,31 +726,6 @@ export default function SupervisorDashboard() {
 
             {/* 3열: 지도 */}
             <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
-              {/* <div className="relative w-full h-full rounded-3xl overflow-hidden">
-                <SupplyChainMapWidget
-                  key={replayTrigger}
-                  nodes={nodes}
-                  analyzedTrips={allTripsForMap} minTime={minTime} maxTime={maxTime} onWidgetClick={() => handleWidgetClick('/graph')} />
-                <button
-                  onClick={handleReplayAnimation}
-                  style={{
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'}
-                  className="absolute top-4 left-4 text-white p-2 rounded-full"
-                  title="애니메이션 다시 재생"
-                >
-                  <Play size={20} />
-                </button>
-              </div> */}
               <DashboardMapWidget
                 nodes={nodes}
                 anomalyTrips={anomalyTrips} // 히트맵용 데이터 전달

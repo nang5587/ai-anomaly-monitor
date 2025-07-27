@@ -76,7 +76,7 @@ export const isFetchingMoreAtom = atom<boolean>(false);
 const INITIAL_VIEW_STATE: MapViewState = {
     longitude: 127.9,
     latitude: 36.5,
-    zoom: 10,
+    zoom: 8,
     pitch: 60,
     bearing: 0,
     transitionDuration: 0 // 초기 전환 효과는 없음
@@ -308,9 +308,14 @@ export const selectTripAndFocusAtom = atom(
             // set(mapViewStateAtom, INITIAL_VIEW_STATE); // 👈 초기 뷰로 돌리고 싶다면 이 코드 사용
             return;
         }
-        // 1. 선택 객체 및 탭 상태 변경
+
+        const currentTab = get(activeTabAtom);
         set(selectedObjectAtom, trip);
-        set(activeTabAtom, 'all');
+
+        // 현재 탭이 'heatmap'일 경우에만 'all'로 전환
+        if (currentTab === 'heatmap') {
+            set(activeTabAtom, 'all');
+        }
 
         // 2. 시간 필터 설정
         if (trip.timestamps && trip.timestamps.length > 0) {
@@ -321,10 +326,13 @@ export const selectTripAndFocusAtom = atom(
 
         // 3. 카메라 이동
         if (trip.path && trip.path.length > 1) {
+            const lastIndex = trip.path.length - 1;
+            const destination = trip.path[lastIndex];
+
             const newLocation = {
-                longitude: trip.path[0][0],
-                latitude: trip.path[0][1],
-                zoom: 12,
+                longitude: destination[0], // 마지막 좌표의 경도
+                latitude: destination[1],  // 마지막 좌표의 위도
+                zoom: 14,
             };
             set(flyToLocationAtom, newLocation);
         }

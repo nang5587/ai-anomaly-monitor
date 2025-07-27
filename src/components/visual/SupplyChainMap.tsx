@@ -317,28 +317,30 @@ export const SupplyChainMap: React.FC = () => {
 
 
     // 공장이 아닌 노드 레이어 생성
-    const otherMeshLayers = Object.keys(OTHER_MODEL_MAPPING).map(type => {
-        const filteredNodes = otherNodes.filter(node => node.businessStep === type);
-        if (filteredNodes.length === 0) return null;
+    const otherMeshLayers = useMemo(() => {
+        return Object.keys(OTHER_MODEL_MAPPING).map(type => {
+            const filteredNodes = otherNodes.filter(node => node.businessStep === type);
+            if (filteredNodes.length === 0) return null;
 
-        return new SimpleMeshLayer<LocationNode>({
-            id: `mesh-layer-${type}`,
-            data: filteredNodes,
-            mesh: OTHER_MODEL_MAPPING[type],
-            getPosition: d => d.coord,
-            getColor: d => getNodeColor(d.businessStep),
-            getOrientation: [-90, 0, 0],
-            sizeScale: 50,
-            getTranslation: [0, 0, 50],
-            pickable: true,
-            onHover: info => setHoverInfo(info),
-            onClick: info => setSelectedObject(info.object as LocationNode),
-            material
-        });
-    }).filter(Boolean);
+            return new SimpleMeshLayer<LocationNode>({
+                id: `mesh-layer-${type}`,
+                data: filteredNodes,
+                mesh: OTHER_MODEL_MAPPING[type],
+                getPosition: d => d.coord,
+                getColor: d => getNodeColor(d.businessStep),
+                getOrientation: [-90, 0, 0],
+                sizeScale: 50,
+                getTranslation: [0, 0, 50],
+                pickable: true,
+                onHover: info => setHoverInfo(info),
+                onClick: info => setSelectedObject(info.object as LocationNode),
+                material
+            });
+        }).filter(Boolean);
+    }, [otherNodes, setHoverInfo, setSelectedObject]);
 
     // 공장 레이어
-    const factoryLayers = [
+    const factoryLayers = useMemo(() => [
         new SimpleMeshLayer<LocationNode>({
             id: 'factory-building-layer',
             data: factoryNodes,
@@ -353,7 +355,7 @@ export const SupplyChainMap: React.FC = () => {
             onClick: info => setSelectedObject(info.object as LocationNode),
             material
         }),
-    ];
+    ], [factoryNodes, setHoverInfo, setSelectedObject]);
 
     // 이상 발생 노드 ID 목록
     const anomalyNodeIds = useMemo(() => {
@@ -373,53 +375,66 @@ export const SupplyChainMap: React.FC = () => {
         return nodes.filter(node => anomalyNodeIds.includes(node.scanLocation));
     }, [nodes, anomalyNodeIds]);
 
+    const handleLayerClick = useCallback((info: PickingInfo) => {
+        if (info.object) {
+            // useSetAtom으로 가져온 함수는 참조가 안정적이므로 의존성 배열에 추가해도 안전합니다.
+            selectTripAndFocus(info.object as MergeTrip);
+        }
+    }, [selectTripAndFocus]);
+
+    const { staticPathData, cloneMarkerCoords, dynamicTripData } = useMemo(() => {
+        const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
+
+        let sPathData: MergeTrip[] = [];
+        let cMarkerCoords: [number, number][] = [];
+
+        if (selectedTrip) {
+            if (selectedTrip.anomalyTypeList.includes('clone')) {
+                const targetEpc = selectedTrip.epcCode;
+                sPathData = validTrips.filter(trip => trip.epcCode === targetEpc);
+                cMarkerCoords = sPathData.flatMap(trip => [trip.to.coord]);
+                console.log('클론 좌표들 (선택 시 1회만 실행됨)', cMarkerCoords); // 이제 여기서는 한 번만 찍힙니다.
+            } else {
+                sPathData = [selectedTrip];
+            }
+        } else {
+            sPathData = validTrips;
+        }
+
+        const dTripData = selectedTrip ? [] : validTrips;
+
+        return {
+            staticPathData: sPathData,
+            cloneMarkerCoords: cMarkerCoords,
+            dynamicTripData: dTripData
+        };
+    }, [selectedObject, validTrips]);
+
     // 전체 레이어 목록
     const layers = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
-
-        let cloneMarkerCoords: [number, number][] = [];
-        if (selectedTrip && selectedTrip.anomalyTypeList.includes('clone')) {
-            const targetEpc = selectedTrip.epcCode;
-            // validTrips에서 동일한 epcCode를 가진 모든 clone trip들을 찾습니다.
-            cloneMarkerCoords = validTrips
-                .filter(trip => trip.epcCode === targetEpc && trip.anomalyTypeList.includes('clone'))
-                .flatMap(trip => [trip.from.coord]); // 각 trip의 시작점과 도착점 좌표를 하나의 배열로 합칩니다.
-        }
         return [
             // 1. 정적 연결선 레이어
             new PathLayer<MergeTrip>({
                 id: 'static-supply-lines',
-                data: validTrips,
+                data: staticPathData,
                 widthMinPixels: 5,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getColor: d => {
-                    // 선택된 Trip이 없을 경우
-                    if (!selectedTrip) {
-                        return d.anomalyTypeList.length > 0 ? [255, 64, 64, 10] : [0, 255, 127, 10];
+                    if (selectedTrip) {
+                        if (d.anomalyTypeList.includes('clone')) {
+                            return [252, 243, 207, 200];
+                        }
+                        if (d.anomalyTypeList.length > 0) {
+                            return [255, 0, 0, 255];
+                        }
+                        return [0, 255, 127, 255];
                     }
-
-                    if (selectedTrip.anomalyTypeList.includes('clone')) {
-                        // 현재 경로(d)의 epcCode가 선택된 trip의 epcCode와 같으면 노란색으로 강조
-                        return d.epcCode === selectedTrip.epcCode ? [252, 243, 207, 200] : [0, 0, 0, 0];
-                    }
-
-                    // Case B: 선택된 Trip이 'fake' 또는 'tamper' 타입일 경우
-                    if (selectedTrip.anomalyTypeList.includes('fake') || selectedTrip.anomalyTypeList.includes('tamper')) {
-                        // 현재 경로(d)가 선택된 trip과 같으면 빨간색으로 강조
-                        return d.roadId === selectedTrip.roadId ? [255, 0, 0, 255] : [0, 0, 0, 0];
-                    }
-
-                    // Case C: 선택된 Trip이 정상(Normal) Trip일 경우
-                    // (위의 if 문들을 모두 통과했다면, 이 trip은 이상 타입이 없는 정상 trip입니다.)
-                    return d.roadId === selectedTrip.roadId ? [0, 255, 127, 255] : [0, 0, 0, 0];
+                    return d.anomalyTypeList.length > 0 ? [255, 64, 64, 10] : [0, 255, 127, 10];
                 },
                 pickable: true,
                 onHover: info => setHoverInfo(info),
-                onClick: info => {
-                    if (info.object) {
-                        selectTripAndFocus(info.object as MergeTrip);
-                    }
-                },
+                onClick: handleLayerClick,
                 updateTriggers: {
                     getColor: [selectedObject],
                 },
@@ -439,12 +454,12 @@ export const SupplyChainMap: React.FC = () => {
                 id: 'clone-scatter-layer',
                 data: cloneMarkerCoords,
                 getPosition: d => d,
-                getRadius: 20,
+                getRadius: 12,
                 getFillColor: [255, 236, 154, 255],
                 stroked: false,
-                radiusMinPixels: 10,
+                radiusUnits:'pixels',
+                // radiusMinPixels: 20,
                 pickable: false,
-                onHover: info => setHoverInfo(info),
             }),
             // 4. 건물 레이어
             ...otherMeshLayers,
@@ -452,15 +467,10 @@ export const SupplyChainMap: React.FC = () => {
             // 5. 동적 연결선 레이어
             new TripsLayer<MergeTrip>({
                 id: 'trips-layer',
-                data: validTrips,
+                data: dynamicTripData,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => {
-                    if (!selectedTrip) {
-                        return d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127];
-                    }
-                    return [0, 0, 0, 0];
-                },
+                getColor: d => d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127],
                 opacity: 0.8,
                 widthMinPixels: 5,
                 rounded: true,
@@ -468,7 +478,11 @@ export const SupplyChainMap: React.FC = () => {
                 currentTime,
             }),
         ];
-    }, [validTrips, selectedObject, currentTime, anomalyNodes, pulseRadius, factoryLayers, otherMeshLayers, selectTripAndFocus]);
+    }, [
+        staticPathData, cloneMarkerCoords, dynamicTripData, // 안정적인 계산 결과
+        selectedObject, currentTime, anomalyNodes, pulseRadius, // 필요한 상태값
+        factoryLayers, otherMeshLayers, handleLayerClick, setHoverInfo // 안정적인 레이어 및 핸들러
+    ]);
 
     //최종 렌더링
     return (

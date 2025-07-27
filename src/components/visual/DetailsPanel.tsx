@@ -32,11 +32,11 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) 
         <div style={{ display: 'flex', gap: '16px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                 <div style={{ position: 'relative', width: `${outerMarkerSize}px`, height: `${outerMarkerSize}px`, marginTop: '4px' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', backgroundColor: 'rgba(111, 131, 175, 0.3)' }} />
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: `${innerMarkerSize}px`, height: `${innerMarkerSize}px`, borderRadius: '50%', backgroundColor: 'rgba(111, 131, 175)' }} />
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.3)' }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: `${innerMarkerSize}px`, height: `${innerMarkerSize}px`, borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255)' }} />
                 </div>
                 {!isLast && (
-                    <div style={{ flexGrow: 1, width: '2px', backgroundImage: 'linear-gradient(rgba(111, 131, 175, 0.3) 40%, transparent 20%)', backgroundSize: '2px 10px', backgroundRepeat: 'repeat-y' }} />
+                    <div style={{ flexGrow: 1, width: '2px', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.3) 40%, transparent 20%)', backgroundSize: '2px 10px', backgroundRepeat: 'repeat-y' }} />
                 )}
             </div>
             <div style={{ flex: 1, paddingBottom: isLast ? '0' : '24px', display: 'flex', alignItems: 'center' }}>
@@ -49,6 +49,7 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) 
     );
 };
 
+// O도착지---O출발지
 const TripTimeline: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const waypoints = [
         { type: '도착지', location: trip.to.scanLocation },
@@ -79,7 +80,7 @@ const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
                 <div className="flex flex-col gap-4 p-3 mb-6 rounded-lg bg-black/20">
                     {trip.anomalyTypeList.map((code, index) => (
                         <div key={`${code}-${index}`}>
-                            <p className="font-bold text-base" style={{ color: `rgb(${getAnomalyColor(code).join(',')})` }}>
+                            <p className="font-noto-500 text-base" style={{ color: `rgb(${getAnomalyColor(code).join(',')})` }}>
                                 {getAnomalyName(code)}
                             </p>
                             <p className="text-sm text-neutral-300 mt-1">
@@ -217,7 +218,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
         <div style={{
             position: 'absolute', top: '10px', right: '220px',
             width: '320px', maxHeight: 'calc(100vh - 180px)',
-            background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
+            background: 'rgba(111,131,175)',
             boxShadow: '0 0 0 1px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(6px)', borderRadius: '25px',
             padding: '20px', color: '#E0E0E0',
@@ -233,7 +234,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                             : (selectedObject as LocationNode).scanLocation
                     }
                 </h3>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '20px', cursor: 'pointer' }}>
+                <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#FFFFFF', fontSize: '20px', cursor: 'pointer' }}>
                     ×
                 </button>
             </div>
@@ -257,7 +258,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                         <div className="my-6 border-t border-gray-600/50" />
 
                         {/* 섹션 2: 선택된 경로의 상세 정보 */}
-                        <h4 className="text-base font-semibold text-neutral-300 mb-2">선택된 경로 상세</h4>
+                        <h4 className="text-base font-noto-500 text-neutral-300 mb-2">선택된 경로 상세</h4>
                         {isTrip && <TripDetails trip={selectedObject as AnalyzedTrip} />}
                     </div>
                 ) : isTrip ? (
