@@ -2,7 +2,8 @@ import { CoverLetterProps } from "@/types/file";
 
 export default function ReportCoverLetter({ data }: { data: CoverLetterProps }) {
     return (
-        <div className="p-12 bg-white text-black flex flex-col justify-between h-full">
+        <div className="p-12 bg-white text-black flex flex-col justify-between h-full" style={{ width: '210mm', minHeight: '297mm' }}
+        >
 
             {/* 2. 헤더: 페이지 상단에 위치 */}
             <header className="text-center font-serif">

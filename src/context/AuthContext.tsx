@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: { userId: string; role: string; locationId?: number; } | null;
+  isLoading: boolean;
   login: (token: string, rememberMe: boolean) => void;
   logout: () => void;
   updateUserContext: (updatedInfo: Partial<User>) => void;
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<{ userId: string; role: string; locationId?: number; } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -55,7 +57,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // 유효하지 않은 토큰일 경우, 모든 정보를 지움
           console.error("Invalid token found in storage.", error);
           logout();
+        } finally {
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
     }
   }, []);
@@ -67,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const locationId = location_id;
     const newUser: User = { userId, role, locationId };
     setUser(newUser);
+    setIsLoading(false);
   }, []);
 
   const logout = useCallback(() => {
@@ -91,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUserContext }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUserContext }}>
       {children}
     </AuthContext.Provider>
   );

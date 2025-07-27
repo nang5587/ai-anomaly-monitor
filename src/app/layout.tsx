@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "./ClientLayout";
 import { AuthProvider } from "@/context/AuthContext";
+import { DashboardProvider } from '@/context/dashboardContext';
 import "mapbox-gl/dist/mapbox-gl.css";
 
 export const metadata: Metadata = {
@@ -49,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased">
-        <AuthProvider><ClientLayout>{children}</ClientLayout></AuthProvider>
+        <AuthProvider><DashboardProvider><ClientLayout>{children}</ClientLayout></DashboardProvider></AuthProvider>
       </body>
     </html>
   );

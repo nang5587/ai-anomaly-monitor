@@ -243,18 +243,13 @@ export async function getNodes(): Promise<LocationNode[]> {
 }
 
 export async function getKpiSummary(params?: Record<string, any>): Promise<KpiSummary> {
-    console.log('Fetching KPI Summary with params:', params);
-    return {
-        totalTripCount: 854320000,
-        uniqueProductCount: 128,
-        codeCount: 2000000,
-        anomalyCount: 125,
-        anomalyRate: 0.0146,
-        salesRate: 92.5,
-        dispatchRate: 95.1,
-        inventoryRate: 78.2,
-        avgLeadTime: "12.5"
-    };
+    try {
+        const response = await apiClient.get<KpiSummary>('/manager/kpi', { params });
+        return response.data;
+    } catch (error) {
+        console.error('KPI 요약 정보 로딩 실패:', error);
+        throw error;
+    }
 }
 
 export async function getInventoryDistribution(params?: Record<string, any>): Promise<InventoryDistributionResponse> {

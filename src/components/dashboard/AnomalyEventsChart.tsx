@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList  } from 'recharts';
 
 type AnomalyDataPoint = {
     name: string;
@@ -35,7 +35,7 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke="rgba(111, 131, 175, 0.3)" />
                 <XAxis dataKey="name" stroke="rgba(111,131,175)" fontSize={12} tick={{ fill: 'rgba(111,131,175)' }} />
-                <YAxis stroke="rgba(111,131,175)" fontSize={12} allowDecimals={false} tick={{ fill: 'rgba(111,131,175)' }} />
+                <YAxis stroke="rgba(111,131,175)" fontSize={12} allowDecimals={false} tick={{ fill: 'rgba(111,131,175)' }} domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.2) / 10) * 10]}/>
                 <Tooltip
                     cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
                     content={({ payload, label }) => (
@@ -50,6 +50,15 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                     )}
                 />
                 <Bar dataKey="count" barSize={60}>
+                    <LabelList
+                        dataKey="count"     // 막대에 표시할 데이터의 키
+                        position="top"      // 막대의 '위쪽(top)'에 표시
+                        offset={8}          // 막대 끝에서 8px 떨어진 위치
+                        fill="rgba(40,40,40,0.8)" // 글자 색상
+                        fontSize={14}       // 글자 크기
+                        fontWeight="bold"   // 글자 굵기
+                    // content={renderCustomizedLabel} // 더 복잡한 디자인이 필요하면 이 옵션 사용
+                    />
                     {data.map((entry, index) => {
                         const type = entry.type in pastelColorMap ? entry.type : 'default';
                         return (

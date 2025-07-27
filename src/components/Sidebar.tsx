@@ -23,8 +23,8 @@ const menus = [
   { name: "대시보드", icon: HomeIcon, href: "/" },
   { name: "CSV 업로드", icon: UploadCloud, href: "/upload" },
   { name: "CSV 목록", icon: History, href: "/filelist" },
-  { name: "분석 리포트", icon: BarChartIcon, href: "/report" },
-  { name: "분석 지도", icon: MapIcon, href: "/graph" },
+  { name: "AI 분석 리포트", icon: BarChartIcon, href: "/report" },
+  { name: "AI 분석 지도", icon: MapIcon, href: "/graph" },
   { name: "설정", icon: SettingsIcon, href: "/settings" },
   { name: "사용자 관리", icon: UserIcon, href: "/supervisor/management", requiredRole: "ADMIN" },
 ];
@@ -81,7 +81,7 @@ export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps)
           {visibleMenus.map((menu) => {
             let href = menu.href;
 
-            if (menu.name === '분석 리포트') {
+            if (menu.name === 'AI 분석 리포트') {
               if (userRole === 'ADMIN') {
                 href = '/supervisor/report';
               } else if (userRole === 'MANAGER') {
@@ -92,7 +92,6 @@ export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps)
             return (
               <Link
                 key={menu.name}
-                // 3. 동적으로 결정된 href 값을 사용합니다.
                 href={href}
                 className="relative flex items-center gap-4 py-2.5 px-4 hover:bg-[rgba(111,131,175,1)] rounded-2xl"
               >

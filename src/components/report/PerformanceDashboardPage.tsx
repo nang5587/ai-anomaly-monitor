@@ -30,7 +30,7 @@ const KpiCard = ({ title, value }: { title: string; value: string; }) => (
 
 export default function PerformanceDashboardPage({ kpiData, dailyVolumeData }: { kpiData: PerformanceKpis; dailyVolumeData: DailyVolumeData }) {
     return (
-        <div className="p-10 bg-white text-black flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
+        <div className="p-10 bg-white text-black flex flex-col">
             <header className="mb-8">
                 <h1 className="text-2xl font-bold text-center border-b-2 border-gray-300 pb-4">
                     📊 전체 성과 KPI 대시보드

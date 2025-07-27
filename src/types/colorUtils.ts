@@ -1,5 +1,6 @@
 import { LocationNode, AnomalyType } from './data';
 
+export const ALL_ANOMALY_TYPES: AnomalyType[] = ['fake', 'tamper', 'clone'];
 
 // 노드 타입에 따른 색상을 반환하는 함수
 export const getNodeColor = (type: LocationNode['hubType']): [number, number, number, number] => {
