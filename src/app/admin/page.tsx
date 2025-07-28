@@ -123,7 +123,7 @@ export default function SupervisorDashboard() {
             alert("보고서를 생성할 파일을 먼저 선택해주세요.");
             return;
         }
-        router.push(`/report?fileId=${selectedFileId}`);
+        router.push(`/admin/report?fileId=${selectedFileId}`);
     };
 
     const handleChartToggle = () => {
@@ -245,7 +245,7 @@ export default function SupervisorDashboard() {
                 </motion.div>
             </motion.div>
 
-            <div className="px-8 pb-[120px]">
+            <div className="px-8 pb-[20px]">
                 <motion.div
                     className="space-y-4"
                     variants={containerVariants}

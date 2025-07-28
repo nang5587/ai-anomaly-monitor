@@ -8,7 +8,6 @@ import { statusBarAtom } from '@/stores/uiAtoms';
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 
-
 import { useMapStore } from '@/stores/mapStore';
 
 import { useAuth } from "@/context/AuthContext";

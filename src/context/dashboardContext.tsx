@@ -12,7 +12,6 @@ import {
     ReactNode
 } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { selectedFileIdAtom } from '@/stores/mapDataAtoms';
 
 // 필요한 모든 타입과 API 함수들을 import 합니다.
 import {
@@ -39,12 +38,14 @@ import {
     mergeAndGenerateTimestamps,
     routeGeometriesAtom,
     loadRouteGeometriesAtom,
+    selectedFileIdAtom,
+    selectedFactoryNameAtom,
 } from '@/stores/mapDataAtoms';
 import { getAnomalyName, getAnomalyColor, ALL_ANOMALY_TYPES } from '@/types/colorUtils';
 import { StageBarDataPoint } from '../types/chart';
 
 // --- 1. 유틸리티 객체 및 상수 ---
-const factoryCodeNameMap: { [key: number]: string } = { 1: '인천', 2: '화성', 3: '양산', 4: '구미' };
+const factoryCodeNameMap: { [key: number]: string } = { 1: '인천공장', 2: '화성공장', 3: '양산공장', 4: '구미공장' };
 
 // --- 2. Context에 담길 값들의 타입을 정의합니다 ---
 interface DashboardContextType {
@@ -118,19 +119,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     // --- Jotai 상태 ---
     const [selectedFileId, setSelectedFileId] = useAtom(selectedFileIdAtom);
+    const [selectedFactoryName, setSelectedFactoryName] = useAtom(selectedFactoryNameAtom);
     const routeGeometries = useAtomValue(routeGeometriesAtom);
     const loadGeometries = useSetAtom(loadRouteGeometriesAtom);
 
     // --- Computed Values ---
-    const selectedFactoryName = useMemo(() => {
-        if (!selectedFileId || uploadHistory.length === 0) return null;
-        const selectedFile = uploadHistory.find(file => file.fileId === selectedFileId);
-        if (selectedFile?.locationId) {
-            return factoryCodeNameMap[selectedFile.locationId] || '정보 없음';
-        }
-        return '정보 없음';
-    }, [selectedFileId, uploadHistory]);
-
     const viewProps = useMemo(() => {
         return { factoryName: selectedFactoryName };
     }, [selectedFactoryName]);
@@ -169,60 +162,88 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     // --- 초기화 로직 ---
     useEffect(() => {
-        if (!user || isAuthLoading || isInitialized) return;
+        // 필수 요소가 준비되지 않았으면 아무것도 하지 않음
+        if (!user || !routeGeometries) return;
 
+        const fileIdFromUrl = searchParams.get('fileId');
+
+        // 재사용 가능한 헬퍼 함수: history를 가져오고 상태를 설정
+        const ensureHistory = async (): Promise<FileItem[]> => {
+            if (uploadHistory.length > 0) return uploadHistory;
+            const history = await getFiles_client();
+            setUploadHistory(history);
+            return history;
+        };
+
+        // --- 시나리오 분기 ---
+
+        // 시나리오 1: URL에 fileId가 있으면, 무조건 URL이 기준
+        if (fileIdFromUrl) {
+            const fileIdNum = Number(fileIdFromUrl);
+
+            // Atom 상태를 URL과 동기화
+            if (selectedFileId !== fileIdNum) {
+                setSelectedFileId(fileIdNum);
+            }
+
+            // 공장 이름도 URL에 맞춰 동기화
+            const setFactoryFromFile = async () => {
+                const history = await ensureHistory();
+                const selectedFile = history.find(f => f.fileId === fileIdNum);
+                const factoryName = selectedFile?.locationId ? (factoryCodeNameMap[selectedFile.locationId] || '정보 없음') : '정보 없음';
+                if (selectedFactoryName !== factoryName) {
+                    setSelectedFactoryName(factoryName);
+                }
+            };
+            setFactoryFromFile();
+            return; // 이 시나리오의 책임은 끝났으므로 여기서 종료
+        }
+
+        // 시나리오 2: URL은 없지만 Atom에 fileId가 있으면 (예: 업로드 직후)
+        // URL을 Atom 상태에 맞게 업데이트하여 일관성 유지
+        if (selectedFileId) {
+            const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+            // 현재 URL과 다를 때만 replace를 호출하여 불필요한 리렌더링 방지
+            if (!searchParams.get('fileId')) {
+                // router.replace(`/${role}/report?fileId=${selectedFileId}`);
+                router.replace(`/${role}`);
+            }
+            return;
+        }
+
+        // 시나리오 3: URL에도, Atom에도 fileId가 없으면 (초기 접속)
         const initializeDashboard = async () => {
+            setIsLoading(true);
             try {
-                const fileIdFromUrl = searchParams.get('fileId');
-                
-                if (fileIdFromUrl) {
-                    // URL에 fileId가 있으면 아톰에 설정
-                    setSelectedFileId(Number(fileIdFromUrl));
-                } else if (selectedFileId) {
-                    // 아톰에 이미 fileId가 있으면 그대로 사용
-                    // 아무것도 하지 않음
+                const history = await ensureHistory();
+                if (history.length > 0) {
+                    const latestFile = history[0];
+                    const latestFileId = latestFile.fileId;
+                    const latestFactoryName = latestFile.locationId ? factoryCodeNameMap[latestFile.locationId] : '정보 없음';
+
+                    // ✨ Atom들과 URL을 '한 번에' 업데이트
+                    setSelectedFileId(latestFileId);
+                    setSelectedFactoryName(latestFactoryName); // 👈 공장 이름도 함께 설정!
+
+                    const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+                    router.replace(`/${role}/report?fileId=${latestFileId}`);
                 } else {
-                    // URL과 아톰 모두 비어있으면 업로드 내역 확인
-                    const history = await getFiles_client();
-                    setUploadHistory(history);
-                    
-                    if (history && history.length > 0) {
-                        // 가장 최근 파일을 선택
-                        const latestFileId = history[0].fileId;
-                        console.log('⚠️ 최근 파일 아이디 !!!!!!!!!!!!!!!!!!!!!!', latestFileId);
-                        setSelectedFileId(latestFileId);
-                        
-                        // URL 업데이트
-                        const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-                        router.replace(`/${role}/report?fileId=${latestFileId}`);
-                    } else {
-                        // 업로드 내역이 없으면 업로드 페이지로 이동
-                        const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-                        router.replace(`/upload`);
-                        return;
-                    }
+                    const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+                    router.replace(`/upload`);
                 }
-
-                // uploadHistory가 아직 로드되지 않았다면 로드
-                if (uploadHistory.length === 0) {
-                    const history = await getFiles_client();
-                    setUploadHistory(history);
-                }
-
             } catch (error) {
-                console.error("초기화 중 오류 발생:", error);
-            } finally {
-                setIsInitialized(true);
+                console.error("초기 파일 목록 로딩 실패:", error);
+                setIsLoading(false);
             }
         };
 
         initializeDashboard();
-    }, [user, isAuthLoading, isInitialized, searchParams, selectedFileId, setSelectedFileId, router, uploadHistory.length]);
+    }, [user, routeGeometries, searchParams, selectedFileId, selectedFactoryName, setSelectedFileId, router]);
 
     // --- 데이터 로딩 로직 ---
     useEffect(() => {
         // 초기화 완료, 사용자 정보, 라우트 지오메트리가 모두 준비되어야 함
-        if (!isInitialized || !user || !routeGeometries) {
+        if (!user || !routeGeometries) {
             return;
         }
 
@@ -278,21 +299,23 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     setIsLoading(false);
                 }
             };
-            
+
             loadData();
         } else {
             // selectedFileId가 없으면 상태 초기화
-            setIsLoading(false);
-            setCoverData(null);
-            setKpiData(null);
-            setAnomalyTrips([]);
-            setAllTripsForMap([]);
-            setInventoryData([]);
-            setProductAnomalyData([]);
-            setNodes([]);
-            setNextCursor(null);
+            if (!searchParams.get('fileId')) {
+                setIsLoading(false);
+                setCoverData(null);
+                setKpiData(null);
+                setAnomalyTrips([]);
+                setAllTripsForMap([]);
+                setInventoryData([]);
+                setProductAnomalyData([]);
+                setNodes([]);
+                setNextCursor(null);
+            }
         }
-    }, [isInitialized, user, selectedFileId, routeGeometries]);
+    }, [user, selectedFileId, routeGeometries]);
 
     // --- 차트 데이터 계산 ---
     const { anomalyChartData, stageChartData, eventTimelineData } = useMemo(() => {
@@ -372,7 +395,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     // --- 콜백 함수들 ---
     const handleLoadMore = useCallback(async () => {
         if (!nextCursor || isFetchingMore || !selectedFileId) return;
-        
+
         setIsFetchingMore(true);
 
         const params = {
@@ -383,7 +406,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         try {
             const response = await getAnomalies(params);
-            
+
             if (response.data && response.data.length > 0) {
                 const newMergedTrips = mergeAndGenerateTimestamps(response.data, routeGeometries);
                 setAnomalyTrips(prevTrips => [...prevTrips, ...newMergedTrips]);
@@ -419,7 +442,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             alert("로그인 정보가 필요합니다.");
             return;
         }
-        
+
         const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
         router.push(`/${role}/report?fileId=${fileId}`);
     }, [router, user]);

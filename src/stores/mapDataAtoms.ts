@@ -36,6 +36,8 @@ type RouteGeometryMap = Record<string, RouteGeometry>;
  */
 export const selectedFileIdAtom = atom<number | null>(null);
 // export const selectedFileIdAtom = atom<number | null>(1); //⚠️ 백 연동 시 지우고 위에 코드 사용
+export const selectedFactoryNameAtom = atom<string | null>(null);
+
 /**
  * 시간 필터링을 위한 시간 범위 [시작, 끝]을 저장하는 아톰.
  */

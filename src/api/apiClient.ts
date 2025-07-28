@@ -137,6 +137,7 @@ export async function getFiles_client(): Promise<FileItem[]> {
         if (Array.isArray(data)) {
             return data as FileItem[];
         }
+        console.log('파일리스트입니다람쥐 ', data)
 
         // 4. 흔한 경우: 데이터가 { data: [...] } 또는 { files: [...] } 형태의 객체인가?
         //    (실제 API 응답에 맞는 키 'data', 'files', 'list' 등을 확인하고 수정하세요)
@@ -195,7 +196,7 @@ const DUMMY_COVER_DB: Record<number, CoverReportData> = {
         createdAt: "2025-07-28T11:00:00Z",
         period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
     },
-    102: {
+    9: {
         fileName: "수원-물류센터.csv",
         userName: "이수원",
         locationId: 1,
