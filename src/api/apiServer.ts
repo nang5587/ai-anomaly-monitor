@@ -87,7 +87,7 @@ export const getRouteGeometries_server = async (): Promise<any> => {
 
 // fetch를 사용하지 않는 순수 더미 데이터 함수들은 그대로 사용 가능
 export const getKpiSummary_server = async (params?: Record<string, any>): Promise<KpiSummary> => {
-    return { totalTripCount: 854320000, uniqueProductCount: 128, codeCount: 2000000, anomalyCount: 125, anomalyRate: 0.0146, salesRate: 92.5, dispatchRate: 95.1, inventoryRate: 78.2, avgLeadTime: "12.5" };
+    return { totalTripCount: 854320000, uniqueProductCount: 128, codeCount: 2000000, anomalyCount: 125, anomalyRate: 0.0146, salesRate: 92.5, dispatchRate: 95.1, inventoryRate: 78.2, avgLeadTime: 12.5 };
 }
 export const getInventoryDistribution_server = async (params?: Record<string, any>): Promise<InventoryDistributionResponse> => {
     return { inventoryDistribution: [{ "businessStep": "Factory", "value": 12050 }, { "businessStep": "WMS", "value": 25800 }, { "businessStep": "LogiHub", "value": 17300 }, { "businessStep": "Wholesaler", "value": 35100 }, { "businessStep": "Reseller", "value": 48200 }, { "businessStep": "POS", "value": 31540 }] };

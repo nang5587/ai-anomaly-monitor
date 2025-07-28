@@ -23,7 +23,7 @@ export interface TripEndpoint {
 }
 
 export interface AnalyzedTrip {
-    roadId: string;
+    roadId: number;
     from: TripEndpoint;
     to: TripEndpoint;
     epcCode: string;
@@ -31,7 +31,6 @@ export interface AnalyzedTrip {
     epcLot: string;
     eventType: string;
     anomalyTypeList: AnomalyType[];
-    anomalyDescription: string | null;
 }
 
 export interface PaginatedTripsResponse {
@@ -48,7 +47,7 @@ export interface KpiSummary {
     salesRate: number;
     dispatchRate: number;
     inventoryRate: number;
-    avgLeadTime: string;
+    avgLeadTime: number;
 }
 
 export interface InventoryDataPoint {

@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import { useSetAtom, useAtomValue } from 'jotai';
 import Papa from 'papaparse';
 import PreviewTable from '../../components/upload/PreviewTable';
 
 import { statusBarAtom, resetStatusBarAtom } from '@/stores/uiAtoms';
+import { selectedFileIdAtom } from '@/stores/mapDataAtoms';
 
 import { useAuth } from '@/context/AuthContext';
 import { UploadCloud } from 'lucide-react';
@@ -45,6 +47,7 @@ export default function BarcodeLogUploadPage() {
 
   const setStatusBar = useSetAtom(statusBarAtom);
   const resetStatusBar = useSetAtom(resetStatusBarAtom);
+  const setSelectedFileId = useSetAtom(selectedFileIdAtom);
 
   const statusBar = useAtomValue(statusBarAtom);
 
@@ -70,6 +73,7 @@ export default function BarcodeLogUploadPage() {
       client.subscribe(`/notify/${user.userId}`, (message) => {
         const messageText = message.body;
         console.log("📬 WebSocket 메시지 수신:", messageText);
+
 
         // 기본적으로 메시지는 항상 업데이트
         setStatusBar(prev => ({ ...prev, message: messageText, status: 'uploading' }));
@@ -302,6 +306,30 @@ export default function BarcodeLogUploadPage() {
 
       if (!response.ok) {
         throw new Error(resultText || `파일 전송 실패 (${response.status})`);
+      }
+
+      let messageForStatus = resultText;
+      try {
+        // 1. fetch 응답을 JSON으로 파싱합니다.
+        const parsedResult = JSON.parse(resultText);
+        messageForStatus = parsedResult.message || resultText;
+
+        // 2. "업로드 시작됨" 메시지에서 fileId를 추출합니다.
+        if (messageForStatus.includes("업로드 시작됨. 파일 ID:")) {
+          // 정규 표현식을 사용하여 "파일 ID: " 뒤의 숫자를 찾습니다.
+          const match = messageForStatus.match(/파일 ID: (\d+)/);
+
+          if (match && match[1]) {
+            const fileId = parseInt(match[1], 10);
+            console.log(`✅ 파일 ID (${fileId}) 추출 성공! Atom에 저장합니다.`);
+
+            // 3. 추출한 fileId를 Jotai atom에 저장합니다.
+            setSelectedFileId(fileId);
+          }
+        }
+      } catch (e) {
+        // JSON 파싱에 실패해도 오류로 처리하지 않고, 원본 텍스트를 메시지로 사용합니다.
+        console.warn("파일 전송 응답이 JSON 형식이 아닙니다:", resultText);
       }
 
       console.log('📤 파일 전송 성공, 서버 처리 시작:', resultText);

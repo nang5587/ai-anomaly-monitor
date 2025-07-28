@@ -38,3 +38,15 @@ export const getAnomalyName = (type?: AnomalyType): string => {
         default:            return '알 수 없는 유형';
     }
 };
+
+export const getNodeName = (type?: LocationNode['hubType']): string => {
+    switch (type) {
+        case 'Factory': return '공장';
+        case 'WMS': return '창고';
+        case 'LogiHub': return '물류';
+        case 'Wholesaler': return '도매';
+        case 'Reseller': return '소매';
+        case 'POS': return '판매';
+        default:            return '알 수 없는 유형';
+    }
+};

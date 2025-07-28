@@ -20,9 +20,7 @@ const MiniStatCard = ({ title, value, icon }: { title: string, value: string, ic
 import type { KpiSummary } from '../../types/data';
 
 type FactoryDetailViewProps = {
-    factoryTabs: string[];
-    activeFactory: string;
-    onTabClick: (factory: string) => void;
+    factoryName: string | null; // 탭 대신 단일 공장 이름
     kpiData: KpiSummary;
 };
 
@@ -39,31 +37,15 @@ const formatNumberCompact = (num: number): string => {
 
 // const factoryTabs = ['전체', '화성', '인천', '구미', '양산'];
 
-export default function FactoryDetailView({ factoryTabs, activeFactory, onTabClick, kpiData }: FactoryDetailViewProps) {
+export default function FactoryDetailView({ factoryName, kpiData }: FactoryDetailViewProps) {
     const anomalyPercentage = kpiData.anomalyRate * 100;
 
     return (
         <div className="bg-[rgba(40,40,40)] p-6 rounded-3xl shadow-lg flex flex-col">
-            {/* --- 탭 --- */}
-            {factoryTabs && factoryTabs.length > 1 && (
-                <div className="flex space-x-1 bg-[rgba(30,30,30)] rounded-full mb-6">
-                    {factoryTabs.map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => onTabClick(tab)}
-                            className={`w-full py-2.5 text-base font-medium font-noto-400 leading-5 rounded-full transition-colors
-                                ${activeFactory === tab ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-300 hover:bg-white/[0.12] hover:text-white'}`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-            )}
 
             {/* 만약 탭이 1개만 있다면, 그 공장 이름을 제목처럼 보여줄 수 있습니다. */}
-            {factoryTabs && factoryTabs.length === 1 && (
-                <h2 className="font-noto-400 text-xl text-white mb-6 text-center rounded-2xl bg-[rgba(30,30,30)] p-2">{factoryTabs[0]}공장</h2>
-            )}
+
+                <h2 className="font-noto-400 text-xl text-white mb-6 text-center rounded-2xl bg-[rgba(30,30,30)] p-2">{factoryName || '선택된 파일 없음'}</h2>
 
             {/* --- KPI 그리드 --- */}
             <div className='flex flex-col justify-center gap-3'>

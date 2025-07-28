@@ -7,19 +7,18 @@ import dynamic from 'next/dynamic';
 
 // 차트 컴포넌트 동적 import
 const DynamicAnomalyChart = dynamic(() => import('@/components/dashboard/AnomalyEventsChart'), { ssr: false });
-const DynamicStageLollipopChart = dynamic(() => import('@/components/dashboard/StageLollipopChart'), { ssr: false });
-const DynamicProductChart = dynamic(() => import('@/components/dashboard/ProductAnomalyChart'), { ssr: false });
-const DynamicTimelineChart = dynamic(() => import('@/components/dashboard/AnomalyTimelineChart'), { ssr: false });
+const DynamicStageLollipopChart = dynamic(() => import('./StageLollipopChart'), { ssr: false });
+const DynamicProductChart = dynamic(() => import('./ProductAnomalyChart'), { ssr: false });
+const DynamicTimelineChart = dynamic(() => import('./AnomalyTimelineChart'), { ssr: false });
 
 // 필요한 타입들을 import 합니다.
 import { KpiSummary } from "@/types/api";
 import { ByProductResponse } from "@/types/data";
-import { StageBarDataPoint } from "@/components/dashboard/StageLollipopChart";
+import { StageBarDataPoint } from '@/types/chart';
 import { INSIGHTS_TEMPLATES, ACTION_ITEMS_TEMPLATES } from './Templates'
 import { AnomalyType } from "@/types/api";
 
 // --- 타입 정의 ---
-// 이 페이지가 필요로 하는 데이터의 타입을 명확히 합니다.
 interface AnomalyChartPoint {
     name: string;
     type: AnomalyType;
@@ -36,14 +35,37 @@ interface AnomalyDashboardProps {
     eventTimelineData: any[];
     mostProblematicRoute: string;
     mostAffectedProduct: string;
+    pageNumber: number;
+    totalPages: number;
 }
 
-// 보고서용 KPI 카드를 새로 정의합니다.
+// 보고서용 KPI 카드 - 더 컴팩트하게 수정
 const ReportKpiCard = ({ title, value, description }: { title: string; value: string; description?: string }) => (
-    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <p className="text-sm text-gray-500">{title}</p>
-        <p className={`text-3xl font-bold mt-1 ${title.includes('이상') ? 'text-red-600' : 'text-gray-800'}`}>{value}</p>
-        {description && <p className="text-xs text-gray-400 mt-1">{description}</p>}
+    <div
+        style={{
+            backgroundColor: 'rgb(249, 250, 251)',
+            padding: '12px',
+            borderRadius: '6px',
+            border: '1px solid rgb(229, 231, 235)',
+            textAlign: 'center'
+        }}
+    >
+        <p style={{ fontSize: '12px', color: 'rgb(107, 114, 128)', margin: '0 0 4px 0' }}>{title}</p>
+        <p
+            style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                margin: '0',
+                color: title.includes('이상') ? 'rgb(220, 38, 38)' : 'rgb(31, 41, 55)'
+            }}
+        >
+            {value}
+        </p>
+        {description && (
+            <p style={{ fontSize: '10px', color: 'rgb(156, 163, 175)', margin: '4px 0 0 0' }}>
+                {description}
+            </p>
+        )}
     </div>
 );
 
@@ -56,6 +78,8 @@ export default function AnomalyDashboardPage({
     eventTimelineData,
     mostProblematicRoute,
     mostAffectedProduct,
+    pageNumber,
+    totalPages,
 }: AnomalyDashboardProps) {
     // 프론트엔드에서 계산해야 하는 추가적인 KPI
     const mostFrequentAnomaly = useMemo(() => {
@@ -72,21 +96,68 @@ export default function AnomalyDashboardPage({
         ? INSIGHTS_TEMPLATES[mostFrequentAnomaly.type].replace('[PERCENTAGE]', percentage)
         : "데이터 분석 중 오류가 발생했습니다.";
 
-    const actionItems = mostFrequentAnomaly.type ? ACTION_ITEMS_TEMPLATES[mostFrequentAnomaly.type] : null;
-
     return (
-        <div className="p-10 bg-white text-black flex flex-col font-sans" style={{ width: '210mm', minHeight: '297mm' }}>
-            <header className="mb-8">
-                <h1 className="text-2xl font-bold text-center pb-4">
-                    Ⅰ. 이상 탐지 요약 대시보드
+        <div
+            style={{
+                width: '210mm',
+                height: '297mm',
+                backgroundColor: 'rgb(255, 255, 255)',
+                color: 'rgb(0, 0, 0)',
+                display: 'flex',
+                flexDirection: 'column',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                padding: '10mm', // 더 작은 여백
+                boxSizing: 'border-box',
+                pageBreakAfter: 'always',
+                breakAfter: 'page'
+            }}
+        >
+            {/* 헤더 - 더 컴팩트하게 */}
+            <header style={{ marginBottom: '16px', flexShrink: 0 }}>
+                <h1
+                    style={{
+                        fontSize: '22px',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        paddingBottom: '12px',
+                        color: 'rgb(0, 0, 0)',
+                        margin: '0'
+                    }}
+                >
+                    Ⅰ. 이상 탐지 요약
                 </h1>
             </header>
 
-            <main className="flex-grow flex flex-col space-y-10">
-                {/* 1. 핵심 요약 지표 (KPIs) */}
-                <section className="flex-shrink-0">
-                    <h2 className="text-xl font-semibold mb-4 text-gray-700">1. 핵심 지표 요약 (Executive Summary)</h2>
-                    <div className="grid grid-cols-4 gap-4">
+            {/* 메인 콘텐츠 - 공간 최적화 */}
+            <main
+                style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    overflow: 'hidden'
+                }}
+            >
+                {/* 1. 핵심 요약 지표 (KPIs) - 더 컴팩트하게 */}
+                <section style={{ flexShrink: 0 }}>
+                    <h2
+                        style={{
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            marginBottom: '8px',
+                            color: 'rgb(75, 85, 99)',
+                            margin: '0 0 8px 0'
+                        }}
+                    >
+                        1. 핵심 지표 요약
+                    </h2>
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(4, 1fr)',
+                            gap: '8px'
+                        }}
+                    >
                         <ReportKpiCard
                             title="총 이상 발생 건수"
                             value={(kpiData?.anomalyCount ?? 0).toLocaleString()}
@@ -110,70 +181,222 @@ export default function AnomalyDashboardPage({
                     </div>
                 </section>
 
-                <section className="flex-shrink-0">
-                    <h2 className="text-xl font-semibold mb-4 text-gray-700">2. 분석 요약 및 권고</h2>
-                    <div className="grid grid-cols-2 gap-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
-                        <div>
-                            <h3 className="text-base font-bold mb-2">주요 발견사항 (Key Insights)</h3>
-                            <ul className="list-disc list-inside space-y-1">
-                                <li><strong>가장 큰 문제점:</strong> {mainInsight}</li>
-                                <li><strong>집중 발생 구간:</strong> {mostProblematicRoute}</li>
-                                <li><strong>제품별 특이사항:</strong> {mostAffectedProduct}</li>
-                            </ul>
-                        </div>
-                        {actionItems && (
-                            <div>
-                                <h3 className="text-base font-bold mb-2">권장 조치 (Action Items)</h3>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li><strong>단기 조치:</strong> {actionItems.short.replace('[ROUTE]', mostProblematicRoute)}</li>
-                                    <li><strong>중기 조치:</strong> {actionItems.mid}</li>
-                                    <li><strong>장기 조치:</strong> {actionItems.long}</li>
-                                </ul>
-                            </div>
-                        )}
+                {/* 2. 분석 요약 - 더 컴팩트하게 */}
+                <section style={{ flexShrink: 0 }}>
+                    <h2
+                        style={{
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            marginBottom: '8px',
+                            color: 'rgb(75, 85, 99)',
+                            margin: '0 0 8px 0'
+                        }}
+                    >
+                        2. 분석 요약 및 권고
+                    </h2>
+                    <div
+                        style={{
+                            backgroundColor: 'rgb(254, 252, 232)',
+                            borderLeft: '4px solid rgb(252, 211, 77)',
+                            padding: '12px',
+                            borderTopRightRadius: '6px',
+                            borderBottomRightRadius: '6px',
+                            fontSize: '13px'
+                        }}
+                    >
+                        <h3 style={{ fontWeight: 'bold', color: 'rgb(146, 64, 14)', margin: '0 0 8px 0' }}>
+                            주요 발견사항
+                        </h3>
+                        <ul
+                            style={{
+                                listStyleType: 'disc',
+                                listStylePosition: 'inside',
+                                margin: '0',
+                                padding: '0',
+                                color: 'rgb(0, 0, 0)',
+                                lineHeight: '1.4'
+                            }}
+                        >
+                            <li style={{ marginBottom: '4px' }}><strong>가장 큰 문제점:</strong> {mainInsight}</li>
+                            <li style={{ marginBottom: '4px' }}><strong>집중 발생 구간:</strong> {mostProblematicRoute}</li>
+                            <li><strong>제품별 특이사항:</strong> {mostAffectedProduct}</li>
+                        </ul>
                     </div>
                 </section>
 
-                {/* 3. 시각화 섹션 */}
-                <section className="grid grid-cols-2 grid-rows-2 gap-x-8 gap-y-6 flex-grow">
-
-                    {/* --- 1행 1열: 이상 탐지 유형별 상세 --- */}
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">3.1 이상 탐지 유형별 상세</h2>
-                        <div className="bg-gray-50 p-4 rounded-lg border flex-grow">
+                {/* 3. 시각화 섹션 - 남은 공간 모두 활용 */}
+                <section
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gridTemplateRows: 'repeat(2, 1fr)',
+                        gap: '8px',
+                        flex: 1,
+                        minHeight: '100mm' // 최소 높이 보장으로 차트 영역 확대
+                    }}
+                >
+                    {/* 차트 1 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
+                        <h3
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            가. 이상 탐지 유형별 상세
+                        </h3>
+                        <p
+                            style={{
+                                fontSize: '10px',
+                                textAlign: 'right',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            (단위: 건)
+                        </p>
+                        <div
+                            style={{
+                                backgroundColor: 'rgb(249, 250, 251)',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid rgb(229, 231, 235)',
+                                flex: 1,
+                                minHeight: '0'
+                            }}
+                        >
                             <DynamicAnomalyChart data={anomalyChartData} />
                         </div>
                     </div>
 
-                    {/* --- 1행 2열: 공급망 단계별 이상 발생 --- */}
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">3.2 공급망 단계별 이상 발생</h2>
-                        <div className="bg-gray-50 p-4 rounded-lg border flex-grow">
+                    {/* 차트 2 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
+                        <h3
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            나. 공급망 단계별 이상 발생
+                        </h3>
+                        <p
+                            style={{
+                                fontSize: '10px',
+                                textAlign: 'right',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            (단위: 건)
+                        </p>
+                        <div
+                            style={{
+                                backgroundColor: 'rgb(249, 250, 251)',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid rgb(229, 231, 235)',
+                                flex: 1,
+                                minHeight: '0'
+                            }}
+                        >
                             <DynamicStageLollipopChart data={stageChartData} />
                         </div>
                     </div>
 
-                    {/* --- 2행 1열: 제품별 이상 발생 추이 --- */}
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">3.3 제품별 이상 발생 추이</h2>
-                        <div className="bg-gray-50 p-4 rounded-lg border flex-grow">
+                    {/* 차트 3 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
+                        <h3
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            다. 제품별 이상 발생 추이
+                        </h3>
+                        <p
+                            style={{
+                                fontSize: '10px',
+                                textAlign: 'right',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            (단위: 건)
+                        </p>
+                        <div
+                            style={{
+                                backgroundColor: 'rgb(249, 250, 251)',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid rgb(229, 231, 235)',
+                                flex: 1,
+                                minHeight: '0'
+                            }}
+                        >
                             <DynamicProductChart data={productAnomalyData} />
                         </div>
                     </div>
 
-                    {/* --- 2행 2열: 요일별 이상 발생 추이 --- */}
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">2.4 요일별 이상 발생 추이</h2>
-                        <div className="bg-gray-50 p-4 rounded-lg border flex-grow">
+                    {/* 차트 4 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
+                        <h3
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            라. 요일별 이상 발생 추이
+                        </h3>
+                        <p
+                            style={{
+                                fontSize: '10px',
+                                textAlign: 'right',
+                                color: 'rgb(75, 85, 99)',
+                                margin: '0 0 4px 0'
+                            }}
+                        >
+                            (단위: 건)
+                        </p>
+                        <div
+                            style={{
+                                backgroundColor: 'rgb(249, 250, 251)',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid rgb(229, 231, 235)',
+                                flex: 1,
+                                minHeight: '0'
+                            }}
+                        >
                             <DynamicTimelineChart data={eventTimelineData} />
                         </div>
                     </div>
-
                 </section>
             </main>
 
-            <footer className="mt-auto pt-8 border-t text-center text-xs text-gray-500">
-                <p>Page 2</p>
+            {/* 푸터 - 더 컴팩트하게 */}
+            <footer
+                style={{
+                    marginTop: '8px',
+                    paddingTop: '8px',
+                    textAlign: 'center',
+                    fontSize: '10px',
+                    color: 'rgb(107, 114, 128)',
+                    flexShrink: 0
+                }}
+            >
+                <p style={{ margin: '0' }}>Page {pageNumber} / {totalPages}</p>
             </footer>
         </div>
     );

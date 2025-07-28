@@ -12,10 +12,7 @@ import {
 } from 'recharts';
 
 // 데이터 타입 정의는 이전과 동일합니다.
-export interface StageBarDataPoint {
-    stageName: string;
-    count: number;
-}
+import { StageBarDataPoint } from '@/types/chart';
 
 interface StandardChartProps {
     data: StageBarDataPoint[];
@@ -43,7 +40,7 @@ const StageStandardLineChart: React.FC<StandardChartProps> = ({ data }) => {
 
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" vertical={false} />
                 <XAxis
-                    dataKey="stageName"
+                    dataKey="name"
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#E0E0E0', fontSize: 12 }}

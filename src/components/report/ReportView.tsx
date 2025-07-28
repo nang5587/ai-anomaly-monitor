@@ -7,6 +7,7 @@ import { CoverLetterProps, getLocationNameById } from "@/types/file";
 
 import ReportCoverLetter from "./ReportCoverLetter";
 import AnomalyDashboardPage from "./AnomalyDashboardPage"
+import AnomalyDetailsPage from "./AnomalyDetailsPage";
 import PerformanceDashboardPage from "./PerformanceDashboardPage";
 
 const formatDate = (dateString: string) => {
@@ -15,6 +16,25 @@ const formatDate = (dateString: string) => {
         month: '2-digit',
         day: '2-digit',
     }).replace(/\. /g, '.').slice(0, -1);
+};
+
+// 간소화된 페이지 컨테이너 - 내부 컴포넌트가 A4 크기를 관리하도록
+const pageWrapperStyle: React.CSSProperties = {
+    pageBreakAfter: 'always',
+    breakAfter: 'page',
+    pageBreakInside: 'avoid',
+    breakInside: 'avoid',
+    margin: '0',
+    padding: '0'
+};
+
+const lastPageWrapperStyle: React.CSSProperties = {
+    pageBreakAfter: 'avoid',
+    breakAfter: 'avoid',
+    pageBreakInside: 'avoid',
+    breakInside: 'avoid',
+    margin: '0',
+    padding: '0'
 };
 
 // forwardRef를 사용하여 부모 컴포넌트(ReportClient)에서 생성한 ref를 받아옵니다.
@@ -55,9 +75,8 @@ const ReportView = forwardRef<HTMLDivElement>((props, ref) => {
         }, {} as Record<string, number>);
 
         const mostProblematicRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-        
+
         // 최다 발생 제품 계산
-        // productAnomalyData가 [{ productName: "...", total: 6 }, ...] 형태라고 가정
         const mostAffectedProduct = [...productAnomalyData].sort((a, b) => b.total - a.total)[0]?.productName || 'N/A';
 
         return {
@@ -66,48 +85,88 @@ const ReportView = forwardRef<HTMLDivElement>((props, ref) => {
         };
     }, [anomalyTrips, productAnomalyData]);
 
+    const showAnomalyDetails = anomalyTrips.length > 0;
+    const totalPages = 2 + (showAnomalyDetails ? 1 : 0) + 1; // 기본 2페이지 + 상세페이지(조건부) + 성과페이지
+
+    const pageNumbers = {
+        cover: 1,
+        anomalyDashboard: 2,
+        anomalyDetails: showAnomalyDetails ? 3 : 0,
+        performance: showAnomalyDetails ? 4 : 3,
+    };
+
     // --- 렌더링 로직 ---
 
     if (isLoading) {
-        return <div className="text-center p-10 text-gray-300">보고서 데이터를 불러오는 중...</div>;
+        return (
+            <div
+                style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: 'rgb(209, 213, 219)'
+                }}
+            >
+                보고서 데이터를 불러오는 중...
+            </div>
+        );
     }
 
     if (!coverLetterData || !kpiData) {
         return (
-            <div className="text-center p-10 text-gray-300">
+            <div
+                style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: 'rgb(209, 213, 219)'
+                }}
+            >
                 보고서를 생성할 데이터가 없습니다.
             </div>
         );
     }
 
     return (
-        // ✨ 5. 최상위 ref 컨테이너가 모든 페이지를 감쌉니다.
-        <div ref={ref}>
-            {/* 페이지 1: 커버 레터 */}
-            <div className="page-container bg-white shadow-lg mx-auto mb-8" style={{ width: '210mm', minHeight: '297mm' }}>
-                <ReportCoverLetter data={coverLetterData} />
-            </div>
+        // 최상위 컨테이너는 크기 설정 없이 내용만 감싸기
+        <div
+            ref={ref}
+            className="flex flex-col items-center"
+        >
+            {/* 페이지 1: 커버 레터 - wrapper 제거 */}
+            <ReportCoverLetter data={coverLetterData} />
 
-            {/* 페이지 2: 이상 탐지 대시보드 */}
-            <div className="page-container bg-white shadow-lg mx-auto mb-8" style={{ width: '210mm', minHeight: '297mm' }}>
-                <AnomalyDashboardPage
-                    kpiData={kpiData}
-                    anomalyChartData={anomalyChartData}
-                    stageChartData={stageChartData}
-                    productAnomalyData={productAnomalyData}
-                    eventTimelineData={eventTimelineData}
-                    mostProblematicRoute={calculatedReportKpis.mostProblematicRoute}
-                    mostAffectedProduct={calculatedReportKpis.mostAffectedProduct}
-                />
-            </div>
+            {/* 페이지 2: 이상 탐지 대시보드 - wrapper 제거 */}
+            <AnomalyDashboardPage
+                kpiData={kpiData}
+                anomalyChartData={anomalyChartData}
+                stageChartData={stageChartData}
+                productAnomalyData={productAnomalyData}
+                eventTimelineData={eventTimelineData}
+                mostProblematicRoute={calculatedReportKpis.mostProblematicRoute}
+                mostAffectedProduct={calculatedReportKpis.mostAffectedProduct}
+                pageNumber={pageNumbers.anomalyDashboard}
+                totalPages={totalPages}
+            />
 
-            {/* 페이지 3: 전체 성과 대시보드 */}
-            <div className="page-container bg-white shadow-lg mx-auto" style={{ width: '210mm', minHeight: '297mm' }}>
-                <PerformanceDashboardPage
-                    kpiData={kpiData}
-                    inventoryData={inventoryData}
+
+            {/* 페이지 3: 이상 탐지 상세 내역 - wrapper 제거 */}
+            {showAnomalyDetails && (
+
+                <AnomalyDetailsPage
+                    anomalyTrips={anomalyTrips}
+                    pageNumber={pageNumbers.anomalyDetails}
+                    totalPages={totalPages}
                 />
-            </div>
+            )}
+
+            {/* 페이지 4: 전체 성과 대시보드 - wrapper 제거 */}
+            <PerformanceDashboardPage
+                kpiData={kpiData}
+                inventoryData={inventoryData}
+                pageNumber={pageNumbers.performance}
+                totalPages={totalPages}
+                isLastPage={true}
+            />
+
         </div>
     );
 });

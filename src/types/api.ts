@@ -109,7 +109,7 @@ export interface KpiSummary {
     salesRate: number;
     dispatchRate: number;
     inventoryRate: number;
-    avgLeadTime: string;
+    avgLeadTime: number;
 }
 
 /**

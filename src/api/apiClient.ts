@@ -108,20 +108,61 @@ apiClient.interceptors.response.use(
  * [클라이언트용] 업로드된 파일 목록을 가져옵니다.
  * apiClient 인터셉터가 localStorage/sessionStorage에서 토큰을 자동으로 주입합니다.
  */
+// export async function getFiles_client(): Promise<FileItem[]> {
+//     try {
+//         const response = await apiClient.get<FileItem[]>('/manager/upload/filelist');
+//         // 백엔드 응답이 { data: [...] } 형태일 경우 response.data.data를,
+//         // [...] 형태일 경우 response.data를 반환해야 합니다.
+//         // API 명세에 따라 조정이 필요할 수 있습니다. 여기서는 배열을 직접 반환한다고 가정합니다.
+//         return response.data || [];
+//     } catch (error) {
+//         console.error("파일 목록 불러오기 실패 (클라이언트):", error);
+//         // 에러를 다시 던져서 호출한 쪽(useEffect)에서 catch 할 수 있도록 함
+//         throw error;
+//     }
+// }
 export async function getFiles_client(): Promise<FileItem[]> {
     try {
-        const response = await apiClient.get<FileItem[]>('/manager/upload/filelist');
-        // 백엔드 응답이 { data: [...] } 형태일 경우 response.data.data를,
-        // [...] 형태일 경우 response.data를 반환해야 합니다.
-        // API 명세에 따라 조정이 필요할 수 있습니다. 여기서는 배열을 직접 반환한다고 가정합니다.
-        return response.data || [];
+        // 1. API에 데이터를 요청합니다. 응답 타입을 'any'로 하여 유연하게 받습니다.
+        const response = await apiClient.get<any>('/manager/upload/filelist');
+        const data = response.data;
+
+        // 2. 응답 데이터가 있는지 먼저 확인합니다.
+        if (!data) {
+            console.warn("getFiles_client: API 응답 데이터가 없습니다.");
+            return []; // 데이터가 없으면 빈 배열 반환
+        }
+
+        // 3. 가장 이상적인 경우: 데이터가 이미 배열인가?
+        if (Array.isArray(data)) {
+            return data as FileItem[];
+        }
+
+        // 4. 흔한 경우: 데이터가 { data: [...] } 또는 { files: [...] } 형태의 객체인가?
+        //    (실제 API 응답에 맞는 키 'data', 'files', 'list' 등을 확인하고 수정하세요)
+        if (typeof data === 'object' && data !== null) {
+            if (Array.isArray(data.data)) {
+                return data.data as FileItem[];
+            }
+            if (Array.isArray(data.files)) {
+                return data.files as FileItem[];
+            }
+            if (Array.isArray(data.fileList)) { // 다른 가능한 키 이름
+                return data.fileList as FileItem[];
+            }
+        }
+
+        // 5. 위 모든 경우에 해당하지 않으면, 예기치 않은 형식이므로 경고 후 빈 배열 반환
+        console.warn("getFiles_client: API 응답이 예상된 배열 형식이 아닙니다.", data);
+        return [];
+
     } catch (error) {
         console.error("파일 목록 불러오기 실패 (클라이언트):", error);
-        // 에러를 다시 던져서 호출한 쪽(useEffect)에서 catch 할 수 있도록 함
-        throw error;
+        // 6. 에러가 발생했을 때도, 에러를 던지는 대신 항상 빈 배열을 반환합니다.
+        //    이렇게 하면 이 함수를 사용하는 컴포넌트가 추가적인 try/catch 없이 안전하게 값을 받을 수 있습니다.
+        return [];
     }
 }
-
 /**
  * 지정된 fileId의 파일을 논리적으로 삭제 처리합니다. (예: is_deleted 플래그 업데이트)
  * @param fileId 삭제 처리할 파일의 ID
@@ -140,7 +181,7 @@ export const markFileAsDeleted = (fileId: number) => {
  */
 
 const DUMMY_COVER_DB: Record<number, CoverReportData> = {
-    1: {
+    4: {
         fileName: "화성-프로젝트.csv",
         userName: "김화성",
         locationId: 2,
@@ -148,6 +189,13 @@ const DUMMY_COVER_DB: Record<number, CoverReportData> = {
         period: ["2025-07-20T00:00:00Z", "2025-07-27T00:00:00Z"]
     },
     2: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    102: {
         fileName: "수원-물류센터.csv",
         userName: "이수원",
         locationId: 1,

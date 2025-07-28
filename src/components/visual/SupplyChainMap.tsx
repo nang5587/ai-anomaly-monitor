@@ -208,13 +208,9 @@ export const SupplyChainMap: React.FC = () => {
                 animationFrame = requestAnimationFrame(animate);
             }
         };
-
-        // 애니메이션 시작
         animationFrame = requestAnimationFrame(animate);
 
-        // 클린업 함수: 컴포넌트가 언마운트되거나, isPlaying이 false로 바뀌면 애니메이션 중지
         return () => cancelAnimationFrame(animationFrame);
-
     }, [isPlaying, activeTimeRange, setIsPlaying]);
 
     // 이상 노드 pulse 효과
@@ -224,6 +220,12 @@ export const SupplyChainMap: React.FC = () => {
             setPulseRadius(r => (r > 1000 ? 0 : r + 20));
             animationFrame = requestAnimationFrame(animatePulse);
         };
+        if (selectedObject && 'roadId' in selectedObject) {
+            animationFrame = requestAnimationFrame(animatePulse);
+        } else {
+            // 선택이 해제되면 펄스 반경을 0으로 리셋합니다.
+            setPulseRadius(0);
+        }
         animationFrame = requestAnimationFrame(animatePulse);
         return () => cancelAnimationFrame(animationFrame);
     }, []);
@@ -382,21 +384,24 @@ export const SupplyChainMap: React.FC = () => {
         }
     }, [selectTripAndFocus]);
 
-    const { staticPathData, cloneMarkerCoords, dynamicTripData } = useMemo(() => {
+    const { staticPathData, cloneMarkerCoords, dynamicTripData, pulseData } = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
 
         let sPathData: MergeTrip[] = [];
-        let cMarkerCoords: [number, number][] = [];
+        let cMarkerCoords: [number, number, number][] = [];
+        let pData: [number, number][] = [];
+        const ICON_ALTITUDE = 500;
 
         if (selectedTrip) {
             if (selectedTrip.anomalyTypeList.includes('clone')) {
                 const targetEpc = selectedTrip.epcCode;
                 sPathData = validTrips.filter(trip => trip.epcCode === targetEpc);
-                cMarkerCoords = sPathData.flatMap(trip => [trip.to.coord]);
+                cMarkerCoords = sPathData.map(trip => [...(trip.to.coord as [number, number]), ICON_ALTITUDE]);
                 console.log('클론 좌표들 (선택 시 1회만 실행됨)', cMarkerCoords); // 이제 여기서는 한 번만 찍힙니다.
             } else {
                 sPathData = [selectedTrip];
             }
+            pData = [selectedTrip?.to.coord as [number, number]];
         } else {
             sPathData = validTrips;
         }
@@ -406,7 +411,8 @@ export const SupplyChainMap: React.FC = () => {
         return {
             staticPathData: sPathData,
             cloneMarkerCoords: cMarkerCoords,
-            dynamicTripData: dTripData
+            dynamicTripData: dTripData,
+            pulseData: pData
         };
     }, [selectedObject, validTrips]);
 
@@ -444,11 +450,11 @@ export const SupplyChainMap: React.FC = () => {
                 data: cloneMarkerCoords,
                 iconAtlas: '/icons/clone-alert.png', // public 폴더 기준 경로
                 iconMapping: {
-                    marker: { x: 0, y: 0, width: 24, height: 24, mask: false }
+                    marker: { x: 0, y: 0, width: 50, height: 50, mask: false }
                 },
                 getIcon: d => 'marker',
                 sizeUnits: 'pixels',
-                getSize: 48, // 아이콘 크기를 48px로 설정
+                getSize: 35, // 아이콘 크기를 48px로 설정
                 getPosition: d => d,
                 getColor: d => [255, 236, 154, 255], // 경고를 의미하는 빨간색
                 // pickable: true,
@@ -460,25 +466,18 @@ export const SupplyChainMap: React.FC = () => {
             // 2. 이상 노드 pulse
             new ScatterplotLayer({
                 id: 'pulse-layer',
-                data: anomalyNodes,
-                getPosition: d => d.coord,
+                // data: anomalyNodes,
+                data: pulseData,
+                getPosition: d => d,
                 getRadius: pulseRadius,
                 getFillColor: [255, 99, 132, 255 - (pulseRadius / 1000) * 255], // 점점 투명해짐
                 stroked: false,
                 pickable: false,
+                updateTriggers: {
+                    getRadius: [pulseData],
+                    getFillColor: [pulseData],
+                },
             }),
-            // 3. 클론 마커 레이어
-            // new ScatterplotLayer<[number, number]>({
-            //     id: 'clone-scatter-layer',
-            //     data: cloneMarkerCoords,
-            //     getPosition: d => d,
-            //     getRadius: 12,
-            //     getFillColor: [255, 236, 154, 255],
-            //     stroked: false,
-            //     radiusUnits:'pixels',
-            //     // radiusMinPixels: 20,
-            //     pickable: false,
-            // }),
             // 4. 건물 레이어
             ...otherMeshLayers,
             ...factoryLayers,

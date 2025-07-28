@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { FileItem } from "@/types/file";
 
+import { LayoutDashboard, Download, Trash2 } from 'lucide-react';
+
 interface FileListClientProps {
     initialFiles: FileItem[];
 }
@@ -39,7 +41,7 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
         let dashboardPath = '/';
         switch (user.role.toUpperCase()) {
             case 'ADMIN':
-                dashboardPath = '/supervisor';
+                dashboardPath = `/supervisor`;
                 break;
             case 'MANAGER':
                 dashboardPath = '/admin';
@@ -49,6 +51,8 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                 return;
         }
 
+        console.log('fileList에서 이동 : ',dashboardPath);
+        console.log('fileId입니다. : ',fileId);
         router.push(dashboardPath);
     };
 
@@ -173,7 +177,9 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                                     <th scope="col" className="px-6 py-3">업로더</th>
                                     <th scope="col" className="px-6 py-3">크기</th>
                                     <th scope="col" className="px-6 py-3">업로드 시간</th>
-                                    <th scope="col" className="px-6 py-3 text-center">액션</th>
+                                    <th scope="col" className="px-6 py-3 text-center">대시보드</th>
+                                    <th scope="col" className="px-6 py-3 text-center">다운로드</th>
+                                    <th scope="col" className="px-6 py-3 text-center">삭제</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-700">
@@ -187,21 +193,25 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                                             <td className="px-6 py-4 text-center space-x-4">
                                                 <button
                                                     onClick={() => handleFileSelect(file.fileId)}
-                                                    className="font-medium text-blue-300 bg-[rgba(50,50,50)] hover:bg-[rgba(55,55,55)] px-4 py-2 rounded-lg cursor-pointer"
+                                                    className="font-medium text-blue-300 hover:bg-[rgba(55,55,55)] p-2 rounded-lg cursor-pointer"
                                                 >
-                                                    대시보드
+                                                    <LayoutDashboard className="h-4 w-4" />
                                                 </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-center space-x-4">
                                                 <button
                                                     onClick={() => handleDownload(file.fileId, file.fileName)}
-                                                    className="font-medium text-green-300 bg-[rgba(50,50,50)] hover:bg-[rgba(55,55,55)] px-4 py-2 rounded-lg cursor-pointer"
+                                                    className="font-medium text-green-300 hover:bg-[rgba(55,55,55)] p-2 rounded-lg cursor-pointer"
                                                 >
-                                                    다운로드
+                                                    <Download className="h-4 w-4" />
                                                 </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-center space-x-4">
                                                 <button
-                                                    className="font-medium text-red-300 bg-[rgba(50,50,50)] hover:bg-[rgba(55,55,55)] px-4 py-2 rounded-lg cursor-pointer"
+                                                    className="font-medium text-red-300 hover:bg-[rgba(55,55,55)] p-2 rounded-lg cursor-pointer"
                                                     onClick={() => handleDelete(file.fileId, file.fileName)}
                                                 >
-                                                    삭제
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </td>
                                         </tr>

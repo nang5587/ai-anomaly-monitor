@@ -34,8 +34,8 @@ type RouteGeometryMap = Record<string, RouteGeometry>;
 /**
  * 현재 분석 대상인 파일의 ID를 저장하는 아톰.
  */
-// export const selectedFileIdAtom = atom<number | null>(null);
-export const selectedFileIdAtom = atom<number | null>(1); //⚠️ 백 연동 시 지우고 위에 코드 사용
+export const selectedFileIdAtom = atom<number | null>(null);
+// export const selectedFileIdAtom = atom<number | null>(1); //⚠️ 백 연동 시 지우고 위에 코드 사용
 /**
  * 시간 필터링을 위한 시간 범위 [시작, 끝]을 저장하는 아톰.
  */

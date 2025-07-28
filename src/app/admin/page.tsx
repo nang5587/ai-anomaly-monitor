@@ -87,7 +87,6 @@ export default function SupervisorDashboard() {
         minTime,
         maxTime,
         handleFileSelect,
-        handleTabClick,
         handleLoadMore,
         clearFilters,
         openHistoryModal,
@@ -106,9 +105,6 @@ export default function SupervisorDashboard() {
     // const user = MOCK_USER_MANAGER; // 이건 매니저 테스트
 
     const [replayTrigger, setReplayTrigger] = useState(0);
-
-    // 필터 상태
-    const [activeFactory, setActiveFactory] = useState<string>('');
 
     // 제품별 or 요일별
     const [isShowingProductChart, setIsShowingProductChart] = useState(true);
@@ -232,9 +228,6 @@ export default function SupervisorDashboard() {
                             <div className="flex items-center gap-2 bg-[rgba(91,111,155,0.5)] text-white border border-[rgba(111,131,175)] px-4 py-2 rounded-[50px]">
                                 <FileText size={16} className="text-blue-300" />
                                 <span className="text-sm font-semibold truncate max-w-[200px]">{selectedFileName}</span>
-                                <button onClick={clearFilters} className="ml-2 p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/10">
-                                    <X size={16} />
-                                </button>
                             </div>
                         ) : (
                             <></>
@@ -267,9 +260,7 @@ export default function SupervisorDashboard() {
                         {/* 1열: 공장 상세 뷰 */}
                         <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
                             <FactoryDetailView
-                                factoryTabs={viewProps.tabs}
-                                activeFactory={viewProps.active}
-                                onTabClick={handleTabClick}
+                                factoryName={viewProps.factoryName} // 탭 대신 단일 공장 이름 전달
                                 kpiData={kpiData}
                             />
                         </motion.div>
@@ -300,7 +291,7 @@ export default function SupervisorDashboard() {
                                                 className="p-2 rounded-full text-white/70 hover:bg-white/10 hover:text-white transition-colors"
                                                 title="차트 전환"
                                             >
-                                                <Repeat size={18} />
+                                                <Repeat size={20} />
                                             </button>
                                         </div>
                                         <div className="flex-grow overflow-hidden">
