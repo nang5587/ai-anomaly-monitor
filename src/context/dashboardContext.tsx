@@ -62,6 +62,10 @@ interface DashboardContextType {
     anomalyChartData: any[];
     stageChartData: StageBarDataPoint[];
     eventTimelineData: any[];
+    calculatedReportKpis: {
+        mostProblematicRoute: string;
+        mostAffectedProduct: string;
+    };
 
     // 로딩, 필터, 페이지네이션 상태
     isLoading: boolean;
@@ -92,7 +96,7 @@ interface DashboardContextType {
 }
 
 // --- 3. Context 생성 ---
-const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+export const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 // --- 4. Provider 컴포넌트 생성 ---
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
@@ -369,13 +373,32 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         router.push(`/${role}/report?fileId=${fileId}`);
     }, [router, user]);
 
+    const calculatedReportKpis = useMemo(() => {
+        // 최다 발생 구간 계산
+        const routeCounts = anomalyTrips.reduce((acc, trip) => {
+            const route = `${trip.from.scanLocation} → ${trip.to.scanLocation}`;
+            acc[route] = (acc[route] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const mostProblematicRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+
+        // 최다 발생 제품 계산
+        const mostAffectedProduct = [...productAnomalyData].sort((a, b) => b.total - a.total)[0]?.productName || 'N/A';
+
+        return {
+            mostProblematicRoute,
+            mostAffectedProduct
+        };
+    }, [anomalyTrips, productAnomalyData]);
+
     // --- Context 값 ---
     const value: DashboardContextType = {
         user, isAuthLoading, coverData,
         kpiData, anomalyTrips, allTripsForMap, inventoryData, nodes, productAnomalyData,
         anomalyChartData, stageChartData, eventTimelineData,
         isLoading, isFetchingMore, nextCursor, selectedFileId, selectedFactoryName, uploadHistory, selectedFileName,
-        isHistoryModalOpen,
+        isHistoryModalOpen, calculatedReportKpis,
         viewProps, minTime, maxTime,
         handleFileSelect, handleLoadMore, clearFilters, openHistoryModal, closeHistoryModal,
     };

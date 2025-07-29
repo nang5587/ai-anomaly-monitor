@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import StatusBar from '@/components/upload/StatusBar';
 
 import { useAuth } from "@/context/AuthContext";
 
@@ -73,6 +74,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 </main>
 
             </div>
+
+            <StatusBar />
         </div>
     );
 }

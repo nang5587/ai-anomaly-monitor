@@ -40,7 +40,7 @@ export default function StatusBar() {
 
     return (
         // ✨ 2. 카드 스타일 및 위치 지정
-        <div className={`fixed bottom-4 right-4 w-96 bg-[rgba(111,131,175)] border border-gray-700 rounded-lg shadow-2xl text-white transition-all duration-300 ease-in-out z-50`}>
+        <div className={`fixed bottom-4 right-4 w-96 bg-[rgba(111,131,175)] border border-gray-700 rounded-lg shadow-2xl text-white transition-all duration-300 ease-in-out z-70`}>
             {/* --- 헤더: 항상 보이는 부분 --- */}
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ export default function StatusBar() {
                     {statusBar.status === 'error' && <AlertTriangle size={18} className="text-red-400" />}
                     {/* 축소 시/확장 시 다른 텍스트 표시 */}
                     <span className="font-noto-400 text-sm">
-                        {isExpanded ? titleText : statusBar.message}
+                        {titleText}
                     </span>
                 </div>
 
@@ -72,10 +72,6 @@ export default function StatusBar() {
             {/* ✨ 3. 축소/확장 가능한 콘텐츠 영역 */}
             <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="px-3 pb-4">
-                    {/* 상세 메시지 (확장 시에만 보임) */}
-                    <p className="text-xs text-white mb-5 truncate" title={statusBar.message}>
-                        {isExpanded ? statusBar.message : ''}
-                    </p>
 
                     {/* 프로그레스 바와 로티 */}
                     <div className="relative w-full pt-4"> {/* 로티가 위로 삐져나갈 공간 확보 */}

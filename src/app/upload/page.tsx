@@ -15,6 +15,9 @@ import jwtDecode from "jwt-decode";
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
+import LottieComponent from '../../components/ui/LottieComponent';
+import successAnimation from '../../assets/lottie/success.json';
+
 import { fileResend_client } from '@/api/apiClient';
 
 export default function BarcodeLogUploadPage() {
@@ -500,11 +503,12 @@ export default function BarcodeLogUploadPage() {
             <div className="w-full max-w-3xl text-center">
 
               {/* 1. 미리보기 버튼 (항상 상단에 표시될 수 있음) */}
+              {statusBar.status !== 'success' && (
               <div className="mb-8">
                 <button
                   onClick={() => setIsPreviewVisible(true)}
                   disabled={!isUploaded} // isUploaded(파싱완료)가 true일 때만 활성화
-                  className="px-6 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-[rgba(111,131,175)] cursor-pointer text-white font-semibold rounded-lg hover:bg-[rgba(101,121,165)] disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >
                   {isUploaded ? "업로드 파일 미리보기" : "파일 파싱 중 (미리보기 준비 중...)"}
                 </button>
@@ -512,6 +516,7 @@ export default function BarcodeLogUploadPage() {
                   미리보기는 업로드 진행 상황과 별개로 작동합니다.
                 </p>
               </div>
+              )}
 
               {/* 2. 최종 결과 UI (성공/오류/재시도) */}
 
@@ -544,15 +549,15 @@ export default function BarcodeLogUploadPage() {
 
               {/* 업로드 성공 UI */}
               {statusBar.status === 'success' && (
-                <div className="p-8 bg-[rgba(50,50,50)] rounded-lg shadow-lg">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-green-500 rounded-full flex items-center justify-center">
-                    <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <div className="py-8 px-20 bg-[rgba(50,50,50)] rounded-4xl shadow-lg flex flex-col justify-center items-center">
+                  <div className='w-1/2 mb-10'>
+                    <LottieComponent animationData={successAnimation} />
                   </div>
-                  <h2 className="text-2xl font-bold text-white mb-2">업로드 완료</h2>
+                  <h2 className="text-2xl font-noto-500 text-white mb-2">업로드 완료</h2>
                   <p className="text-gray-300 mb-6">{statusBar.message}</p>
                   <div className="flex justify-center gap-4">
-                    <button onClick={handleGoToDashboard} className="px-6 py-2 bg-[rgba(111,131,175)] text-white font-semibold rounded-lg hover:bg-[rgba(101,121,165)]">대시보드로 이동</button>
-                    <button onClick={handleReset} className="px-6 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700">새 파일 업로드</button>
+                    <button onClick={handleGoToDashboard} className="px-6 py-2 bg-[rgba(111,131,175)] text-white font-semibold rounded-lg hover:bg-[rgba(91,111,155)] cursor-pointer">대시보드 이동</button>
+                    <button onClick={handleReset} className="px-6 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 cursor-pointer">새 파일 업로드</button>
                   </div>
                 </div>
               )}

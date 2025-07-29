@@ -35,8 +35,6 @@ interface AnomalyDashboardProps {
     eventTimelineData: any[];
     mostProblematicRoute: string;
     mostAffectedProduct: string;
-    pageNumber: number;
-    totalPages: number;
 }
 
 // 보고서용 KPI 카드 - 더 컴팩트하게 수정
@@ -78,8 +76,6 @@ export default function AnomalyDashboardPage({
     eventTimelineData,
     mostProblematicRoute,
     mostAffectedProduct,
-    pageNumber,
-    totalPages,
 }: AnomalyDashboardProps) {
     // 프론트엔드에서 계산해야 하는 추가적인 KPI
     const mostFrequentAnomaly = useMemo(() => {
@@ -396,7 +392,7 @@ export default function AnomalyDashboardPage({
                     flexShrink: 0
                 }}
             >
-                <p style={{ margin: '0' }}>Page {pageNumber} / {totalPages}</p>
+
             </footer>
         </div>
     );

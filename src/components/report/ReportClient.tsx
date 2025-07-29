@@ -3,12 +3,23 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+
+import { FileText, FileSpreadsheet, Download } from 'lucide-react';
+
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
+import ExcelPreview from "./ExcelPreview";
 
 import { FileItem } from '@/types/file';
 import ReportView, { type ReportViewRef } from "./ReportView";
+
+declare module 'jspdf' {
+    interface jsPDF {
+        autoTable: (options: any) => jsPDF;
+    }
+}
 
 interface ReportClientProps {
     initialFiles: FileItem[];
@@ -43,7 +54,10 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
     const { user, isLoading: isAuthLoading } = useAuth();
     const searchParams = useSearchParams();
     const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadType, setDownloadType] = useState<'excel' | 'pdf' | null>(null);
 
+    const [isPreviewSelectorOpen, setIsPreviewSelectorOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'pdf' | 'excel'>('pdf');
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -76,141 +90,117 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
         router.push(`/${role}/report?fileId=${fileId}`);
     };
 
-    const handleDownload = async () => {
-        console.log("PDF 다운로드 시작");
-
-        const reportElement = pdfContentRef.current;
-
-        if (!reportElement) {
-            alert("보고서 요소를 찾을 수 없습니다.");
+    const handlePDFDownload = async () => {
+        if (isDownloading) return;
+        if (!reportViewRef.current) {
+            alert("보고서 컴포넌트가 아직 준비되지 않았습니다.");
             return;
         }
-
-        if (!reportElement.hasChildNodes() || reportElement.innerHTML.trim() === '') {
-            alert("다운로드할 보고서 내용이 없습니다.");
-            return;
-        }
-
-        if (isDownloading) {
-            return;
-        }
-
         setIsDownloading(true);
-
+        setDownloadType('pdf');
         try {
-            console.log("PDF 생성 시작 (개별 페이지 캡처)");
+            const pdf = new jsPDF('p', 'mm', 'a4');
 
-            // 렌더링 대기
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // --- 1. 한글 폰트 설정 (필수!) ---
+            // public/fonts/NanumGothic.ttf 파일이 있어야 합니다.
+            const fontResponse = await fetch('/fonts/NanumGothic.ttf');
+            if (!fontResponse.ok) throw new Error("폰트 파일을 불러올 수 없습니다.");
+            const font = await fontResponse.arrayBuffer();
+            const fontBase64 = btoa(new Uint8Array(font).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+            pdf.addFileToVFS('NanumGothic.ttf', fontBase64);
+            pdf.addFont('NanumGothic.ttf', 'NanumGothic', 'normal');
+            pdf.setFont('NanumGothic');
 
-            // 각 페이지 요소 찾기 - 직접 자식 요소들을 페이지로 간주
-            const pageElements = Array.from(reportElement.children) as HTMLElement[];
-            console.log(`총 ${pageElements.length}개 페이지 발견`);
-
-            if (pageElements.length === 0) {
-                throw new Error("페이지 요소를 찾을 수 없습니다.");
+            // --- 2. html2canvas로 렌더링할 페이지들 캡처 ---
+            const pagesToCapture = ['report-page-1', 'report-page-2'];
+            for (let i = 0; i < pagesToCapture.length; i++) {
+                const pageId = pagesToCapture[i];
+                const element = document.getElementById(pageId);
+                if (element) {
+                    // ✨ 3. 첫 페이지(i=0)가 아닐 때만 새 페이지 추가
+                    if (i > 0) pdf.addPage();
+                    const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' } as any);
+                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+                }
             }
 
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-                compress: true
-            });
+            // --- 3. AnomalyDetailsPage의 테이블 데이터를 가져와 autoTable로 그리기 ---
+            const tableData = reportViewRef.current.getAnomalyDetailsPdfData();
 
-            // 각 페이지를 개별적으로 캡처
-            for (let i = 0; i < pageElements.length; i++) {
-                const pageElement = pageElements[i];
-                console.log(`페이지 ${i + 1} 처리 중...`);
+            if (tableData && tableData.body.length > 0) {
+                pdf.addPage(); // 테이블을 위한 새 페이지 추가
+                pdf.setFontSize(16);
+                pdf.text("3. 이상 탐지 상세 내역", 14, 22);
 
-                // 페이지 요소가 A4 크기인지 확인
-                const computedStyle = window.getComputedStyle(pageElement);
-                console.log(`페이지 ${i + 1} 크기:`, {
-                    width: computedStyle.width,
-                    height: computedStyle.height
+                autoTable(pdf, { // 👈 호출 방식을 이렇게 변경!
+                    head: tableData.head,
+                    body: tableData.body,
+                    startY: 30,
+                    theme: 'grid',
+                    styles: { font: 'NanumGothic', fontSize: 8, cellPadding: 2 },
+                    headStyles: { fillColor: [44, 62, 80], textColor: 255, fontStyle: 'bold' },
+                    // didParseCell: function (data: any) {
+                    //     if (data.section === 'body' && data.column.index <= 1) {
+                    //         if (data.cell.raw === '') { // 내용이 비어있으면
+                    //             data.cell.styles.lineWidth = 0; // 위쪽, 왼쪽 선을 그리지 않음 (병합된 것처럼 보이게)
+                    //         }
+                    //     }
+                    // },
                 });
-
-                // 개별 페이지 캡처
-                const canvas = await html2canvas(pageElement, {
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    width: pageElement.scrollWidth,
-                    height: pageElement.scrollHeight,
-                    scale: 1.5, // 적절한 해상도
-                } as any);
-
-                console.log(`페이지 ${i + 1} 캔버스 크기:`, canvas.width, "x", canvas.height);
-
-                if (canvas.width === 0 || canvas.height === 0) {
-                    console.warn(`페이지 ${i + 1} 캔버스 크기가 0입니다. 건너뜁니다.`);
-                    continue;
-                }
-
-                const imgData = canvas.toDataURL('image/png', 0.95);
-
-                // 첫 번째 페이지가 아니면 새 페이지 추가
-                if (i > 0) {
+            } else {
+                // 데이터 없을 때 페이지 추가
+                const noDetailsElement = document.getElementById('report-page-no-details');
+                if (noDetailsElement) {
                     pdf.addPage();
+                    const canvas = await html2canvas(noDetailsElement, { scale: 2, backgroundColor: '#ffffff' } as any);
+                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
                 }
-
-                // A4 크기에 맞게 이미지 배치
-                const pageWidth = 210; // A4 너비 (mm)
-                const pageHeight = 297; // A4 높이 (mm)
-
-                // 이미지를 A4 크기에 맞게 스케일링
-                const imgWidth = pageWidth;
-                const imgHeight = (canvas.height * pageWidth) / canvas.width;
-
-                if (imgHeight <= pageHeight) {
-                    // 이미지가 한 페이지에 들어감
-                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                } else {
-                    // 이미지가 페이지보다 큰 경우 스케일 다운
-                    const scaleFactor = pageHeight / imgHeight;
-                    const scaledWidth = imgWidth * scaleFactor;
-                    const scaledHeight = pageHeight;
-                    const xOffset = (pageWidth - scaledWidth) / 2;
-
-                    pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, scaledHeight);
-                }
-
-                console.log(`페이지 ${i + 1} PDF 추가 완료`);
             }
 
-            // PDF 저장
-            pdf.save(`report_${selectedFileId || 'unknown'}.pdf`);
+            // --- 4. 마지막 페이지 캡처 ---
+            const finalPageElement = document.getElementById('report-page-final');
+            if (finalPageElement) {
+                pdf.addPage();
+                const canvas = await html2canvas(finalPageElement, { scale: 2, backgroundColor: '#ffffff' } as any);
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+            }
 
-            console.log("PDF 생성 및 다운로드 완료");
+            const totalPages = (pdf.internal as any).getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i); // 각 페이지로 이동
+                pdf.setFontSize(10);
+                pdf.setTextColor(150);
+                const text = `Page ${i} / ${totalPages}`;
+                const textWidth = pdf.getStringUnitWidth(text) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                const textX = (pdf.internal.pageSize.getWidth() - textWidth) / 2;
+                pdf.text(text, textX, 290); // 페이지 하단 중앙에 텍스트 추가
+            }
+
+            pdf.save(`report_${selectedFileId || 'unknown'}.pdf`);
             alert("PDF가 성공적으로 다운로드되었습니다!");
 
         } catch (error) {
             console.error("PDF 생성 오류:", error);
-
-            let errorMessage = "PDF 생성에 실패했습니다.";
-            if (error instanceof Error) {
-                console.error("오류 상세:", error.message);
-                if (error.message.includes('canvas')) {
-                    errorMessage += " 화면 캡처 중 오류가 발생했습니다.";
-                } else if (error.message.includes('비어있습니다')) {
-                    errorMessage += " 보고서 내용이 없습니다.";
-                }
-            }
-            alert(errorMessage);
-
+            alert("PDF 생성에 실패했습니다.");
         } finally {
             setIsDownloading(false);
+            setDownloadType(null);
         }
     };
 
     const handleExcelDownload = async () => {
+        if (isDownloading) return;
+        setIsDownloading(true);
+        setDownloadType('excel');
         if (reportViewRef.current?.handleExcelDownload) {
             await reportViewRef.current.handleExcelDownload();
         } else {
             console.error("Excel 다운로드 기능을 찾을 수 없습니다.");
             alert("Excel 다운로드 기능이 아직 준비되지 않았습니다.");
         }
+        setIsDownloading(false);
+        setDownloadType(null);
     };
 
 
@@ -223,67 +213,42 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
             style={{
                 width: '100%',
                 height: '100%',
-                color: 'rgb(255, 255, 255)'
+                color: 'rgb(255, 255, 255)',
+                display: 'flex', flexDirection: 'column'
             }}
         >
             <div
                 style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    marginBottom: '16px'
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginBottom: '16px', flexShrink: 0
                 }}
             >
-                <button
-                    onClick={handleExcelDownload}
-                    disabled={isDownloading}
-                    style={{
-                        padding: '8px 24px',
-                        borderRadius: '8px',
-                        transition: 'all 0.2s',
-                        backgroundColor: isDownloading ? 'rgb(156, 163, 175)' : 'rgba(111, 131, 175, 1)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: isDownloading ? 'not-allowed' : 'pointer'
-                    }}
-                    onMouseOver={(e) => {
-                        if (!isDownloading) {
-                            e.currentTarget.style.backgroundColor = 'rgba(101, 121, 165, 1)';
-                        }
-                    }}
-                    onMouseOut={(e) => {
-                        if (!isDownloading) {
-                            e.currentTarget.style.backgroundColor = 'rgba(111, 131, 175, 1)';
-                        }
-                    }}
-                >
-                    {isDownloading ? 'Excel 생성 중...' : 'Excel 다운로드'}
-                </button>
+                <div className="flex items-center bg-[rgba(60,60,60)] rounded-3xl py-1 px-1.5">
+                    <button
+                        onClick={() => setActiveTab('pdf')}
+                        className={`px-4 py-2 text-sm font-semibold rounded-2xl transition ${activeTab === 'pdf' ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-400 hover:bg-[rgba(70,70,70)]'}`}
+                    >
+                        PDF 미리보기
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('excel')}
+                        className={`px-4 py-2 text-sm font-semibold rounded-2xl transition ${activeTab === 'excel' ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-400 hover:bg-[rgba(70,70,70)]'}`}
+                    >
+                        Excel 미리보기
+                    </button>
+                </div>
 
-                <button
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    style={{
-                        padding: '8px 24px',
-                        borderRadius: '8px',
-                        transition: 'all 0.2s',
-                        backgroundColor: isDownloading ? 'rgb(156, 163, 175)' : 'rgba(111, 131, 175, 1)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: isDownloading ? 'not-allowed' : 'pointer'
-                    }}
-                    onMouseOver={(e) => {
-                        if (!isDownloading) {
-                            e.currentTarget.style.backgroundColor = 'rgba(101, 121, 165, 1)';
-                        }
-                    }}
-                    onMouseOut={(e) => {
-                        if (!isDownloading) {
-                            e.currentTarget.style.backgroundColor = 'rgba(111, 131, 175, 1)';
-                        }
-                    }}
-                >
-                    {isDownloading ? 'PDF 생성 중...' : 'PDF 다운로드'}
-                </button>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    <button onClick={handleExcelDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[rgba(111,131,175)] text-white rounded-lg transition hover:bg-[rgba(101,121,165)] disabled:opacity-50 disabled:cursor-not-allowed">
+                        <FileSpreadsheet size={16} />
+                        <span>{isDownloading && downloadType === 'excel' ? '생성 중...' : 'Excel'}</span>
+                    </button>
+
+                    <button onClick={handlePDFDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[rgba(111,131,175)] text-white rounded-lg transition hover:bg-[rgba(101,121,165)] disabled:opacity-50 disabled:cursor-not-allowed">
+                        <FileText size={16} />
+                        <span>{isDownloading && downloadType === 'pdf' ? '생성 중...' : 'PDF'}</span>
+                    </button>
+                </div>
             </div>
 
             <div
@@ -350,7 +315,8 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                         borderRadius: '8px'
                     }}
                 >
-                    <ReportView ref={reportViewRef} pdfContentRef={pdfContentRef} />
+                    {activeTab === 'pdf' && <ReportView ref={reportViewRef} pdfContentRef={pdfContentRef} />}
+                    {activeTab === 'excel' && <ExcelPreview />}
                 </main>
             </div>
         </div>

@@ -106,9 +106,9 @@ export default function PreviewTable({
     }
 
     return (
-        <div className="fixed inset-0 z-40 flex flex-col w-full h-full bg-gray-100 text-sm"
+        <div className="fixed inset-0 z-60 flex flex-col w-full h-full bg-gray-100 text-sm"
             style={{
-                top: statusBar.visible ? `${statusBarHeight}px` : 0,
+                top: 0,
             }}
         >
             {/* 리본 메뉴 (툴바) */}

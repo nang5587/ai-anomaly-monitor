@@ -384,7 +384,7 @@ export const SupplyChainMap: React.FC = () => {
         }
     }, [selectTripAndFocus]);
 
-    const { staticPathData, cloneMarkerCoords, dynamicTripData, pulseData } = useMemo(() => {
+    const { staticPathData, cloneMarkerCoords, otherDynamicTrips, pulseData } = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
 
         let sPathData: MergeTrip[] = [];
@@ -397,28 +397,98 @@ export const SupplyChainMap: React.FC = () => {
                 const targetEpc = selectedTrip.epcCode;
                 sPathData = validTrips.filter(trip => trip.epcCode === targetEpc);
                 cMarkerCoords = sPathData.map(trip => [...(trip.to.coord as [number, number]), ICON_ALTITUDE]);
-                console.log('클론 좌표들 (선택 시 1회만 실행됨)', cMarkerCoords); // 이제 여기서는 한 번만 찍힙니다.
             } else {
                 sPathData = [selectedTrip];
             }
             pData = [selectedTrip?.to.coord as [number, number]];
+
+            // ✨ 선택된 객체가 있으면, otherDynamicTrips는 비웁니다.
+            return {
+                staticPathData: sPathData,
+                cloneMarkerCoords: cMarkerCoords,
+                otherDynamicTrips: [], // 선택 시 다른 애니메이션은 멈춤
+                pulseData: pData
+            };
+
         } else {
+            // ✨ 선택된 객체가 없으면,
+            // 1. staticPathData는 모든 경로를 희미하게 보여줍니다.
             sPathData = validTrips;
+
+            // 2. otherDynamicTrips는 "도매상->소매상" 경로를 제외한 나머지 경로만 포함합니다.
+            const dynamic = validTrips.filter(trip =>
+                !(trip.from.businessStep === 'Wholesaler' && trip.to.businessStep === 'Reseller')
+            );
+
+            return {
+                staticPathData: sPathData,
+                cloneMarkerCoords: [],
+                otherDynamicTrips: dynamic,
+                pulseData: []
+            };
+        }
+    }, [selectedObject, validTrips]);
+
+    const wholesalerJourneys = useMemo(() => {
+        if (!trips || trips.length === 0 || !nodes || nodes.length === 0) {
+            return [];
         }
 
-        const dTripData = selectedTrip ? [] : validTrips;
+        // 1. 출발지가 'Wholesaler'이고 도착지가 'Reseller'인 Trip만 필터링합니다.
+        const deliveryTrips = trips.filter(trip =>
+            trip.from.businessStep === 'Wholesaler' &&
+            trip.to.businessStep === 'Reseller'
+        );
 
-        return {
-            staticPathData: sPathData,
-            cloneMarkerCoords: cMarkerCoords,
-            dynamicTripData: dTripData,
-            pulseData: pData
-        };
-    }, [selectedObject, validTrips]);
+        // 2. 필터링된 Trip들을 출발지 이름(scanLocation)으로 그룹화합니다.
+        const tripsByWholesaler = deliveryTrips.reduce((acc, trip) => {
+            const key = trip.from.scanLocation;
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(trip);
+            return acc;
+        }, {} as Record<string, AnalyzedTrip[]>);
+
+        // 3. 그룹화된 Trip들을 Journey 객체로 변환합니다.
+        const processedJourneys = Object.values(tripsByWholesaler).map(wholesalerTrips => {
+            // 각 운행 그룹 내에서, 도착 시간을 기준으로 방문 순서를 정렬합니다.
+            const sortedTrips = wholesalerTrips.sort((a, b) => a.to.eventTime - b.to.eventTime);
+
+            const path: [number, number][] = [];
+            const timestamps: number[] = [];
+
+            if (sortedTrips.length > 0) {
+                const startingPoint = sortedTrips[0].from; // 모든 트립의 출발지는 동일합니다.
+
+                // 경로의 시작은 도매점입니다.
+                path.push(startingPoint.coord as [number, number]);
+                timestamps.push(startingPoint.eventTime);
+
+                // 정렬된 순서대로 각 소매점(도착지)을 경로에 추가합니다.
+                sortedTrips.forEach(trip => {
+                    path.push(trip.to.coord as [number, number]);
+                    timestamps.push(trip.to.eventTime);
+                });
+            }
+
+            return {
+                journeyId: sortedTrips[0] ? `journey-${sortedTrips[0].from.scanLocation}` : 'unknown',
+                path: path,
+                timestamps: timestamps,
+                trips: sortedTrips, // 원본 trip 정보
+            };
+        });
+
+        return processedJourneys;
+    }, [trips, nodes]);
 
     // 전체 레이어 목록
     const layers = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
+
+        const showJourneys = !selectedTrip;
+
         return [
             // 1. 정적 연결선 레이어
             new PathLayer<MergeTrip>({
@@ -482,22 +552,38 @@ export const SupplyChainMap: React.FC = () => {
             ...otherMeshLayers,
             ...factoryLayers,
             // 5. 동적 연결선 레이어
-            new TripsLayer<MergeTrip>({
-                id: 'trips-layer',
-                data: dynamicTripData,
-                getPath: d => d.path || [d.from.coord, d.to.coord],
-                getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127],
-                opacity: 0.8,
-                widthMinPixels: 5,
-                rounded: true,
-                trailLength: 10,
-                currentTime,
-            }),
+            new TripsLayer({
+            id: 'wholesaler-journeys-layer',
+            data: wholesalerJourneys,
+            visible: showJourneys, // 선택된 객체가 없을 때만 보이도록 설정
+            getPath: d => d.path,
+            getTimestamps: d => d.timestamps,
+            getColor: [255, 191, 0], // 주황색 계열로 구분
+            opacity: 0.8,
+            widthMinPixels: 5,
+            rounded: true,
+            trailLength: 2, // 꼬리 길이를 짧게 하여 트럭처럼 보이게
+            currentTime,
+        }),
+
+        // ✨ 5-2. 나머지 개별 경로 애니메이션 레이어
+        new TripsLayer<MergeTrip>({
+            id: 'other-trips-layer',
+            data: otherDynamicTrips, // "도매상->소매상"이 제외된 데이터
+            visible: showJourneys, // 선택된 객체가 없을 때만 보이도록 설정
+            getPath: d => d.path || [d.from.coord, d.to.coord],
+            getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
+            getColor: d => d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127],
+            opacity: 0.8,
+            widthMinPixels: 5,
+            rounded: true,
+            trailLength: 10, // 꼬리 길이를 길게 하여 흐름처럼 보이게
+            currentTime,
+        }),
         ];
     }, [
-        staticPathData, cloneMarkerCoords, dynamicTripData, // 안정적인 계산 결과
-        selectedObject, currentTime, anomalyNodes, pulseRadius, // 필요한 상태값
+        staticPathData, cloneMarkerCoords, otherDynamicTrips, pulseData, wholesalerJourneys,// 안정적인 계산 결과
+        selectedObject, currentTime, anomalyNodes, // 필요한 상태값
         factoryLayers, otherMeshLayers, handleLayerClick, setHoverInfo // 안정적인 레이어 및 핸들러
     ]);
 

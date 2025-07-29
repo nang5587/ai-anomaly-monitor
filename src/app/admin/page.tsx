@@ -396,9 +396,9 @@ export default function AdminDashboard() {
                     {/* 하단 리스트 */}
                     <motion.div variants={itemVariants}>
                         <h3 className="font-noto-400 text-white text-2xl mb-4">이상 탐지 리스트</h3>
-                        <div className="font-vietnam">
+                        <div className="font-vietnam mb-20">
                             <AnomalyList anomalies={anomalyTrips} />
-                            {nextCursor && (
+                            {nextCursor && anomalyTrips.length > 0 && (
                                 <div className="mt-4 text-center">
                                     <button
                                         onClick={handleLoadMore}

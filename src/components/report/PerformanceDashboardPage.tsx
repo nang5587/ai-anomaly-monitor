@@ -55,8 +55,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Le
 interface PerformanceDashboardProps {
     kpiData: KpiSummary;
     inventoryData: InventoryDataPoint[];
-    pageNumber: number;
-    totalPages: number;
     isLastPage?: boolean;
 }
 
@@ -194,8 +192,6 @@ const makeInventoryChartData = (data: InventoryDataPoint[]) => {
 export default function PerformanceDashboardPage({
     kpiData,
     inventoryData,
-    pageNumber,
-    totalPages,
     isLastPage = false,
 }: PerformanceDashboardProps) {
 
@@ -432,7 +428,7 @@ export default function PerformanceDashboardPage({
                     flexShrink: 0
                 }}
             >
-                <p>Page {pageNumber} / {totalPages}</p>
+
             </footer>
         </div>
     );
