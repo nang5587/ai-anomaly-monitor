@@ -6,8 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+
 import { FileItem } from '@/types/file';
-import ReportView from "./ReportView";
+import ReportView, { type ReportViewRef } from "./ReportView";
 
 interface ReportClientProps {
     initialFiles: FileItem[];
@@ -35,11 +36,14 @@ export const formatDateTime = (dateString: string | undefined | null): string =>
 };
 
 export default function ReportClient({ initialFiles }: ReportClientProps) {
-    const reportContentRef = useRef<HTMLDivElement>(null);
+    const reportViewRef = useRef<ReportViewRef>(null);
+    const pdfContentRef = useRef<HTMLDivElement>(null);
+
     const router = useRouter();
     const { user, isLoading: isAuthLoading } = useAuth();
     const searchParams = useSearchParams();
     const [isDownloading, setIsDownloading] = useState(false);
+
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -54,6 +58,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
     const selectedFileId = searchParams.get('fileId')
         ? Number(searchParams.get('fileId'))
         : initialFiles[0]?.fileId || null;
+
 
     const [files] = useState<FileItem[]>(initialFiles);
 
@@ -74,7 +79,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
     const handleDownload = async () => {
         console.log("PDF 다운로드 시작");
 
-        const reportElement = reportContentRef.current;
+        const reportElement = pdfContentRef.current;
 
         if (!reportElement) {
             alert("보고서 요소를 찾을 수 없습니다.");
@@ -153,7 +158,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                 // A4 크기에 맞게 이미지 배치
                 const pageWidth = 210; // A4 너비 (mm)
                 const pageHeight = 297; // A4 높이 (mm)
-                
+
                 // 이미지를 A4 크기에 맞게 스케일링
                 const imgWidth = pageWidth;
                 const imgHeight = (canvas.height * pageWidth) / canvas.width;
@@ -167,7 +172,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     const scaledWidth = imgWidth * scaleFactor;
                     const scaledHeight = pageHeight;
                     const xOffset = (pageWidth - scaledWidth) / 2;
-                    
+
                     pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, scaledHeight);
                 }
 
@@ -199,6 +204,16 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
         }
     };
 
+    const handleExcelDownload = async () => {
+        if (reportViewRef.current?.handleExcelDownload) {
+            await reportViewRef.current.handleExcelDownload();
+        } else {
+            console.error("Excel 다운로드 기능을 찾을 수 없습니다.");
+            alert("Excel 다운로드 기능이 아직 준비되지 않았습니다.");
+        }
+    };
+
+
     if (isAuthLoading || !user) {
         return <div>사용자 정보를 확인 중입니다...</div>
     }
@@ -218,6 +233,32 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     marginBottom: '16px'
                 }}
             >
+                <button
+                    onClick={handleExcelDownload}
+                    disabled={isDownloading}
+                    style={{
+                        padding: '8px 24px',
+                        borderRadius: '8px',
+                        transition: 'all 0.2s',
+                        backgroundColor: isDownloading ? 'rgb(156, 163, 175)' : 'rgba(111, 131, 175, 1)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: isDownloading ? 'not-allowed' : 'pointer'
+                    }}
+                    onMouseOver={(e) => {
+                        if (!isDownloading) {
+                            e.currentTarget.style.backgroundColor = 'rgba(101, 121, 165, 1)';
+                        }
+                    }}
+                    onMouseOut={(e) => {
+                        if (!isDownloading) {
+                            e.currentTarget.style.backgroundColor = 'rgba(111, 131, 175, 1)';
+                        }
+                    }}
+                >
+                    {isDownloading ? 'Excel 생성 중...' : 'Excel 다운로드'}
+                </button>
+
                 <button
                     onClick={handleDownload}
                     disabled={isDownloading}
@@ -309,7 +350,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                         borderRadius: '8px'
                     }}
                 >
-                    <ReportView ref={reportContentRef} />
+                    <ReportView ref={reportViewRef} pdfContentRef={pdfContentRef} />
                 </main>
             </div>
         </div>

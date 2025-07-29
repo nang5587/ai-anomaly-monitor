@@ -1,5 +1,13 @@
 // types/api.ts
-
+/**
+ * 1. 회원가입 요청 시 사용되는 데이터 형식
+ */
+export interface ServerActionResponse {
+    success: boolean;
+    message?: string;
+    error?: string;
+    data?: any; // 필요 시 추가 데이터 전달
+}
 /**
  * 1. 로그인 요청 시 사용되는 데이터 형식
  */

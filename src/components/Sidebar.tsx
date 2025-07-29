@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAtomValue } from 'jotai';
-import { statusBarAtom } from '@/stores/uiAtoms';
 import { Suspense } from 'react';
 import { pendingUserCountAtom } from '@/stores/userAtoms';
 
@@ -58,7 +57,6 @@ function NotificationBadge() {
 }
 
 export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps) {
-  const statusBar = useAtomValue(statusBarAtom);
   const visibleMenus = useMemo(() => {
     return menus.filter(menu => {
       if (!menu.requiredRole) {
@@ -72,8 +70,7 @@ export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps)
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`h-screen bg-black shadow-md transition-all duration-300 flex flex-col flex-shrink-0 ${statusBar.visible ? 'pt-0' : 'pt-20'
-        } ${hovered ? "w-52" : "w-16"
+      className={`h-screen bg-black shadow-md transition-all duration-300 flex flex-col flex-shrink-0 pt-20 ${hovered ? "w-52" : "w-16"
         }`}
     >
       <div className="flex-1 overflow-auto hide-scrollbar px-2 py-4">

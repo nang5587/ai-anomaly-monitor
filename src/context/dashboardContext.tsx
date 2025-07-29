@@ -160,86 +160,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [routeGeometries, loadGeometries]);
 
-    // --- 초기화 로직 ---
-    useEffect(() => {
-        // 필수 요소가 준비되지 않았으면 아무것도 하지 않음
-        if (!user || !routeGeometries) return;
-
-        const fileIdFromUrl = searchParams.get('fileId');
-
-        // 재사용 가능한 헬퍼 함수: history를 가져오고 상태를 설정
-        const ensureHistory = async (): Promise<FileItem[]> => {
-            if (uploadHistory.length > 0) return uploadHistory;
-            const history = await getFiles_client();
-            setUploadHistory(history);
-            return history;
-        };
-
-        // --- 시나리오 분기 ---
-
-        // 시나리오 1: URL에 fileId가 있으면, 무조건 URL이 기준
-        if (fileIdFromUrl) {
-            const fileIdNum = Number(fileIdFromUrl);
-
-            // Atom 상태를 URL과 동기화
-            if (selectedFileId !== fileIdNum) {
-                setSelectedFileId(fileIdNum);
-            }
-
-            // 공장 이름도 URL에 맞춰 동기화
-            const setFactoryFromFile = async () => {
-                const history = await ensureHistory();
-                const selectedFile = history.find(f => f.fileId === fileIdNum);
-                const factoryName = selectedFile?.locationId ? (factoryCodeNameMap[selectedFile.locationId] || '정보 없음') : '정보 없음';
-                if (selectedFactoryName !== factoryName) {
-                    setSelectedFactoryName(factoryName);
-                }
-            };
-            setFactoryFromFile();
-            return; // 이 시나리오의 책임은 끝났으므로 여기서 종료
-        }
-
-        // 시나리오 2: URL은 없지만 Atom에 fileId가 있으면 (예: 업로드 직후)
-        // URL을 Atom 상태에 맞게 업데이트하여 일관성 유지
-        if (selectedFileId) {
-            const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-            // 현재 URL과 다를 때만 replace를 호출하여 불필요한 리렌더링 방지
-            if (!searchParams.get('fileId')) {
-                // router.replace(`/${role}/report?fileId=${selectedFileId}`);
-                router.replace(`/${role}`);
-            }
-            return;
-        }
-
-        // 시나리오 3: URL에도, Atom에도 fileId가 없으면 (초기 접속)
-        const initializeDashboard = async () => {
-            setIsLoading(true);
-            try {
-                const history = await ensureHistory();
-                if (history.length > 0) {
-                    const latestFile = history[0];
-                    const latestFileId = latestFile.fileId;
-                    const latestFactoryName = latestFile.locationId ? factoryCodeNameMap[latestFile.locationId] : '정보 없음';
-
-                    // ✨ Atom들과 URL을 '한 번에' 업데이트
-                    setSelectedFileId(latestFileId);
-                    setSelectedFactoryName(latestFactoryName); // 👈 공장 이름도 함께 설정!
-
-                    const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-                    router.replace(`/${role}/report?fileId=${latestFileId}`);
-                } else {
-                    const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-                    router.replace(`/upload`);
-                }
-            } catch (error) {
-                console.error("초기 파일 목록 로딩 실패:", error);
-                setIsLoading(false);
-            }
-        };
-
-        initializeDashboard();
-    }, [user, routeGeometries, searchParams, selectedFileId, selectedFactoryName, setSelectedFileId, router]);
-
     // --- 데이터 로딩 로직 ---
     useEffect(() => {
         // 초기화 완료, 사용자 정보, 라우트 지오메트리가 모두 준비되어야 함
@@ -429,8 +349,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     const openHistoryModal = useCallback(async () => {
         try {
-            const historyData = await getFiles_client();
-            setUploadHistory(historyData);
+            const fullHistoryData = await getFiles_client();
+            const recentHistory = fullHistoryData.slice(0, 5);
+
+            setUploadHistory(recentHistory);
             setIsHistoryModalOpen(true);
         } catch (error) {
             alert('업로드 내역을 불러오는데 실패했습니다.');

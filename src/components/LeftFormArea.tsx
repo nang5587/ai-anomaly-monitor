@@ -5,12 +5,13 @@ import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import axios from 'axios';
 import apiClient from '@/api/apiClient';
 import { useRouter } from 'next/navigation';
+import { checkUserId_client, joinUser_client } from '@/api/apiClient';
 
 const factories = [
-    { name: '화성', code: 128324 },
-    { name: '인천', code: 584374 },
-    { name: '구미', code: 238435 },
-    { name: '양산', code: 594234 },
+    { name: '화성', code: 2 },
+    { name: '인천', code: 1 },
+    { name: '구미', code: 4 },
+    { name: '양산', code: 3 },
 ];
 
 // 폼 입력값
@@ -98,21 +99,44 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
     const onSubmit: SubmitHandler<FormValues> = async (data) => {
         setIsSubmitting(true);
         try {
-            const { ...submissionData } = data;
+            // passwordConfirm은 백엔드로 보낼 필요가 없으므로 제외합니다.
+            const { passwordConfirm, ...submissionData } = data;
 
-            await apiClient.post('/public/join', submissionData);
-            setStep(4);
+            // joinUser_client 함수를 사용하여 회원가입을 요청합니다.
+            await joinUser_client(submissionData);
+            setStep(4); // 성공 시 4단계(완료 화면)로 이동
+
         } catch (error) {
             console.error('회원가입 실패:', error);
             if (axios.isAxiosError(error) && error.response) {
-                alert(`회원가입 중 오류가 발생했습니다: ${error.response.data.message || '서버 오류'}`);
+                // apiClient에서 reject된 에러 메시지를 사용합니다.
+                const errorMessage = (error.response.data as any)?.message || '서버 오류';
+                alert(`회원가입 중 오류가 발생했습니다: ${errorMessage}`);
             } else {
                 alert('회원가입 중 예상치 못한 오류가 발생했습니다.');
             }
         } finally {
-            setIsSubmitting(false); // 로딩 상태 종료
+            setIsSubmitting(false);
         }
     };
+    // const onSubmit: SubmitHandler<FormValues> = async (data) => {
+    //     setIsSubmitting(true);
+    //     try {
+    //         const { ...submissionData } = data;
+
+    //         await apiClient.post('/public/join', submissionData);
+    //         setStep(4);
+    //     } catch (error) {
+    //         console.error('회원가입 실패:', error);
+    //         if (axios.isAxiosError(error) && error.response) {
+    //             alert(`회원가입 중 오류가 발생했습니다: ${error.response.data.message || '서버 오류'}`);
+    //         } else {
+    //             alert('회원가입 중 예상치 못한 오류가 발생했습니다.');
+    //         }
+    //     } finally {
+    //         setIsSubmitting(false); // 로딩 상태 종료
+    //     }
+    // };
 
     const handleGoToLogin = () => {
         router.push('/login');
@@ -160,16 +184,35 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                                 <input
                                     id="userId"
                                     type="text"
+                                    // {...register('userId', {
+                                    //     required: '아이디를 입력해주세요.',
+                                    //     minLength: { value: 4, message: '4자 이상 입력해주세요.' },
+                                    //     validate: {
+                                    //         isIdAvailable: async (value) => {
+                                    //             if (value.length < 4) return true; // 최소 길이를 만족할 때만 검사
+                                    //             try {
+                                    //                 // apiClient로 아이디 중복 확인 요청
+                                    //                 const response = await apiClient.post('/public/join/idsearch', { userId: value });
+                                    //                 return response.data === true ? '이미 사용 중인 아이디입니다.' : true;
+                                    //             } catch (error) {
+                                    //                 console.error("ID Check API Error:", error);
+                                    //                 return '아이디 중복 확인 중 오류가 발생했습니다.';
+                                    //             }
+                                    //         }
+                                    //     }
+                                    // })}
                                     {...register('userId', {
-                                        required: '아이디를 입력해주세요.',
+                                        required: '아이디를 입력해주세요!!',
                                         minLength: { value: 4, message: '4자 이상 입력해주세요.' },
                                         validate: {
                                             isIdAvailable: async (value) => {
-                                                if (value.length < 4) return true; // 최소 길이를 만족할 때만 검사
+                                                if (value.length < 4) return true;
                                                 try {
-                                                    // apiClient로 아이디 중복 확인 요청
-                                                    const response = await apiClient.post('/public/join/idsearch', { userId: value });
-                                                    return response.data === true ? '이미 사용 중인 아이디입니다.' : true;
+                                                    // ❗ 3. apiClient 직접 호출 대신 checkUserId_client 함수 사용
+                                                    const result = await checkUserId_client(value);
+                                                    // 백엔드 응답이 true이면 중복, false이면 사용 가능
+                                                    console.log(result, "result true??")
+                                                    return result === true ? '이미 사용 중인 아이디입니다.' : true;
                                                 } catch (error) {
                                                     console.error("ID Check API Error:", error);
                                                     return '아이디 중복 확인 중 오류가 발생했습니다.';
@@ -252,7 +295,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             </svg>
 
                             <h2 className="text-3xl font-bold text-gray-800 mb-2">회원가입 완료!</h2>
-                            <p className="text-gray-600 mb-8 pt-5">환영합니다! 가입 신청이 정상적으로 접수되었습니다.<br />가입 승인은 관리자 확인 후 메일로 안내드릴 예정이니 잠시만 기다려주세요.</p>
+                            <p className="text-gray-600 mb-8 pt-5">가입 신청이 정상적으로 접수되었습니다.<br />가입 승인은 관리자 확인 후 메일로 안내드릴<br/> 예정이니 잠시만 기다려주세요.</p>
                         </div>
 
                         <button
@@ -260,7 +303,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             onClick={handleGoToLogin}
                             className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
                         >
-                            메인페이지로 이동
+                            로그인
                         </button>
                     </div>
                 </form>

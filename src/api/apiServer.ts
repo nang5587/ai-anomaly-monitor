@@ -5,6 +5,7 @@ import { promises as fs } from 'fs';
 
 import type { LocationNode, PaginatedTripsResponse, KpiSummary, InventoryDistributionResponse, FilterOptions } from '../types/data';
 import type { FileItem } from '@/types/file';
+import type { JoinFormData } from '@/types/join';
 
 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -227,3 +228,36 @@ export async function getFiles_server(): Promise<FileItem[]> {
         return [];
     }
 }
+
+// =================================================================
+// 📝 회원가입(join) 관련 서버 버전 함수들
+// =================================================================
+
+/**
+ * [서버용] 회원가입을 요청하는 함수
+ * @param data - 회원가입 폼 데이터
+ * @returns API 응답 데이터
+ */
+export const joinUser_server = async (data: JoinFormData) => {
+    // serverRequest 헬퍼는 내부적으로 에러 처리 및 토큰 관리를 하므로
+    // 간단하게 호출만 하면 됩니다.
+    // 회원가입은 보통 토큰이 필요 없지만, serverRequest는 토큰이 없어도 잘 동작합니다.
+    return serverRequest<any>({
+        url: '/public/join',
+        method: 'POST',
+        data: data, // POST 요청의 body가 됩니다.
+    });
+};
+
+/**
+ * [서버용] 아이디 중복 검사를 요청하는 함수
+ * @param userId - 확인할 사용자 아이디
+ * @returns API 응답 데이터
+ */
+export const checkUserId_server = async (userId: string) => {
+    return serverRequest<any>({
+        url: '/public/join/idsearch',
+        method: 'POST',
+        data: { userId },
+    });
+};

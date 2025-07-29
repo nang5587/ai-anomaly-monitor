@@ -134,52 +134,62 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 }
 
 /**
- * 필터링된 이상 징후 Trip 목록을 가져옵니다. (더미)
+ * *️⃣ 필터링된 이상 징후 Trip 목록을 가져옵니다. (real)
  */
-export async function getAnomalies(params?: { fileId?: number, [key: string]: any }): Promise<PaginatedTripsResponse> {
-    console.log('Fetching Anomalies with params:', params);
-    const response = await fetch('/api/anomalies.json');
-    console.log(response, 'test 입니다.')
-    if (!response.ok) throw new Error('Failed to fetch anomalies');
-
-    const responseJson: { data: AnalyzedTrip[] } = await response.json();
-    let allAnomalies: AnalyzedTrip[] = responseJson.data || [];
-    
-    const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
-
-    if (filterKeys.length > 0) {
-        allAnomalies = allAnomalies.filter(trip => {
-            return filterKeys.every(key => {
-                const value = params![key];
-                if (!value) return true;
-                switch (key) {
-                    case 'fromScanLocation': return trip.from.scanLocation === value;
-                    case 'toScanLocation': return trip.to.scanLocation === value;
-                    case 'min': return trip.from.eventTime >= (new Date(value).getTime() / 1000);
-                    case 'max': return trip.to.eventTime <= (new Date(value).getTime() / 1000);
-                    case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
-                    case 'epcCode': return trip.epcCode.includes(String(value));
-                    case 'productName': return trip.productName === value;
-                    case 'epcLot': return trip.epcLot.includes(String(value));
-                    case 'eventType': return trip.eventType === value;
-                    case 'anomalyType':
-                        return trip.anomalyTypeList.includes(value);
-                    default: return true;
-                }
-            });
-        });
+export async function getAnomalies(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
+    try {
+        const response = await apiClient.get<PaginatedTripsResponse>('/manager/anomalies', { params });
+        console.log("이상징후 페이지네이션O ", response)
+        return response.data;
+    } catch (error) {
+        console.error('이상 징후 데이터 로딩 실패:', error);
+        throw error;
     }
-
-    const limit = params?.limit || 50;
-    const startIndex = params?.cursor ? Number(params.cursor) : 0;
-    const paginatedData = allAnomalies.slice(startIndex, startIndex + limit);
-    const nextCursor = (startIndex + limit < allAnomalies.length) ? (startIndex + limit).toString() : null;
-
-    return {
-        data: paginatedData,
-        nextCursor,
-    };
 }
+// export async function getAnomalies(params?: { fileId?: number, [key: string]: any }): Promise<PaginatedTripsResponse> {
+//     console.log('Fetching Anomalies with params:', params);
+//     const response = await fetch('/api/anomalies.json');
+//     console.log(response, 'test 입니다.')
+//     if (!response.ok) throw new Error('Failed to fetch anomalies');
+
+//     const responseJson: { data: AnalyzedTrip[] } = await response.json();
+//     let allAnomalies: AnalyzedTrip[] = responseJson.data || [];
+    
+//     const filterKeys = Object.keys(params || {}).filter(k => k !== 'limit' && k !== 'cursor');
+
+//     if (filterKeys.length > 0) {
+//         allAnomalies = allAnomalies.filter(trip => {
+//             return filterKeys.every(key => {
+//                 const value = params![key];
+//                 if (!value) return true;
+//                 switch (key) {
+//                     case 'fromScanLocation': return trip.from.scanLocation === value;
+//                     case 'toScanLocation': return trip.to.scanLocation === value;
+//                     case 'min': return trip.from.eventTime >= (new Date(value).getTime() / 1000);
+//                     case 'max': return trip.to.eventTime <= (new Date(value).getTime() / 1000);
+//                     case 'businessStep': return trip.from.businessStep === value || trip.to.businessStep === value;
+//                     case 'epcCode': return trip.epcCode.includes(String(value));
+//                     case 'productName': return trip.productName === value;
+//                     case 'epcLot': return trip.epcLot.includes(String(value));
+//                     case 'eventType': return trip.eventType === value;
+//                     case 'anomalyType':
+//                         return trip.anomalyTypeList.includes(value);
+//                     default: return true;
+//                 }
+//             });
+//         });
+//     }
+
+//     const limit = params?.limit || 50;
+//     const startIndex = params?.cursor ? Number(params.cursor) : 0;
+//     const paginatedData = allAnomalies.slice(startIndex, startIndex + limit);
+//     const nextCursor = (startIndex + limit < allAnomalies.length) ? (startIndex + limit).toString() : null;
+
+//     return {
+//         data: paginatedData,
+//         nextCursor,
+//     };
+// }
 
 /**
  * 필터링 및 페이지네이션된 전체 Trip 목록을 가져옵니다. (더미)
@@ -244,6 +254,7 @@ export async function getNodes(): Promise<LocationNode[]> {
 export async function getKpiSummary(params?: Record<string, any>): Promise<KpiSummary> {
     try {
         const response = await apiClient.get<KpiSummary>('/manager/kpi', { params });
+        console.log('받은 kpi ', response)
         return response.data;
     } catch (error) {
         console.error('KPI 요약 정보 로딩 실패:', error);

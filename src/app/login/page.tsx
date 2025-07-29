@@ -73,7 +73,7 @@ export default function LoginPage() {
       <div className="absolute top-0 left-0 w-full h-full bg-black/30 z-0" />
 
       <div className="relative z-10 flex items-center justify-center h-full">
-        <div className="w-full max-w-sm p-8 bg-white bg-opacity-90 rounded-xl shadow-lg space-y-6">
+        <div className="w-full max-w-xl p-8 bg-white bg-opacity-90 rounded-xl shadow-lg space-y-6">
           <div className="flex justify-center">
             <div className="bg-indigo-500 rounded-full p-4">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@ export default function LoginPage() {
 
           <h2 className="text-2xl font-semibold text-center text-gray-800">Log in</h2>
 
-          <div className="flex gap-3">
+          {/* <div className="flex gap-3">
             <button className="flex-1 flex items-center justify-center gap-2 border rounded-md py-2 text-sm hover:bg-gray-100 bg-white">
               <FcGoogle className="w-5 h-5" />
               Google
@@ -95,7 +95,7 @@ export default function LoginPage() {
             <hr className="w-full border-gray-300" />
             <span className="px-2 text-gray-400 text-sm">Or</span>
             <hr className="w-full border-gray-300" />
-          </div>
+          </div> */}
 
           <form action={formAction} className="space-y-4">
             <div>
@@ -141,7 +141,7 @@ export default function LoginPage() {
 
           <p className="text-sm text-center text-gray-700">
             계정이 없으신가요?{' '}
-            <a href="#" className="text-indigo-600 hover:underline">회원가입</a>
+            <a href="/join" className="text-indigo-600 hover:underline">회원가입</a>
           </p>
         </div>
       </div>

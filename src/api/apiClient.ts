@@ -1,6 +1,8 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type { FileItem } from '@/types/file';
 import { CoverReportData } from "@/types/api";
+import type { JoinFormData } from '@/types/join';
+
 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 if (!baseURL) {
@@ -203,6 +205,41 @@ const DUMMY_COVER_DB: Record<number, CoverReportData> = {
         createdAt: "2025-07-28T11:00:00Z",
         period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
     },
+    1: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    3: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    5: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    10: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    11: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
     // 필요한 만큼 더미 데이터를 추가할 수 있습니다.
 };
 export async function getCoverReportData(params: { fileId: number }): Promise<CoverReportData> {
@@ -242,6 +279,69 @@ export async function getCoverReportData(params: { fileId: number }): Promise<Co
         return Promise.reject(new Error(`[더미 데이터] fileId ${fileId}에 대한 커버 데이터를 찾을 수 없습니다.`));
     }
 }
+
+/**
+ * [클라이언트용] 아이디 중복 검사를 요청하는 함수
+ * @param userId - 확인할 사용자 아이디
+ * @returns {Promise<any>} API 응답 데이터 (성공 또는 실패 정보 포함)
+ */
+export const checkUserId_client = async (userId: string) => {
+    try {
+        const response = await apiClient.post('/public/join/idsearch', { userId });
+        // 성공 시, 백엔드 응답 데이터를 그대로 반환
+        // 예: { message: "사용 가능한 아이디입니다." }
+        return response.data;
+    } catch (error) {
+        // Axios 에러인 경우, 에러 응답의 data를 반환하여 컴포넌트에서 활용
+        if (axios.isAxiosError(error) && error.response) {
+            return Promise.reject(error.response.data);
+        }
+        // 그 외 네트워크 에러 등
+        return Promise.reject(error);
+    }
+};
+
+/**
+ * [클라이언트용] 회원가입을 요청하는 함수
+ * @param formData - 회원가입 폼 데이터
+ * @returns {Promise<any>} API 응답 데이터
+ */
+export const joinUser_client = async (formData: JoinFormData) => {
+    try {
+        const response = await apiClient.post('/public/join', formData);
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+            return Promise.reject(error.response.data);
+        }
+        return Promise.reject(error);
+    }
+};
+
+/**
+ * [클라이언트용] AI 모듈로 파일 재전송을 요청하는 함수
+ * @param fileId 재전송할 파일의 ID
+ * @returns {Promise<any>} API 응답 데이터
+ */
+export const fileResend_client = async (fileId: number) => {
+    if (!fileId || typeof fileId !== 'number' || fileId <= 0) {
+        console.error("fileResend_client: 유효하지 않은 fileId입니다.", fileId);
+        return Promise.reject(new Error("유효하지 않은 파일 ID입니다."));
+    }
+
+    try {
+        const response = await apiClient.post(`/manager/resend/${fileId}`);
+        return response.data;
+
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+            console.error(`파일(ID: ${fileId}) 재전송 실패:`, error.response.data);
+            return Promise.reject(error.response.data);
+        }
+        console.error(`파일(ID: ${fileId}) 재전송 중 알 수 없는 오류:`, error);
+        return Promise.reject(error);
+    }
+};
 
 
 export default apiClient;

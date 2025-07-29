@@ -218,7 +218,7 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-10">
+                                        <td colSpan={8} className="text-center py-10">
                                             {search ? `"${search}"에 대한 검색 결과가 없습니다.` : "업로드된 파일이 없습니다."}
                                         </td>
                                     </tr>

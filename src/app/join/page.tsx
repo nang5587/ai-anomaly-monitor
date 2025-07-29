@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState } from "react";
+
 import LeftFormArea from '@/components/LeftFormArea';
 import RightAnimationArea from '@/components/RightAnimationArea';
 
-export default function page() {
+export default function JoinPage() {
     const [step, setStep] = useState(1);
     const backgroundStyle: React.CSSProperties = {
         position: 'relative',
@@ -13,6 +14,7 @@ export default function page() {
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
     };
+
     return (
         <main className="flex items-center justify-center w-full h-full"
             style={backgroundStyle}>

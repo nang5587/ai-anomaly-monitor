@@ -4,21 +4,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { LogIn, LogOut , UserPlus, ScanLine } from 'lucide-react';
 
-import { useAtomValue } from 'jotai';
-import { statusBarAtom } from '@/stores/uiAtoms';
-import StatusBar from '../components/upload/StatusBar';
-
 export default function Header() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
   const handleClick = () => router.push("/");
 
-  const statusBar = useAtomValue(statusBarAtom);
-
-  if (statusBar.visible) {
-    return <StatusBar />;
-  }
 
   return (
     <header

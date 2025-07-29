@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext'; // ✨ 인증 상태를 가져올 훅
 import { toast } from 'sonner';
-import { KeyIcon, UserCircleIcon } from '@heroicons/react/24/outline';
-import { getMyProfile, updateProfileInfo, changePassword } from '@/api/userApi'
+import { KeyIcon, UserCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { getMyProfile, updateProfileInfo, deleteMyAccount, changePassword } from '@/api/userApi'
 
 const factoryCodeNameMap: { [key: number]: string } = {
     1: '인천',
@@ -21,7 +21,7 @@ interface UserSettingsProps {
 }
 
 export default function UserSettings({ initialProfile }: UserSettingsProps) {
-    const { user, updateUserContext } = useAuth(); // ✨ AuthContext에서 user 정보와 업데이트 함수를 가져옴
+    const { user, logout, updateUserContext } = useAuth(); // ✨ AuthContext에서 user 정보와 업데이트 함수를 가져옴
 
     // 폼 데이터를 관리할 상태
     const [formData, setFormData] = useState(initialProfile);
@@ -114,75 +114,128 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (!user) return;
+
+        const isConfirmed = window.confirm(
+            '정말로 회원 탈퇴를 진행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'
+        );
+
+        if (!isConfirmed) return;
+
+        toast.loading("회원 탈퇴 처리 중...");
+        try {
+            // 4. userApi에 있는 deleteMyAccount 함수를 호출합니다.
+            await deleteMyAccount();
+
+            toast.success("회원 탈퇴가 완료되었습니다. 잠시 후 로그아웃됩니다.");
+
+            // 5. 성공 시, AuthContext의 logout 함수를 호출하여 세션을 종료합니다.
+            setTimeout(() => {
+                logout();
+            }, 1500);
+
+        } catch (error) {
+            // apiClient에서 이미 에러 토스트를 띄울 수 있으므로, 여기서는 콘솔 로그만 남기거나 비워둘 수 있습니다.
+            console.error("회원 탈퇴 실패:", error);
+            toast.error("회원 탈퇴 중 오류가 발생했습니다.");
+        }
+    };
+
     const factoryName = useMemo(() => {
         if (!user) return '';
         if (user.role === 'ADMIN') return '전체 관리';
         return user.locationId ? factoryCodeNameMap[user.locationId] || '미지정' : '소속 없음';
     }, [user]);
 
+    if (!user) {
+        return <div className="p-8 text-white">사용자 정보를 확인 중입니다...</div>;
+    }
     if (isLoading) {
         return <div className="p-8 text-white">정보를 불러오는 중...</div>;
     }
 
     return (
-        <div className="p-4 sm:p-8 text-white w-full flex justify-center gap-10">
-
-            {/* 프로필 정보 수정 섹션 */}
-            <div className="flex flex-col justify-between bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
-                <div className="flex items-center gap-4 mb-6">
-                    <UserCircleIcon className="w-8 h-8 text-[#E0E0E0}" />
-                    <h2 className="text-xl font-coto-400">프로필</h2>
+        <div className="p-4 sm:p-8 text-white w-full flex flex-col items-center gap-10">
+            <div className="w-full flex justify-center gap-10">
+                {/* 프로필 정보 수정 섹션 */}
+                <div className="flex flex-col justify-between bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
+                    <div className="flex items-center gap-4 mb-6">
+                        <UserCircleIcon className="w-8 h-8 text-[#E0E0E0}" />
+                        <h2 className="text-xl font-coto-400">프로필</h2>
+                    </div>
+                    <form onSubmit={handleProfileSave} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0] mb-1">아이디</label>
+                            <input name="userId" type="text" value={user?.userId || ''} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">소속 공장</label>
+                            <input name="factory" type="text" value={factoryName} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">이름</label>
+                            <input name="userName" type="text" value={formData.userName} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">이메일</label>
+                            <input name="email" type="email" value={formData.email} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div className="pt-2 text-right">
+                            <button type="submit" disabled={!isProfileChanged} className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)] disabled:bg-gray-600 disabled:cursor-not-allowed">
+                                저장
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <form onSubmit={handleProfileSave} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0] mb-1">아이디</label>
-                        <input name="userId" type="text" value={user?.userId || ''} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+
+                {/* 비밀번호 변경 섹션 */}
+                <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
+                    <div className="flex items-center gap-4 mb-6">
+                        <KeyIcon className="w-8 h-8 text-[#E0E0E0}" />
+                        <h2 className="text-xl font-noto-400">비밀번호 변경</h2>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0} mb-1">소속 공장</label>
-                        <input name="factory" type="text" value={factoryName} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0} mb-1">이름</label>
-                        <input name="userName" type="text" value={formData.userName} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0} mb-1">이메일</label>
-                        <input name="email" type="email" value={formData.email} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                    </div>
-                    <div className="pt-2 text-right">
-                        <button type="submit" disabled={!isProfileChanged} className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)] disabled:bg-gray-600 disabled:cursor-not-allowed">
-                            저장
-                        </button>
-                    </div>
-                </form>
+                    <form onSubmit={handlePasswordSave} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">현재 비밀번호</label>
+                            <input name="password" type="password" value={passwordData.password} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">새 비밀번호</label>
+                            <input name="newPassword" type="password" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">새 비밀번호 확인</label>
+                            <input name="confirmPassword" type="password" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        </div>
+                        <div className="pt-2 text-right">
+                            <button type="submit" className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)]">
+                                변경
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            {/* 비밀번호 변경 섹션 */}
-            <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
-                <div className="flex items-center gap-4 mb-6">
-                    <KeyIcon className="w-8 h-8 text-[#E0E0E0}" />
-                    <h2 className="text-xl font-noto-400">비밀번호 변경</h2>
-                </div>
-                <form onSubmit={handlePasswordSave} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0} mb-1">현재 비밀번호</label>
-                        <input name="password" type="password" value={passwordData.password} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0} mb-1">새 비밀번호</label>
-                        <input name="newPassword" type="password" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-[#E0E0E0} mb-1">새 비밀번호 확인</label>
-                        <input name="confirmPassword" type="password" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                    </div>
-                    <div className="pt-2 text-right">
-                        <button type="submit" className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)]">
-                            변경
+            <div className="w-full max-w-[calc(theme(maxWidth.lg)*2+2.5rem)] mt-2">
+                <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-2">회원 탈퇴</h3>
+                            <p className="text-gray-400 text-sm">
+                                계정을 삭제하면 모든 개인 정보와 활동 내역이 영구적으로 제거됩니다.<br />
+                                이 작업은 되돌릴 수 없으니 신중하게 결정해주세요.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleDeleteAccount}
+                            className="flex items-center gap-2 bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)] text-white font-semibold px-4 py-2 rounded-md transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                            계정 삭제
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     );

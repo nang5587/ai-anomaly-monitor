@@ -1,7 +1,12 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext'; // ℹ️ 백이랑 연결 시 주석 풀기
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAtom } from 'jotai';
+
+import { selectedFileIdAtom, selectedFactoryNameAtom } from '@/stores/mapDataAtoms';
+import { getFiles_client } from '@/api/apiClient';
+import { FileItem } from '@/types/file';
 
 import { useState, useEffect } from 'react';
 import { useSetAtom } from 'jotai';
@@ -19,6 +24,8 @@ import { DashboardMapWidget } from '../../components/dashboard/widget/DashboardM
 import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
 import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
 import dynamic from 'next/dynamic';
+
+const factoryCodeNameMap: { [key: number]: string } = { 1: '인천공장', 2: '화성공장', 3: '양산공장', 4: '구미공장' };
 
 const DynamicAnomalyChart = dynamic(
     () => import('@/components/dashboard/AnomalyEventsChart'),
@@ -61,9 +68,13 @@ type User = {
 const MOCK_USER_ADMIN: User = { role: 'ADMIN', locationId: 0 };
 const MOCK_USER_MANAGER: User = { role: 'MANAGER', locationId: 1 };
 
-export default function SupervisorDashboard() {
+export default function AdminDashboard() {
     const router = useRouter();
     const setActiveTab = useSetAtom(activeTabAtom);
+    const searchParams = useSearchParams();
+    const [selectedFileId, setSelectedFileId] = useAtom(selectedFileIdAtom);
+    const [, setSelectedFactoryName] = useAtom(selectedFactoryNameAtom);
+
     const {
         kpiData,
         anomalyTrips,
@@ -79,7 +90,6 @@ export default function SupervisorDashboard() {
         user,
         isFetchingMore,
         nextCursor,
-        selectedFileId,
         selectedFileName,
         isHistoryModalOpen,
         uploadHistory,
@@ -93,11 +103,51 @@ export default function SupervisorDashboard() {
         closeHistoryModal,
     } = useDashboard();
 
+    // useEffect(() => {
+    //     if (!isAuthLoading && !user) {
+    //         router.push('/login');
+    //     }
+    // }, [user, isAuthLoading, router]);
+
     useEffect(() => {
-        if (!isAuthLoading && !user) {
-            router.push('/login');
+        if (!user) return; // 사용자 정보가 로드될 때까지 대기
+
+        const fileIdFromUrl = searchParams.get('fileId');
+        const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+
+        // 시나리오 1: URL에 fileId가 있는 경우
+        if (fileIdFromUrl) {
+            const fileIdNum = Number(fileIdFromUrl);
+            if (selectedFileId !== fileIdNum) {
+                setSelectedFileId(fileIdNum);
+                getFiles_client().then(history => {
+                    const file = history.find(f => f.fileId === fileIdNum);
+                    if (file?.locationId) {
+                        setSelectedFactoryName(factoryCodeNameMap[file.locationId] || '정보 없음');
+                    }
+                });
+            }
+            return;
         }
-    }, [user, isAuthLoading, router]);
+
+        // 시나리오 2: URL에 fileId가 없는 경우 (최초 접속 등)
+        const initializeAndRedirect = async () => {
+            try {
+                const history: FileItem[] = await getFiles_client();
+                if (history.length > 0) {
+                    const latestFile = history[0];
+                    // 현재 페이지의 URL만 교체 (예: /supervisor -> /supervisor?fileId=123)
+                    router.replace(`/${role}?fileId=${latestFile.fileId}`);
+                } else {
+                    router.replace(`/upload`);
+                }
+            } catch (error) {
+                console.error("초기 파일 목록 로딩 실패:", error);
+            }
+        };
+
+        initializeAndRedirect();
+    }, [user, searchParams, selectedFileId, setSelectedFileId, setSelectedFactoryName, router]);
 
 
     //⚠️ 백엔드 연결 시 삭제
@@ -235,7 +285,7 @@ export default function SupervisorDashboard() {
                     </div>
                     <div className="flex items-center gap-4 pr-4">
                         <button onClick={openHistoryModal} className="cursor-pointer w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full"
-                            title='csv 업로드 목록'
+                            title='최근 csv 업로드 목록'
                         >
                             <History size={22} />
                         </button>

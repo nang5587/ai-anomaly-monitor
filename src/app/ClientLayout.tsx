@@ -2,18 +2,15 @@
 
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from "react";
-import { useAtomValue } from 'jotai';
-import { statusBarAtom } from '@/stores/uiAtoms';
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 
-import { useMapStore } from '@/stores/mapStore';
-
 import { useAuth } from "@/context/AuthContext";
 
+const PUBLIC_ROUTES = ['/','/login', '/join'];
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-    const statusBar = useAtomValue(statusBarAtom);
     const pathname = usePathname();
     const { user, isLoading } = useAuth(); // ℹ️ 백엔드 연결 시 주석 해제
 
@@ -22,22 +19,38 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     //     role: "ADMIN", // 둘 중에 하나 선택해서 test 가능
     //     // role: "MANAGER",
     // }
+
     const [sidebarHovered, setSidebarHovered] = useState(false);
 
-    const isPublicPage = pathname === '/login';
+    const isPublicPage = PUBLIC_ROUTES.includes(pathname);
 
     useEffect(() => {
         // 로딩이 끝났고, 유저가 없으며, 현재 페이지가 공용 페이지가 아닐 때만 리디렉션
         if (!isLoading && !user && !isPublicPage) {
             window.location.href = '/login';
         }
+
+        if (!isLoading && user && isPublicPage) {
+            const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+            window.location.href = `/${role}`;
+        }
+
     }, [user, isLoading, isPublicPage, pathname]);
 
     if (isPublicPage) {
-        return <>{children}</>;
-    }
+        return (
+            <div className="bg-black">
+                <Header />
 
-    // --- 아래는 기존의 대시보드 레이아웃 렌더링 로직입니다 ---
+                <div className="flex">
+                    <main className={`flex-1 h-screen overflow-hidden relative pt-20`}>
+                        {children}
+                    </main>
+
+                </div>
+            </div>
+        );
+    }
 
     // 로딩 중이거나 (리디렉션 되기 전의) 유저가 없는 상태를 표시
     if (isLoading || !user) {
@@ -55,8 +68,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <div className="flex">
                 <Sidebar userRole={user.role as 'ADMIN' | 'MANAGER'} hovered={sidebarHovered} setHovered={setSidebarHovered} />
 
-                <main className={`flex-1 h-screen overflow-hidden relative ${statusBar.visible ? 'pt-0' : 'pt-20'
-                    }`}>
+                <main className={`flex-1 h-screen overflow-hidden relative pt-20`}>
                     {children}
                 </main>
 

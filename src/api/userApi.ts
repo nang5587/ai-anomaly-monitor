@@ -13,6 +13,12 @@ export const updateProfileInfo = async (data: { userName: string; email: string 
     const response = await apiClient.patch('/manager/settings/info', data);
     return response.data;
 };
+/**
+ * 회원 탈퇴를 요청합니다. (실제로는 정보 수정을 통해 상태 변경)
+ */
+export const deleteMyAccount = async () => {
+    return updateProfileInfo({ status: 'del' } as any); // status만 보내므로 타입 단언 사용
+};
 
 // 3. 비밀번호 변경 (POST /api/settings/password)
 export const changePassword = async (data: { password: string; newPassword: string; }) => {

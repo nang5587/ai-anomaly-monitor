@@ -1,17 +1,30 @@
 'use client';
 import React from 'react';
-import { type UploadFile } from '../../types/data';
-import { X, FileText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import type { FileItem } from '@/types/file';
+
+import { X, FileText, ArrowRight } from 'lucide-react';
 
 interface UploadHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    files: UploadFile[];
+    files: FileItem[];
     onFileSelect: (fileId: number) => void;
 }
 
 export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelect }: UploadHistoryModalProps) {
     if (!isOpen) return null;
+    const router = useRouter();
+
+    const handleItemClick = (fileId: number) => {
+        onFileSelect(fileId); // 부모 컴포넌트(DashboardProvider)에 파일 ID 전달
+        onClose();            // 모달 닫기
+    };
+
+    const handleGoToFullHistory = () => {
+        router.push('/filelist'); // '/filelist' 경로로 이동
+        onClose(); // 이동 후 모달 닫기
+    };
 
     const formatFileSize = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';
@@ -26,12 +39,12 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
             // "YYYY-MM-DD HH:mm:ss" -> "YYYY-MM-DDTHH:mm:ss"
             const isoString = dateTimeString.replace(' ', 'T');
             const date = new Date(isoString);
-            
+
             // 유효하지 않은 날짜일 경우 원본 문자열을 그대로 반환 (방어 코드)
             if (isNaN(date.getTime())) {
                 return dateTimeString;
             }
-            
+
             return date.toLocaleString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
@@ -48,12 +61,12 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
 
     return (
         // Backdrop (모달 바깥의 어두운 배경)
-        <div 
+        <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center"
             onClick={onClose}
         >
             {/* Modal Content */}
-            <div 
+            <div
                 className="bg-gradient-to-br from-[#2A2A2A] to-[#1E1E1E] border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 닫히지 않도록 함
             >
@@ -70,10 +83,10 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
                     {files.length > 0 ? (
                         <ul className="space-y-2">
                             {files.map(file => (
-                                <li 
+                                <li
                                     key={file.fileId}
                                     className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                                    onClick={() => onFileSelect(file.fileId)}
+                                    onClick={() => handleItemClick(file.fileId)}
                                 >
                                     <div className="flex items-center gap-4">
                                         <FileText className="text-neutral-400" size={20} />
@@ -93,6 +106,15 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
                     ) : (
                         <p className="text-center text-neutral-500 py-8">업로드 내역이 없습니다.</p>
                     )}
+                </div>
+
+                <div className="p-4 text-right">
+                    <button
+                        onClick={handleGoToFullHistory}
+                        className="px-4 py-2 text-sm font-noto-400 text-white bg-white/10 rounded-lg hover:bg-white/20 transition-colors cursor-pointer"
+                    >
+                        전체 내역 보기
+                    </button>
                 </div>
             </div>
         </div>

@@ -35,36 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // 세션 또는 로컬 스토리지 중 토큰이 있는 곳을 찾음
-    const storage = localStorage.getItem('accessToken') ? localStorage : (sessionStorage.getItem('accessToken') ? sessionStorage : null);
 
-    if (storage) {
-      const token = storage.getItem('accessToken');
-      if (token) {
-        try {
-          // 토큰을 디코딩하여 필수 정보를 얻음
-          const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
-          const locationId = location_id;
-          // ✨ 토큰 외에 저장해 둔 추가 정보(userName, email)도 함께 읽어옴
-          const userName = storage.getItem('userName') || undefined;
-          const email = storage.getItem('email') || undefined;
-
-          // 복원된 사용자 객체 생성
-          const restoredUser: User = { userId, role, locationId, userName, email };
-          setUser(restoredUser);
-        } catch (error) {
-          // 유효하지 않은 토큰일 경우, 모든 정보를 지움
-          console.error("Invalid token found in storage.", error);
-          logout();
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, []);
 
   const login = useCallback((token: string, rememberMe: boolean) => {
     const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
@@ -83,6 +54,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   }, [router]);
 
+  useEffect(() => {
+    // 세션 또는 로컬 스토리지 중 토큰이 있는 곳을 찾음
+    const storage = localStorage.getItem('accessToken') ? localStorage : (sessionStorage.getItem('accessToken') ? sessionStorage : null);
+
+    if (storage) {
+      const token = storage.getItem('accessToken');
+      if (token) {
+        try {
+          const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
+          const locationId = location_id;
+          const userName = storage.getItem('userName') || undefined;
+          const email = storage.getItem('email') || undefined;
+          const restoredUser: User = { userId, role, locationId, userName, email };
+          setUser(restoredUser);
+        } catch (error) {
+          console.error("Invalid token found in storage.", error);
+          logout(); // logout 함수가 알아서 상태를 초기화하고 리디렉션합니다.
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // storage는 있지만 토큰이 없는 이상한 경우 (거의 발생 안 함)
+        setIsLoading(false);
+      }
+    } else {
+      // localStorage와 sessionStorage에 토큰이 모두 없는 경우
+      setIsLoading(false);
+    }
+  }, [logout]);
+
   // 회원정보 변경 적용
   const updateUserContext = useCallback((updatedInfo: Partial<User>) => {
     setUser(prevUser => {
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return newUser;
     });
   }, []);
-  
+
   return (
     <AuthContext.Provider value={{ user, isLoading, login, logout, updateUserContext }}>
       {children}
