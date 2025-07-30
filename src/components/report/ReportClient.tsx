@@ -10,10 +10,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
-import ExcelPreview from "./ExcelPreview";
-
 import { FileItem } from '@/types/file';
 import ReportView, { type ReportViewRef } from "./ReportView";
+import ExcelPreview, { type ExcelPreviewRef } from "./ExcelPreview";
 
 declare module 'jspdf' {
     interface jsPDF {
@@ -49,6 +48,7 @@ export const formatDateTime = (dateString: string | undefined | null): string =>
 export default function ReportClient({ initialFiles }: ReportClientProps) {
     const reportViewRef = useRef<ReportViewRef>(null);
     const pdfContentRef = useRef<HTMLDivElement>(null);
+    const excelPreviewRef = useRef<ExcelPreviewRef>(null);
 
     const router = useRouter();
     const { user, isLoading: isAuthLoading } = useAuth();
@@ -99,17 +99,35 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
         setIsDownloading(true);
         setDownloadType('pdf');
         try {
-            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdf = new jsPDF({
+                putOnlyUsedFonts: true,
+                compress: true,
+                orientation: 'p', // portrait (세로)
+                unit: 'mm',
+                format: 'a4'
+            });
 
             // --- 1. 한글 폰트 설정 (필수!) ---
-            // public/fonts/NanumGothic.ttf 파일이 있어야 합니다.
-            const fontResponse = await fetch('/fonts/NanumGothic.ttf');
-            if (!fontResponse.ok) throw new Error("폰트 파일을 불러올 수 없습니다.");
-            const font = await fontResponse.arrayBuffer();
-            const fontBase64 = btoa(new Uint8Array(font).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-            pdf.addFileToVFS('NanumGothic.ttf', fontBase64);
+            const fontRegularResponse = await fetch('/fonts/NanumGothic.ttf');
+            if (!fontRegularResponse.ok) throw new Error("NanumGothic.ttf 폰트 파일을 불러올 수 없습니다.");
+            const fontRegularBuffer = await fontRegularResponse.arrayBuffer();
+            const fontRegularBase64 = btoa(new Uint8Array(fontRegularBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+
+            const fontBoldResponse = await fetch('/fonts/NanumGothicBold.ttf');
+            if (!fontBoldResponse.ok) throw new Error("NanumGothicBold.ttf 폰트 파일을 불러올 수 없습니다.");
+            const fontBoldBuffer = await fontBoldResponse.arrayBuffer();
+            const fontBoldBase64 = btoa(new Uint8Array(fontBoldBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+
+            // ✨ Base64 문자열을 VFS에 추가
+            pdf.addFileToVFS('NanumGothic.ttf', fontRegularBase64);
+            pdf.addFileToVFS('NanumGothicBold.ttf', fontBoldBase64);
+
+            // 폰트 등록
             pdf.addFont('NanumGothic.ttf', 'NanumGothic', 'normal');
-            pdf.setFont('NanumGothic');
+            pdf.addFont('NanumGothicBold.ttf', 'NanumGothic', 'bold');
+
+            // 문서 기본 폰트 설정
+            pdf.setFont('NanumGothic', 'normal');
 
             // --- 2. html2canvas로 렌더링할 페이지들 캡처 ---
             const pagesToCapture = ['report-page-1', 'report-page-2'];
@@ -129,23 +147,38 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
 
             if (tableData && tableData.body.length > 0) {
                 pdf.addPage(); // 테이블을 위한 새 페이지 추가
-                pdf.setFontSize(16);
+                pdf.setTextColor(75, 85, 99);
+                pdf.setFont('NanumGothic', 'bold');
+                pdf.setFontSize(12);
                 pdf.text("3. 이상 탐지 상세 내역", 14, 22);
+                pdf.setTextColor(0, 0, 0);
 
-                autoTable(pdf, { // 👈 호출 방식을 이렇게 변경!
+                autoTable(pdf, {
                     head: tableData.head,
                     body: tableData.body,
                     startY: 30,
                     theme: 'grid',
-                    styles: { font: 'NanumGothic', fontSize: 8, cellPadding: 2 },
-                    headStyles: { fillColor: [44, 62, 80], textColor: 255, fontStyle: 'bold' },
-                    // didParseCell: function (data: any) {
-                    //     if (data.section === 'body' && data.column.index <= 1) {
-                    //         if (data.cell.raw === '') { // 내용이 비어있으면
-                    //             data.cell.styles.lineWidth = 0; // 위쪽, 왼쪽 선을 그리지 않음 (병합된 것처럼 보이게)
-                    //         }
-                    //     }
-                    // },
+                    styles: {
+                        font: 'NanumGothic', // 테이블 전체에 'NanumGothic' 폰트 패밀리 사용
+                        fontSize: 8,
+                        cellPadding: 2
+                    },
+                    headStyles: {
+                        fillColor: [44, 62, 80],
+                        textColor: 255,
+                        fontStyle: 'bold' // 'NanumGothic'의 'bold' 스타일을 사용
+                    },
+                    bodyStyles: {
+                        fontStyle: 'normal' // 본문은 'NanumGothic'의 'normal' 스타일을 사용
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 7 },    // #
+                        1: { cellWidth: 20 },    // 유형
+                        2: { cellWidth: 30 },    // EPC Code
+                        3: { cellWidth: 20 },    // 제품명
+                        4: { cellWidth: 'auto' }, // 탐지 경로 (가장 김): 남은 공간을 모두 사용
+                        5: { cellWidth: 38 }     // 탐지 시간: 충분한 너비(30mm)를 고정 할당
+                    }
                 });
             } else {
                 // 데이터 없을 때 페이지 추가
@@ -174,7 +207,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                 const text = `Page ${i} / ${totalPages}`;
                 const textWidth = pdf.getStringUnitWidth(text) * pdf.getFontSize() / pdf.internal.scaleFactor;
                 const textX = (pdf.internal.pageSize.getWidth() - textWidth) / 2;
-                pdf.text(text, textX, 290); // 페이지 하단 중앙에 텍스트 추가
+                pdf.text(text, textX, 290);
             }
 
             pdf.save(`report_${selectedFileId || 'unknown'}.pdf`);
@@ -193,8 +226,10 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
         if (isDownloading) return;
         setIsDownloading(true);
         setDownloadType('excel');
-        if (reportViewRef.current?.handleExcelDownload) {
-            await reportViewRef.current.handleExcelDownload();
+
+        // reportViewRef 대신 excelPreviewRef를 사용합니다.
+        if (excelPreviewRef.current?.handleExcelDownload) {
+            await excelPreviewRef.current.handleExcelDownload();
         } else {
             console.error("Excel 다운로드 기능을 찾을 수 없습니다.");
             alert("Excel 다운로드 기능이 아직 준비되지 않았습니다.");
@@ -202,7 +237,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
         setIsDownloading(false);
         setDownloadType(null);
     };
-
 
     if (isAuthLoading || !user) {
         return <div>사용자 정보를 확인 중입니다...</div>
@@ -238,16 +272,20 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: '4px' }}>
-                    <button onClick={handleExcelDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[rgba(111,131,175)] text-white rounded-lg transition hover:bg-[rgba(101,121,165)] disabled:opacity-50 disabled:cursor-not-allowed">
-                        <FileSpreadsheet size={16} />
-                        <span>{isDownloading && downloadType === 'excel' ? '생성 중...' : 'Excel'}</span>
-                    </button>
-
-                    <button onClick={handlePDFDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[rgba(111,131,175)] text-white rounded-lg transition hover:bg-[rgba(101,121,165)] disabled:opacity-50 disabled:cursor-not-allowed">
-                        <FileText size={16} />
-                        <span>{isDownloading && downloadType === 'pdf' ? '생성 중...' : 'PDF'}</span>
-                    </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    {activeTab === 'pdf' && (
+                        <button onClick={handlePDFDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[#E53935] text-white rounded-3xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <FileText size={16} />
+                            <span>{isDownloading && downloadType === 'pdf' ? '생성 중...' : 'PDF'}</span>
+                        </button>
+                    )}
+                    {/* Excel 미리보기가 활성화되어 있을 때만 Excel 다운로드 버튼을 보여줍니다. */}
+                    {activeTab === 'excel' && (
+                        <button onClick={handleExcelDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[#43A047] text-white rounded-3xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <FileSpreadsheet size={16} />
+                            <span>{isDownloading && downloadType === 'excel' ? '생성 중...' : 'Excel'}</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -316,7 +354,9 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     }}
                 >
                     {activeTab === 'pdf' && <ReportView ref={reportViewRef} pdfContentRef={pdfContentRef} />}
-                    {activeTab === 'excel' && <ExcelPreview />}
+                    {activeTab === 'excel' && (
+                        <ExcelPreview ref={excelPreviewRef} />
+                    )}
                 </main>
             </div>
         </div>

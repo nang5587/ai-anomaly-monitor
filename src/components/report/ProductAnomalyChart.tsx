@@ -7,11 +7,7 @@ type ProductAnomalyChartProps = {
     data: ProductCount[];
 };
 
-const COLORS = {
-    fake: '#8884d8',    // 보라색
-    tamper: '#82ca9d',  // 녹색
-    clone: '#ffc658'    // 노란색
-};
+import { COLORS } from '@/types/file';
 
 export default function ProductAnomalyChart({ data }: ProductAnomalyChartProps) {
     return (
@@ -48,6 +44,9 @@ export default function ProductAnomalyChart({ data }: ProductAnomalyChartProps) 
                     <LabelList dataKey="tamper" position="middle" style={{ fill: 'white', fontSize: 12, fontWeight: 'bold'  }} />
                 </Bar>
                 <Bar dataKey="clone" stackId="a" name="복제" fill={COLORS.clone} >
+                    <LabelList dataKey="clone" position="middle" style={{ fill: 'white', fontSize: 12, fontWeight: 'bold'  }} />
+                </Bar>
+                <Bar dataKey="clone" stackId="a" name="미분류" fill={COLORS.other} >
                     <LabelList dataKey="clone" position="middle" style={{ fill: 'white', fontSize: 12, fontWeight: 'bold'  }} />
                 </Bar>
             </BarChart>

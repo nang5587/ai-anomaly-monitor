@@ -63,7 +63,7 @@ async function readJsonFile_server(filePath: string) {
 // -----------------------------------------------------------------
 // 지금은 더미 데이터 함수를 사용하고, 나중에 실제 백엔드 함수로 교체하면 됩니다.
 
-export const getNodes_server = async (): Promise<LocationNode[]> => {
+export const getNodes_server = async (params?: any): Promise<LocationNode[]> => {
     // return serverRequest<LocationNode[]>({ url: '/nodes', method: 'GET' }); // 🚀 실제 백엔드용
     return readJsonFile_server('/api/nodes.json'); // 📝 더미 데이터용
 };
@@ -149,7 +149,7 @@ export const getMyProfile_server = async (): Promise<{ userName: string; email: 
     // const { userId } = jwtDecode(token); // 토큰에서 userId 추출
 
     // 더미 데이터에서는 특정 사용자 정보를 그냥 반환합니다.
-    return { userName: '테스트 관리자', email: 'admin@test.com' };
+    return { userName: '화성인', email: 'hws@logistics.com' };
 };
 
 export const updateProfileInfo_server = async (data: { userName: string; email: string }) => {

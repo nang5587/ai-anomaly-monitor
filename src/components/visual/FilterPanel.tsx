@@ -47,31 +47,60 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ options, onApplyFilters, isFi
     const [isToLoading, setIsToLoading] = useState(false);
 
     // 입력 값 변경 핸들러 (모든 input/select에 공통으로 사용)
+    // const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    //     const { name, value } = e.target;
+
+    //     // 모든 변경에 대해 일단 상태 업데이트
+    //     setFilters(prev => ({ ...prev, [name]: value }));
+
+    //     // 만약 'fromScanLocation'이 변경되었다면, 동적 로직 실행
+    //     if (name === 'fromScanLocation') {
+    //         // 기존 'to' 선택지와 선택된 값을 초기화
+    //         setToLocationOptions([]);
+    //         setFilters(prev => ({ ...prev, toScanLocation: '' }));
+
+    //         if (value) { // 새로운 출발지가 선택된 경우 (빈 값이 아님)
+    //             setIsToLoading(true);
+    //             try {
+    //                 const toLocations = await getToLocations(value);
+    //                 setToLocationOptions(toLocations);
+    //             } catch (error) {
+    //                 // 에러 처리는 getToLocations 내부에서 console.error로 처리됨
+    //             } finally {
+    //                 setIsToLoading(false);
+    //             }
+    //         }
+    //     }
+    // };
+
     const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+    const { name, value } = e.target;
 
-        // 모든 변경에 대해 일단 상태 업데이트
-        setFilters(prev => ({ ...prev, [name]: value }));
+    // 만약 'fromScanLocation'이 변경되었다면,
+    if (name === 'fromScanLocation') {
+        // fromScanLocation과 toScanLocation을 함께 업데이트합니다.
+        setFilters(prev => ({ 
+            ...prev, 
+            fromScanLocation: value, 
+            toScanLocation: '' // 도착지 선택을 초기화
+        }));
+        
+        setToLocationOptions([]); // 도착지 옵션 목록 초기화
 
-        // 만약 'fromScanLocation'이 변경되었다면, 동적 로직 실행
-        if (name === 'fromScanLocation') {
-            // 기존 'to' 선택지와 선택된 값을 초기화
-            setToLocationOptions([]);
-            setFilters(prev => ({ ...prev, toScanLocation: '' }));
-
-            if (value) { // 새로운 출발지가 선택된 경우 (빈 값이 아님)
-                setIsToLoading(true);
-                try {
-                    const toLocations = await getToLocations(value);
-                    setToLocationOptions(toLocations);
-                } catch (error) {
-                    // 에러 처리는 getToLocations 내부에서 console.error로 처리됨
-                } finally {
-                    setIsToLoading(false);
-                }
+        if (value) {
+            setIsToLoading(true);
+            try {
+                const toLocations = await getToLocations(value);
+                setToLocationOptions(toLocations);
+            } finally {
+                setIsToLoading(false);
             }
         }
-    };
+    } else {
+        // 그 외의 경우에는 해당 필드만 업데이트합니다.
+        setFilters(prev => ({ ...prev, [name]: value }));
+    }
+};
 
     // '필터 적용' 버튼 클릭 핸들러
     const handleApply = () => {

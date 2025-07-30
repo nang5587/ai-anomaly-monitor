@@ -104,51 +104,92 @@ export default function AdminDashboard() {
     } = useDashboard();
 
     // useEffect(() => {
-    //     if (!isAuthLoading && !user) {
-    //         router.push('/login');
+    //     if (!user) return; // 사용자 정보가 로드될 때까지 대기
+
+    //     const fileIdFromUrl = searchParams.get('fileId');
+    //     const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+
+    //     // 시나리오 1: URL에 fileId가 있는 경우
+    //     if (fileIdFromUrl) {
+    //         const fileIdNum = Number(fileIdFromUrl);
+    //         if (selectedFileId !== fileIdNum) {
+    //             setSelectedFileId(fileIdNum);
+    //             getFiles_client().then(history => {
+    //                 const file = history.find(f => f.fileId === fileIdNum);
+    //                 if (file?.locationId) {
+    //                     setSelectedFactoryName(factoryCodeNameMap[file.locationId] || '정보 없음');
+    //                 }
+    //             });
+    //         }
+    //         return;
     //     }
-    // }, [user, isAuthLoading, router]);
 
+    //     // 시나리오 2: URL에 fileId가 없는 경우 (최초 접속 등)
+    //     const initializeAndRedirect = async () => {
+    //         try {
+    //             const history: FileItem[] = await getFiles_client();
+    //             if (history.length > 0) {
+    //                 const latestFile = history[0];
+    //                 // 현재 페이지의 URL만 교체 (예: /supervisor -> /supervisor?fileId=123)
+    //                 router.replace(`/${role}?fileId=${latestFile.fileId}`);
+    //             } else {
+    //                 router.replace(`/upload`);
+    //             }
+    //         } catch (error) {
+    //             console.error("초기 파일 목록 로딩 실패:", error);
+    //         }
+    //     };
+
+    //     initializeAndRedirect();
+    // }, [user, searchParams, selectedFileId, setSelectedFileId, setSelectedFactoryName, router]);
     useEffect(() => {
-        if (!user) return; // 사용자 정보가 로드될 때까지 대기
-
-        const fileIdFromUrl = searchParams.get('fileId');
-        const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-
-        // 시나리오 1: URL에 fileId가 있는 경우
-        if (fileIdFromUrl) {
-            const fileIdNum = Number(fileIdFromUrl);
-            if (selectedFileId !== fileIdNum) {
-                setSelectedFileId(fileIdNum);
-                getFiles_client().then(history => {
-                    const file = history.find(f => f.fileId === fileIdNum);
-                    if (file?.locationId) {
-                        setSelectedFactoryName(factoryCodeNameMap[file.locationId] || '정보 없음');
-                    }
-                });
-            }
+        if (isAuthLoading || !user) {
+            // 아직 사용자 정보를 확인 중이거나 사용자가 없으면 아무것도 하지 않음
+            // (상위 로직에서 로그인 페이지로 리다이렉션할 것임)
             return;
         }
 
-        // 시나리오 2: URL에 fileId가 없는 경우 (최초 접속 등)
-        const initializeAndRedirect = async () => {
-            try {
-                const history: FileItem[] = await getFiles_client();
-                if (history.length > 0) {
-                    const latestFile = history[0];
-                    // 현재 페이지의 URL만 교체 (예: /supervisor -> /supervisor?fileId=123)
-                    router.replace(`/${role}?fileId=${latestFile.fileId}`);
-                } else {
-                    router.replace(`/upload`);
-                }
-            } catch (error) {
-                console.error("초기 파일 목록 로딩 실패:", error);
+        const fileIdFromUrl = searchParams.get('fileId');
+
+        // --- 시나리오 1: URL에 fileId가 있는 경우 (새로고침 또는 링크 이동) ---
+        if (fileIdFromUrl) {
+            const fileIdNum = Number(fileIdFromUrl);
+
+            // 현재 Jotai 상태와 URL의 fileId가 다를 경우에만 상태를 업데이트합니다.
+            // 이렇게 하면 불필요한 리렌더링과 API 호출을 방지할 수 있습니다.
+            if (selectedFileId !== fileIdNum) {
+                console.log(`URL fileId(${fileIdNum})와 상태가 다릅니다. 상태를 업데이트합니다.`);
+                setSelectedFileId(fileIdNum);
+
+                // useDashboard 훅은 selectedFileId 변경을 감지하고
+                // 자동으로 관련 데이터를 다시 불러올 것입니다.
+                // 따라서 여기서 getFiles_client를 직접 호출할 필요가 없습니다.
             }
-        };
+        }
+        // --- 시나리오 2: URL에 fileId가 없는 경우 (최초 접속) ---
+        else {
+            console.log("URL에 fileId가 없습니다. 최신 파일로 리다이렉션합니다.");
+            const initializeAndRedirect = async () => {
+                try {
+                    const history: FileItem[] = await getFiles_client();
+                    const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
 
-        initializeAndRedirect();
-    }, [user, searchParams, selectedFileId, setSelectedFileId, setSelectedFactoryName, router]);
-
+                    if (history.length > 0) {
+                        const latestFile = history[0];
+                        // URL을 교체하여 페이지를 새로고침하지 않고 주소만 변경
+                        router.replace(`/${role}?fileId=${latestFile.fileId}`);
+                    } else {
+                        // 업로드된 파일이 하나도 없으면 업로드 페이지로 이동
+                        router.replace(`/upload`);
+                    }
+                } catch (error) {
+                    console.error("초기 파일 목록 로딩 실패:", error);
+                }
+            };
+            initializeAndRedirect();
+        }
+        // `user`가 변경되거나 `searchParams`가 변경될 때마다 이 로직을 실행합니다.
+    }, [user, isAuthLoading, searchParams, selectedFileId, setSelectedFileId, router]);
 
     //⚠️ 백엔드 연결 시 삭제
     // const user = MOCK_USER_ADMIN;
@@ -161,7 +202,8 @@ export default function AdminDashboard() {
 
     const handleWidgetClick = (tab: Tab) => {
         setActiveTab(tab);
-        router.push('/graph');
+        // ✨ 지도 페이지로 이동할 때도 fileId를 함께 전달합니다.
+        router.push(`/map?fileId=${selectedFileId}`);
     };
 
     const handleFileUpload = async () => {
@@ -262,13 +304,13 @@ export default function AdminDashboard() {
                 <div className='flex items-start justify-between '>
                     <motion.h2 variants={itemVariants} className="font-vietnam text-white text-[50px] whitespace-nowrap">Admin<br />DashBoard</motion.h2>
                     <motion.div
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-4"
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4"
                         variants={containerVariants}
                     >
                         <motion.div variants={itemVariants}><StatCard title="총 이상 이벤트(건)" value={kpiData.anomalyCount.toString()} icon={<AlertTriangle className="text-[#E0E0E0]" />} /></motion.div>
                         <motion.div variants={itemVariants}><StatCard title="판매율(%)" value={kpiData.salesRate.toFixed(1)} icon={<TrendingUp className="text-[#E0E0E0]" />} /></motion.div>
                         <motion.div variants={itemVariants}><StatCard title="출고율(%)" value={kpiData.dispatchRate.toFixed(1)} icon={<Truck className="text-[#E0E0E0]" />} /></motion.div>
-                        <motion.div variants={itemVariants}><StatCard title="전체 재고 비율(%)" value={kpiData.inventoryRate.toFixed(1)} icon={<Package className="text-[#E0E0E0]" />} /></motion.div>
+                        {/* <motion.div variants={itemVariants}><StatCard title="전체 재고 비율(%)" value={kpiData.inventoryRate.toFixed(1)} icon={<Package className="text-[#E0E0E0]" />} /></motion.div> */}
                     </motion.div>
                 </div>
                 <motion.div variants={itemVariants} className="font-vietnam flex justify-between items-center bg-[rgba(40,40,40)] p-2 rounded-[50px]">
@@ -381,14 +423,7 @@ export default function AdminDashboard() {
                         {/* 3열: 지도 */}
                         <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
                             <DashboardMapWidget
-                                nodes={nodes}
-                                anomalyTrips={anomalyTrips} // 히트맵용 데이터 전달
-                                allTripsForMap={allTripsForMap} // 경로 지도용 데이터 전달
-                                minTime={minTime}
-                                maxTime={maxTime}
-                                replayTrigger={replayTrigger}
                                 onWidgetClick={handleWidgetClick} // 확대 버튼 핸들러
-                                onReplayClick={handleReplayAnimation} // 다시보기 버튼 핸들러
                             />
                         </motion.div>
                     </div>

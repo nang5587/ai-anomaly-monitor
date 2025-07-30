@@ -85,7 +85,9 @@ export interface ProductCount {
     clone: number;
     total: number;
 }
-export type ByProductResponse = ProductCount[];
+export interface ByProductApiResponse {
+    byProductList: ProductCount[];
+}
 
 // 페이지네이션 없는 이상 trips 응답
 export interface AllAnomaliesResponse {
@@ -191,10 +193,10 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 export async function getToLocations(fromLocation: string): Promise<string[]> {
     try {
         // fromScanLocation이라는 쿼리 파라미터로 선택된 출발지를 전달합니다.
-        const response = await apiClient.get<string[]>('/manager/trips/from', {
+        const response = await apiClient.get<{ toLocation: string[] }>('/manager/trips/from', {
             params: { scanLocation: fromLocation }
         });
-        return response.data;
+        return response.data?.toLocation || [];
     } catch (error) {
         console.error('도착지 목록 로딩 실패:', error);
         return []; // 에러 발생 시 빈 배열 반환
@@ -215,10 +217,10 @@ export async function getUploadHistory(): Promise<UploadFile[]> {
  * [실제 API] 제품별 이상 건수 데이터를 서버로부터 가져옵니다.
  * @param params - 필터링을 위한 쿼리 파라미터 (예: { startDate: '2023-10-01' })
  */
-export async function getAnomalyCountsByProduct(params?: Record<string, any>): Promise<ByProductResponse> {
+export async function getAnomalyCountsByProduct(params?: Record<string, any>): Promise<ProductCount[]> {
     try {
-        const response = await apiClient.get<ByProductResponse>('/manager/byproduct', { params });
-        return response.data;
+        const response = await apiClient.get<ByProductApiResponse>('/manager/byproduct', { params });
+        return response.data?.byProductList || [];
     } catch (error) {
         console.error('제품별 이상 건수 데이터 로딩 실패:', error);
         // 에러를 다시 throw하여 호출한 컴포넌트에서 처리할 수 있도록 합니다.

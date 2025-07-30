@@ -148,12 +148,21 @@ export const loadRouteGeometriesAtom = atom(null, async (get, set) => {
 // });
 
 export const loadInitialDataAtom = atom(null, async (get, set) => {
+    const fileId = get(selectedFileIdAtom);
+
+    // ✨ 2. fileId가 없으면 데이터 로딩을 중단합니다.
+    //    (SupplyChainDashboard에서 fileId를 먼저 설정해주므로 이 경우는 거의 없습니다.)
+    if (!fileId) {
+        console.warn("loadInitialDataAtom: fileId가 설정되지 않아 데이터 로딩을 중단합니다.");
+        return;
+    }
+
     set(isLoadingAtom, true);
     try {
         await Promise.all([
             set(loadRouteGeometriesAtom),
             getNodes().then(data => set(nodesAtom, data)),
-            getFilterOptions().then(data => set(filterOptionsAtom, data)),
+            getFilterOptions({ fileId: fileId }).then(data => set(filterOptionsAtom, data)),
         ]);
     } catch (error) {
         console.error("초기 공통 데이터 로딩 실패:", error);
@@ -164,6 +173,13 @@ export const loadInitialDataAtom = atom(null, async (get, set) => {
 
 // ✨ 2. 탭이나 필터가 변경될 때 Trip 데이터를 로드하는 액션
 export const loadTripsDataAtom = atom(null, async (get, set) => {
+    // ================== 스파이 코드 시작 ==================
+    console.groupCollapsed("🚨 범인 발견! `loadTripsDataAtom` 호출됨");
+    console.log("이 액션이 호출되어 Trip 데이터를 다시 불러오고 선택을 초기화했습니다.");
+    console.log("아래 'console.trace'를 펼쳐보면 어떤 파일과 함수가 이 액션을 호출했는지 알 수 있습니다.");
+    console.trace(); // ⬅️ 이것이 범인의 정체를 밝혀줄 것입니다!
+    console.groupEnd();
+    // ================== 스파이 코드 끝 ====================
     const fileId = get(selectedFileIdAtom);
     if (!fileId) {
         set(tripsAtom, []);
@@ -171,7 +187,7 @@ export const loadTripsDataAtom = atom(null, async (get, set) => {
     }
 
     set(isLoadingAtom, true);
-    set(selectedObjectAtom, null);
+    // set(selectedObjectAtom, null);
 
     if (!get(routeGeometriesAtom)) {
         await set(loadRouteGeometriesAtom);
@@ -304,11 +320,14 @@ export const selectTripAndFocusAtom = atom(
     null,
     (get, set, trip: MergeTrip | null) => {
         if (trip === null) {
-            console.log("🚀 selectTripAndFocusAtom triggered for deselection (null)");
+            console.log("🚀 selectTripAndFocusAtom이 'null'로 호출됨 (선택 해제)");
+            // console.log("🚀 selectTripAndFocusAtom triggered for deselection (null)");
             set(selectedObjectAtom, null);
             set(timeRangeAtom, null);
             // set(mapViewStateAtom, INITIAL_VIEW_STATE); // 👈 초기 뷰로 돌리고 싶다면 이 코드 사용
             return;
+        } else {
+            console.log("🚀 selectTripAndFocusAtom이 Trip 객체로 호출됨:", trip);
         }
 
         const currentTab = get(activeTabAtom);
@@ -367,3 +386,45 @@ export const selectTripAndFocusAtom = atom(
         }
     }
 );
+
+export const visibleTripsAtom = atom((get) => {
+    const allTrips = get(tripsAtom); // 페이지네이션된 전체 Trip 목록
+    const selected = get(selectedObjectAtom);
+
+    // 선택된 객체가 없거나, Trip이 선택된 경우에는 모든 Trip을 보여줍니다.
+    if (!selected || 'roadId' in selected) {
+        return allTrips;
+    }
+
+    // ✨ 노드가 선택된 경우, 해당 노드를 경유하는 Trip만 필터링합니다.
+    if ('coord' in selected) {
+        const nodeLocation = selected.scanLocation;
+        return allTrips.filter(trip =>
+            trip.from.scanLocation === nodeLocation || trip.to.scanLocation === nodeLocation
+        );
+    }
+
+    return allTrips; // 기본적으로 모든 Trip 반환
+});
+
+let prevSelectedObject: any = undefined;
+export const spySelectedObjectAtom = atom(
+    (get) => {
+        const currentSelectedObject = get(selectedObjectAtom);
+        // 값이 실제로 변경되었을 때만 로그를 남깁니다.
+        if (prevSelectedObject !== currentSelectedObject) {
+            console.groupCollapsed(`🕵️ SPY: selectedObjectAtom 변경!`);
+            console.log('이전 값:', prevSelectedObject);
+            console.log('새로운 값:', currentSelectedObject);
+            console.log('호출 스택 추적:');
+            console.trace();
+            console.groupEnd();
+            prevSelectedObject = currentSelectedObject;
+        }
+        return currentSelectedObject;
+    }
+);
+
+
+
+export const replayTriggerAtom = atom(0);

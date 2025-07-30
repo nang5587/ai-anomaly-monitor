@@ -1,5 +1,5 @@
 'use client'
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import type { PickingInfo, Color } from 'deck.gl';
 
 import { useAtom, useAtomValue } from 'jotai';
@@ -12,20 +12,18 @@ import {
     selectedObjectAtom,
     allAnomalyTripsAtom,
     type MapViewState,
-    nodesAtom
+    nodesAtom,
 } from '@/stores/mapDataAtoms';
+import { tutorialSeenAtom } from '@/stores/uiAtoms';
 
+import TutorialOverlay from './TutorialOverlay';
 import DeckGL from 'deck.gl';
 import { default as ReactMapGL } from 'react-map-gl';
 
 import { StackedColumnLayer } from './StackedColumnLayer';
 
-// 이벤트 타입별 색상 정의
-const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
-    'fake': [215, 189, 226],   // 시공간 점프
-    'tamper': [250, 215, 160], // 이벤트 순서 오류
-    'clone': [252, 243, 207],   // EPC 복제
-};
+import { ANOMALY_TYPE_COLORS } from '@/types/colorUtils';
+
 const DEFAULT_COLOR: Color = [201, 203, 207];
 
 // Mapbox 액세스 토큰
@@ -35,9 +33,21 @@ const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 export const HeatmapView: React.FC = () => {
     const [viewState, setViewState] = useAtom(mapViewStateAtom);
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
-
+    const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom);
     const allAnomalies = useAtomValue(allAnomalyTripsAtom);
     const allNodes = useAtomValue(nodesAtom);
+
+    useEffect(() => {
+        // 만약 튜토리얼이 아직 보여지고 있다면 (한 번도 안 봤다면)
+        if (!hasSeenTutorial) {
+            const timer = setTimeout(() => {
+                setHasSeenTutorial(true);
+            }, 5000); // 5초
+
+            return () => clearTimeout(timer);
+        }
+    }, [hasSeenTutorial, setHasSeenTutorial]);
+
 
     const nodesWithStats = useMemo((): NodeWithEventStats[] => {
         // 1. 의존성 배열의 데이터 소스를 로컬 상태에서 Jotai 아톰 값으로 변경
@@ -187,23 +197,28 @@ export const HeatmapView: React.FC = () => {
         };
     };
 
-    const layers = useMemo(() => [
-        new StackedColumnLayer({
+    const layers = useMemo(() => {
+        const elevationScale = 17000 / viewState.zoom;
+        return [ new StackedColumnLayer({
             id: 'stacked-column-layer',
             data: nodesWithStats,
             pickable: true,
             zoom: viewState.zoom,
             radius: 120,
-            getElevationScale: 250,
+            getElevationScale: elevationScale,
             updateTriggers: {
                 zoom: [viewState.zoom] // 줌 레벨이 변경될 때 레이어가 다시 렌더링되도록 함
             },
         }),
-    ], [nodesWithStats, viewState.zoom],);
+    ]}, [nodesWithStats, viewState.zoom],);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-
+            {!hasSeenTutorial && (
+                <TutorialOverlay
+                    onClose={() => setHasSeenTutorial(true)} // X 버튼을 눌러도 닫히도록 설정
+                />
+            )}
             <DeckGL
                 layers={layers}
                 viewState={viewState}

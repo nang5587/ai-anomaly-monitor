@@ -229,7 +229,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             <div><label htmlFor="passwordConfirm">비밀번호 확인</label><input id="passwordConfirm" type="password" {...register('passwordConfirm', { required: '비밀번호를 다시 입력해주세요.', validate: value => value === password || '비밀번호가 일치하지 않습니다.' })} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />{errors.passwordConfirm && <p className="text-sm text-blue-600 mt-1">{errors.passwordConfirm.message}</p>}</div>
                         </div>
                         <div className="py-4 px-2">
-                            <button type="button" onClick={handleNextToStep2} className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">다음</button>
+                            <button type="button" onClick={handleNextToStep2} className="w-full px-4 py-3 cursor-pointer font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">다음</button>
                         </div>
                     </div>
 
@@ -249,10 +249,10 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                                 {errors.phone && <p className="text-sm text-blue-600 mt-1">{errors.phone.message}</p>}</div>
                         </div>
                         <div className="flex items-center gap-4 py-4 px-2">
-                            <button type="button" onClick={handlePreviousStep} className="w-1/3 px-4 py-3 font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
+                            <button type="button" onClick={handlePreviousStep} className="w-1/3 px-4 py-3 cursor-pointer font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
                                 이전
                             </button>
-                            <button type="button" onClick={handleNextToStep3} className="w-2/3 px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                            <button type="button" onClick={handleNextToStep3} className="w-2/3 px-4 py-3 cursor-pointer font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">
                                 다음
                             </button>
                         </div>
@@ -269,7 +269,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                                 render={({ field }) => (
                                     <div className="grid grid-cols-2 gap-4">
                                         {factories.map((factory) => (
-                                            <button key={factory.code} type="button" onClick={() => { const newValue = field.value === factory.code ? 0 : factory.code; field.onChange(newValue); }} className={`p-4 border rounded-lg text-center font-semibold transition-all duration-200 ${field.value === factory.code ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>
+                                            <button key={factory.code} type="button" onClick={() => { const newValue = field.value === factory.code ? 0 : factory.code; field.onChange(newValue); }} className={`p-4 cursor-pointer border rounded-lg text-center font-semibold transition-all duration-200 ${field.value === factory.code ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>
                                                 {factory.name}
                                             </button>))}
                                     </div>)}
@@ -279,10 +279,10 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                             </p>}
                         </div>
                         <div className="flex items-center gap-4 py-4 px-2">
-                            <button type="button" onClick={handlePreviousStep} className="w-1/3 px-4 py-3 font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
+                            <button type="button" onClick={handlePreviousStep} className="w-1/3 px-4 py-3 cursor-pointer font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
                                 이전
                             </button>
-                            <button type="submit" className="w-2/3 px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400" disabled={!factoryCodeValue}>
+                            <button type="submit" className="w-2/3 px-4 py-3 font-semibold text-white cursor-pointer  bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400" disabled={!factoryCodeValue}>
                                 회원가입 완료
                             </button>
                         </div>
@@ -301,7 +301,7 @@ export default function LeftFormArea({ step, setStep }: LeftFormAreaProps) {
                         <button
                             type="button"
                             onClick={handleGoToLogin}
-                            className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                            className="w-full px-4 py-3 font-semibold cursor-pointer  text-white bg-blue-600 rounded-md hover:bg-blue-700"
                         >
                             로그인
                         </button>

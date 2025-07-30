@@ -3,17 +3,15 @@ import React, { useMemo } from 'react';
 import DeckGL, { Color } from 'deck.gl';
 import { Map as ReactMapGL } from 'react-map-gl';
 
+import { useAtomValue } from 'jotai';
+import { nodesAtom, allAnomalyTripsAtom } from '@/stores/mapDataAtoms';
+
 // 타입 및 유틸리티 함수 import
 import { getNodes, getTrips, type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from '../../../types/data';
 import { type EventTypeStats, type NodeWithEventStats, type StatValue } from '@/types/map';
 import { StackedColumnLayer } from '../../visual/StackedColumnLayer'; // HeatmapView에서 사용하던 레이어
 
-// 이벤트 타입별 색상 정의 (HeatmapView와 동일)
-const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
-    'fake': [215, 189, 226],
-    'tamper': [250, 215, 160],
-    'clone': [252, 243, 207],
-};
+import { ANOMALY_TYPE_COLORS } from '@/types/colorUtils';
 const DEFAULT_COLOR: Color = [201, 203, 207];
 
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -28,86 +26,90 @@ const WIDGET_VIEW_STATE = {
 };
 
 // Props 타입 정의
-type HeatmapWidgetProps = {
-    nodes: LocationNode[];
-    trips: AnalyzedTrip[];
-    showLegend?: boolean; // 범례 표시 여부를 옵션으로 받습니다.
+type HeatmapViewWidgetProps = {
     onWidgetClick: () => void;
+    showLegend: boolean; // 이런 UI 관련 prop은 유지 가능
 };
 
-export const HeatmapViewWidget: React.FC<HeatmapWidgetProps> = ({ nodes, trips, showLegend = false, onWidgetClick }) => {
-
+export const HeatmapViewWidget: React.FC<HeatmapViewWidgetProps> = ({ showLegend = false, onWidgetClick }) => {
+    const nodes = useAtomValue(nodesAtom);
+    const trips = useAtomValue(allAnomalyTripsAtom)
+    
     // HeatmapView의 핵심 로직: 데이터를 props로 받아 통계를 계산합니다.
     const nodesWithStats = useMemo((): NodeWithEventStats[] => {
-        if (!trips.length || !nodes.length) return [];
+        if (!trips || !nodes || nodes.length === 0) return [];
 
-        const locationStats = new Map<string, { total: number; eventTypeStats: EventTypeStats; }>();
+        const statsMap = new Map<string, Record<string, number>>();
 
         trips.forEach(trip => {
             if (!trip.anomalyTypeList || trip.anomalyTypeList.length === 0) return;
-
-            trip.anomalyTypeList.forEach(anomalyType => {
-                const affectedLocations = [...new Set([trip.from.scanLocation, trip.to.scanLocation])];
-                affectedLocations.forEach(location => {
-                    if (!location) return;
-                    let stats = locationStats.get(location);
-                    if (!stats) {
-                        stats = { total: 0, eventTypeStats: {} };
-                        locationStats.set(location, stats);
-                    }
-                    stats.total += 1;
-                    const eventType = anomalyType;
-                    if (!stats.eventTypeStats[eventType]) {
-                        stats.eventTypeStats[eventType] = { count: 0, hasAnomaly: true };
-                    }
-                    stats.eventTypeStats[eventType].count += 1;
+            const locations = [trip.from.scanLocation, trip.to.scanLocation];
+            locations.forEach(location => {
+                if (!location) return;
+                if (!statsMap.has(location)) {
+                    statsMap.set(location, {});
+                }
+                const locationStats = statsMap.get(location)!;
+                trip.anomalyTypeList.forEach(anomalyType => {
+                    locationStats[anomalyType] = (locationStats[anomalyType] || 0) + 1;
                 });
             });
         });
 
-        const mappedNodes = nodes.map(node => {
-            const stats = locationStats.get(node.scanLocation);
-            if (!stats) return null;
+        // ✨ 3. map과 filter를 결합하여 타입을 만족시키는 객체만 생성합니다.
+        //    Array.prototype.reduce를 사용하면 더 깔끔합니다.
+        return nodes.reduce((acc: NodeWithEventStats[], node) => {
+            const stats = statsMap.get(node.scanLocation);
 
-            let dominantType = '';
-            let dominantCount = 0;
-            Object.entries(stats.eventTypeStats).forEach(([type, typeStats]) => {
-                if (typeStats.count > dominantCount) {
-                    dominantType = type;
-                    dominantCount = typeStats.count;
-                }
-            });
+            // 통계가 있는 노드만 변환합니다.
+            if (stats) {
+                const totalCount = Object.values(stats).reduce((sum, count) => sum + count, 0);
 
-            return {
-                ...node,
-                totalEventCount: stats.total,
-                hasAnomaly: true,
-                eventTypeStats: stats.eventTypeStats,
-                dominantEventType: dominantType,
-                dominantEventCount: dominantCount,
-            } as NodeWithEventStats;
-        });
+                let dominantType = '';
+                let dominantCount = 0;
+                Object.entries(stats).forEach(([type, count]) => {
+                    if (count > dominantCount) {
+                        dominantType = type;
+                        dominantCount = count;
+                    }
+                });
 
-        return mappedNodes.filter((node): node is NodeWithEventStats => node !== null);
+                // NodeWithEventStats 타입에 맞는 객체를 생성하여 acc 배열에 추가
+                acc.push({
+                    ...node,
+                    totalEventCount: totalCount,
+                    hasAnomaly: true,
+                    // eventTypeStats는 { [key: string]: { count: number; hasAnomaly: boolean } } 형태여야 합니다.
+                    eventTypeStats: Object.fromEntries(
+                        Object.entries(stats).map(([type, count]) => [type, { count, hasAnomaly: true }])
+                    ),
+                    dominantEventType: dominantType,
+                    dominantEventCount: dominantCount,
+                });
+            }
+
+            return acc;
+        }, []); // 초기값은 빈 NodeWithEventStats 배열
+
     }, [trips, nodes]);
 
-    // 데이터가 준비되지 않았을 때 로딩 상태 표시
-    if (nodes.length === 0 || trips.length === 0) {
+    // 데이터 로딩 상태 처리
+    if (!nodes || nodes.length === 0 || !trips) {
         return (
             <div className="w-full h-full rounded-3xl bg-neutral-900 flex items-center justify-center">
                 <p className="text-neutral-500">히트맵 로딩 중...</p>
             </div>
         );
     }
-
     const layers = [
         new StackedColumnLayer({
             id: 'widget-stacked-column-layer',
             data: nodesWithStats,
             pickable: false, // 위젯에서는 클릭 비활성화
-            radius: 120,
-            getElevationScale: 250,
+            radius: 40,
+            // getSegmentColor: (d: any) => ANOMALY_TYPE_COLORS[d.key as AnomalyType] || [200, 200, 200],
             zoom: WIDGET_VIEW_STATE.zoom,
+            getElevationScale: 250,
         }),
     ];
 

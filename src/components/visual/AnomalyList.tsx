@@ -7,7 +7,7 @@ import { pastelColorMap } from '../../types/anomalyUtils';
 interface AnomalyListProps {
     anomalies: AnalyzedTrip[];
     onCaseClick: (trip: AnalyzedTrip) => void;
-    selectedObjectId: string | null;
+    selectedObjectId: number | null;
 }
 
 const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selectedObjectId }) => {

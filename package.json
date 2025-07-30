@@ -25,6 +25,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@stomp/stompjs": "^7.1.1",
     "@types/html2canvas": "^0.5.35",
+    "@types/jspdf": "^2.0.0",
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
     "chartjs-plugin-datalabels": "^2.2.0",

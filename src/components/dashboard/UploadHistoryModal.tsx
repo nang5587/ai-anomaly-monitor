@@ -72,7 +72,7 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
             >
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-white/10">
-                    <h2 className="text-lg font-bold text-white">업로드 내역</h2>
+                    <h2 className="text-lg font-bold text-white">최근 업로드 내역</h2>
                     <button onClick={onClose} className="p-1 rounded-full text-neutral-400 hover:bg-white/10 hover:text-white">
                         <X size={20} />
                     </button>

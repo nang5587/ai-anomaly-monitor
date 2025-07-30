@@ -6,7 +6,7 @@ import { pastelColorMap } from '../../types/anomalyUtils';
 type TripListProps = {
     trips: AnalyzedTrip[];
     onCaseClick: (trip: AnalyzedTrip) => void;
-    selectedObjectId: string | null;
+    selectedObjectId: number | null;
 };
 
 const formatUnixTime = (unixTimestamp: number | string | null | undefined): string => {

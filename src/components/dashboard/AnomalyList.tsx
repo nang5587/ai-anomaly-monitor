@@ -2,16 +2,18 @@ import React from 'react';
 import { type AnalyzedTrip, type LocationNode } from '../../types/data';
 import { getAnomalyColor, getAnomalyName } from '../../types/colorUtils';
 import { anomalyDescriptionMap, pastelColorMap } from '../../types/anomalyUtils';
-import { AlertTriangle, Gavel , Copy } from 'lucide-react';
+import { AlertTriangle, Gavel, Copy, HelpCircle } from 'lucide-react';
+
 
 type AnomalyListProps = {
     anomalies: AnalyzedTrip[];
 };
 
-const anomalyIconMap: { [key: string]: JSX.Element } = {
-    fake: <AlertTriangle className="w-4 h-4" />,       
-    tamper: <Gavel  className="w-4 h-4" />, 
-    clone: <Copy className="w-4 h-4" />,      
+export const anomalyIconMap: { [key: string]: JSX.Element } = {
+    fake: <AlertTriangle className="w-4 h-4" />,
+    tamper: <Gavel className="w-4 h-4" />,
+    clone: <Copy className="w-4 h-4" />,
+    other: <HelpCircle className="w-4 h-4" />,
 };
 
 
@@ -55,9 +57,12 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
     return (
         <div className="w-full">
             {/* 헤더 */}
-            <div className="whitespace-nowrap hidden sm:grid grid-cols-[2fr_1.5fr_2.5fr_3fr_2fr] gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
+            <div className="whitespace-nowrap hidden sm:grid grid-cols-[1.5fr_1.5fr_1.5fr_1fr_1.5fr_2fr_1.5fr] gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
+                {/* 헤더의 열 개수를 7개로 맞춥니다. */}
                 <div className="col-span-1">상품명 / EPC</div>
                 <div className="col-span-1">시간</div>
+                <div className="col-span-1">비지니스 스텝</div>
+                <div className="col-span-1">이벤트 타입</div>
                 <div className="col-span-1">경로 (출발 → 도착)</div>
                 <div className="col-span-1">상세 내용</div>
                 <div className="col-span-1">이상 유형</div>
@@ -69,31 +74,40 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                 if (!hasAnomalies) return null;
 
                 return (
-                    // ✨ 2. onClick 이벤트와 선택/호버 관련 클래스 제거
+                    // ✨ 2. 바디: 헤더와 동일한 7개 컬럼 그리드를 정의합니다.
                     <div
-                        key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
+                        key={`${trip.roadId}-${trip.from.eventTime}-${index}-${trip.to.eventTime}`}
                         className={`group font-noto-400 border-b border-b-[#e0e0e034] hover:bg-[rgba(30,30,30)]
-                                    sm:grid sm:grid-cols-[2fr_1.5fr_2.5fr_3fr_2fr] sm:gap-x-4 sm:items-center sm:text-center
+                                    sm:grid sm:grid-cols-[1.5fr_1.5fr_1.5fr_1fr_1.5fr_2fr_1.5fr] sm:gap-x-4 sm:items-center sm:text-center
                                     flex flex-col gap-2 py-4 px-6 sm:px-12`}
                     >
-                        {/* 상품명 / EPC */}
+                        {/* 1. 상품명 / EPC */}
                         <div className="sm:col-span-1 text-white flex flex-col sm:items-center sm:justify-center text-left">
                             <p className="font-medium">{trip.productName}</p>
                             <p className="text-xs text-[#a0a0a0]">{trip.epcCode}</p>
                         </div>
-                        {/* 시간 */}
+                        {/* 2. 시간 */}
                         <div className="sm:col-span-1 text-xs flex flex-col gap-1 justify-center sm:items-center text-[#E0E0E0]">
                             <p>출발: {formatUnixTimestamp(trip.from.eventTime)}</p>
                             <p>도착: {formatUnixTimestamp(trip.to.eventTime)}</p>
                         </div>
-                        {/* 경로 */}
+                        {/* 3. 비지니스 스텝 */}
+                        <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
+                            <span className="truncate">{trip.from.businessStep}</span>
+                            <ArrowRight size={14} className="shrink-0 text-[#E0E0E0]" />
+                            <span className="truncate">{trip.to.businessStep}</span>
+                        </div>
+                        {/* 4. 이벤트 타입 */}
+                        <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
+                            <span className="truncate">{trip.eventType}</span>
+                        </div>
+                        {/* 5. 경로 */}
                         <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
                             <span className="truncate">{trip.from.scanLocation}</span>
                             <ArrowRight size={14} className="shrink-0 text-[#E0E0E0]" />
                             <span className="truncate">{trip.to.scanLocation}</span>
                         </div>
-
-                        {/* 상세 내용 */}
+                        {/* 6. 상세 내용 */}
                         <div className="sm:col-span-1 text-xs text-[#E0E0E0] text-left sm:text-center">
                             <ul className="list-disc list-inside">
                                 {trip.anomalyTypeList.map(code => (
@@ -101,8 +115,7 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                                 ))}
                             </ul>
                         </div>
-
-                        {/* 이상 유형 */}
+                        {/* 7. 이상 유형 */}
                         <div className="sm:col-span-1 flex flex-wrap items-center justify-center gap-1">
                             {trip.anomalyTypeList.map(code => {
                                 const tagColor = pastelColorMap[code] || pastelColorMap['default'];
@@ -110,7 +123,7 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                                     <span
                                         key={code}
                                         style={{ color: tagColor }}
-                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-noto-500"
+                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-noto-500"
                                     >
                                         {anomalyIconMap[code]}
                                         {getAnomalyName(code)}

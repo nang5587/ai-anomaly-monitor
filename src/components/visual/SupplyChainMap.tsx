@@ -4,13 +4,14 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
     nodesAtom,
-    tripsAtom, // 상세 경로가 병합된 trips 데이터 아톰
+    visibleTripsAtom, // 상세 경로가 병합된 trips 데이터 아톰
     selectedObjectAtom,
     mapViewStateAtom,
     timeRangeAtom,
     epcDupTargetAtom,
     anomalyFilterAtom,
     selectTripAndFocusAtom,
+    spySelectedObjectAtom,
     type MapViewState
 } from '@/stores/mapDataAtoms';
 
@@ -44,7 +45,8 @@ import { MergeTrip } from './SupplyChainDashboard';
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 // 애니메이션 설정
-const ANIMATION_SPEED = 0.4; // 속도 조절
+const ANIMATION_SPEED = 200; // 속도 조절
+const TARGET_ANIMATION_DURATION_SECONDS = 15;
 
 // 3D 모델 파싱 (DeckGL에서 사용할 수 있도록 준비)
 const parsedCubeModel = parseSync(cubeModel, OBJLoader);
@@ -72,8 +74,11 @@ const material = {
 };
 
 export const SupplyChainMap: React.FC = () => {
+    useAtomValue(spySelectedObjectAtom); //⭐ 디버깅용
+
+
     const nodes = useAtomValue(nodesAtom);
-    const trips = useAtomValue(tripsAtom);
+    const trips = useAtomValue(visibleTripsAtom,);
     const anomalyFilter = useAtomValue(anomalyFilterAtom);
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [viewState, setViewState] = useAtom(mapViewStateAtom); // 지도 뷰 상태도 Jotai로 관리
@@ -130,6 +135,22 @@ export const SupplyChainMap: React.FC = () => {
         return globalTimeRange;
     }, [timeRange, epcDupTarget, validTrips, globalTimeRange]);
 
+    const dynamicAnimationSpeed = useMemo(() => {
+        const totalDuration = activeTimeRange.maxTime - activeTimeRange.minTime;
+
+        // 시간 범위가 없거나 0이면 애니메이션을 진행하지 않음
+        if (totalDuration <= 0) {
+            return 0;
+        }
+
+        // 60fps를 기준으로, 목표 시간(초) 동안 총 몇 프레임이 필요한지 계산
+        const totalFrames = TARGET_ANIMATION_DURATION_SECONDS * 60;
+
+        // 프레임당 증가시켜야 할 시간 = 전체 시간 / 전체 프레임 수
+        return totalDuration / totalFrames;
+
+    }, [activeTimeRange]);
+
     // 🕒 애니메이션 시간
     useEffect(() => {
         // timeRange가 설정되면 (즉, trip이 선택되면), 애니메이션 시작 시간을 그에 맞게 설정합니다.
@@ -147,19 +168,33 @@ export const SupplyChainMap: React.FC = () => {
         // 선택이 해제되면 EPC 복제 모드도 해제
         if (!selectedObject) {
             setEpcDupTarget(null);
+            setIsPlaying(true);
             return;
         }
 
         // Trip이 선택된 경우, EPC 복제 모드인지 확인하고 상태를 설정
-        if ('from' in selectedObject) {
-            const trip = selectedObject as MergeTrip;
-            const hasEpcDup = trip.anomalyTypeList?.includes('clone');
+        // if ('from' in selectedObject) {
+        //     const trip = selectedObject as MergeTrip;
+        //     const hasEpcDup = trip.anomalyTypeList?.includes('clone');
 
-            if (hasEpcDup) {
-                setEpcDupTarget(trip.epcCode);
-            } else {
-                setEpcDupTarget(null);
-            }
+        //     if (hasEpcDup) {
+        //         setEpcDupTarget(trip.epcCode);
+        //     } else {
+        //         setEpcDupTarget(null);
+        //     }
+        // }
+        // // Node가 선택된 경우, EPC 복제 모드를 해제하고 애니메이션을 멈춤
+        // else if ('coord' in selectedObject) {
+        //     setEpcDupTarget(null);
+        //     setIsPlaying(false);
+        // }
+        if ('roadId' in selectedObject) {
+            const trip = selectedObject as MergeTrip;
+            const hasCloneAnomaly = trip.anomalyTypeList?.includes('clone');
+
+            // 복제 이상이 있으면 EPC 복제 모드 활성화, 아니면 해제
+            setEpcDupTarget(hasCloneAnomaly ? trip.epcCode : null);
+            setIsPlaying(true);
         }
         // Node가 선택된 경우, EPC 복제 모드를 해제하고 애니메이션을 멈춤
         else if ('coord' in selectedObject) {
@@ -183,7 +218,7 @@ export const SupplyChainMap: React.FC = () => {
 
     // 애니메이션 재생 타이머
     useEffect(() => {
-        if (!isPlaying || activeTimeRange.minTime >= activeTimeRange.maxTime) {
+        if (!isPlaying || activeTimeRange.minTime >= activeTimeRange.maxTime || dynamicAnimationSpeed === 0) {
             return;
         }
 
@@ -195,7 +230,7 @@ export const SupplyChainMap: React.FC = () => {
                     setIsPlaying(false); // 재생 중지
                     return activeTimeRange.maxTime;
                 }
-                const nextTime = prevTime + ANIMATION_SPEED;
+                const nextTime = prevTime + dynamicAnimationSpeed;
 
                 if (nextTime >= activeTimeRange.maxTime) {
                     setIsPlaying(false);
@@ -211,7 +246,7 @@ export const SupplyChainMap: React.FC = () => {
         animationFrame = requestAnimationFrame(animate);
 
         return () => cancelAnimationFrame(animationFrame);
-    }, [isPlaying, activeTimeRange, setIsPlaying]);
+    }, [isPlaying, activeTimeRange, setIsPlaying, dynamicAnimationSpeed]);
 
     // 이상 노드 pulse 효과
     useEffect(() => {
@@ -335,7 +370,11 @@ export const SupplyChainMap: React.FC = () => {
                 getTranslation: [0, 0, 50],
                 pickable: true,
                 onHover: info => setHoverInfo(info),
-                onClick: info => setSelectedObject(info.object as LocationNode),
+                onClick: info => {
+                    console.log("🖱️ MeshLayer 클릭됨. Node로 선택 설정:", info.object);
+                    setSelectedObject(info.object as LocationNode)
+                    return true;
+                },
                 material
             });
         }).filter(Boolean);
@@ -354,7 +393,11 @@ export const SupplyChainMap: React.FC = () => {
             getTranslation: [0, 0, 50],
             pickable: true,
             onHover: info => setHoverInfo(info),
-            onClick: info => setSelectedObject(info.object as LocationNode),
+            onClick: info => {
+                console.log("🖱️ MeshLayer 클릭됨. Node로 선택 설정:", info.object);
+                setSelectedObject(info.object as LocationNode)
+                return true;
+            },
             material
         }),
     ], [factoryNodes, setHoverInfo, setSelectedObject]);
@@ -526,12 +569,7 @@ export const SupplyChainMap: React.FC = () => {
                 sizeUnits: 'pixels',
                 getSize: 35, // 아이콘 크기를 48px로 설정
                 getPosition: d => d,
-                getColor: d => [255, 236, 154, 255], // 경고를 의미하는 빨간색
-                // pickable: true,
-                // onHover: info => {
-                //     document.body.style.cursor = info.object ? 'pointer' : 'default';
-                //     // setTooltipInfo(info);
-                // },
+                getColor: d => [255, 64, 64, 255], // 경고를 의미하는 빨간색
             }),
             // 2. 이상 노드 pulse
             new ScatterplotLayer({
@@ -553,33 +591,33 @@ export const SupplyChainMap: React.FC = () => {
             ...factoryLayers,
             // 5. 동적 연결선 레이어
             new TripsLayer({
-            id: 'wholesaler-journeys-layer',
-            data: wholesalerJourneys,
-            visible: showJourneys, // 선택된 객체가 없을 때만 보이도록 설정
-            getPath: d => d.path,
-            getTimestamps: d => d.timestamps,
-            getColor: [255, 191, 0], // 주황색 계열로 구분
-            opacity: 0.8,
-            widthMinPixels: 5,
-            rounded: true,
-            trailLength: 2, // 꼬리 길이를 짧게 하여 트럭처럼 보이게
-            currentTime,
-        }),
+                id: 'wholesaler-journeys-layer',
+                data: wholesalerJourneys,
+                visible: showJourneys, // 선택된 객체가 없을 때만 보이도록 설정
+                getPath: d => d.path,
+                getTimestamps: d => d.timestamps,
+                getColor: [255, 64, 64], // 주황색 계열로 구분
+                opacity: 0.8,
+                widthMinPixels: 5,
+                rounded: true,
+                trailLength: 100, // 꼬리 길이를 짧게 하여 트럭처럼 보이게
+                currentTime,
+            }),
 
-        // ✨ 5-2. 나머지 개별 경로 애니메이션 레이어
-        new TripsLayer<MergeTrip>({
-            id: 'other-trips-layer',
-            data: otherDynamicTrips, // "도매상->소매상"이 제외된 데이터
-            visible: showJourneys, // 선택된 객체가 없을 때만 보이도록 설정
-            getPath: d => d.path || [d.from.coord, d.to.coord],
-            getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-            getColor: d => d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127],
-            opacity: 0.8,
-            widthMinPixels: 5,
-            rounded: true,
-            trailLength: 10, // 꼬리 길이를 길게 하여 흐름처럼 보이게
-            currentTime,
-        }),
+            // ✨ 5-2. 나머지 개별 경로 애니메이션 레이어
+            new TripsLayer<MergeTrip>({
+                id: 'other-trips-layer',
+                data: otherDynamicTrips, // "도매상->소매상"이 제외된 데이터
+                visible: showJourneys, // 선택된 객체가 없을 때만 보이도록 설정
+                getPath: d => d.path || [d.from.coord, d.to.coord],
+                getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
+                getColor: d => d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127],
+                opacity: 0.8,
+                widthMinPixels: 5,
+                rounded: true,
+                trailLength: 100, // 꼬리 길이를 길게 하여 흐름처럼 보이게
+                currentTime,
+            }),
         ];
     }, [
         staticPathData, cloneMarkerCoords, otherDynamicTrips, pulseData, wholesalerJourneys,// 안정적인 계산 결과
@@ -615,7 +653,15 @@ export const SupplyChainMap: React.FC = () => {
                 {/* DeckGL + Mapbox */}
                 <DeckGL
                     layers={layers} viewState={viewState}
-                    onClick={info => !info.object && selectTripAndFocus(null)}
+                    onClick={info => {
+                        console.log("🖱️ DeckGL 배경 클릭됨. info 객체:", info);
+                        // ✨ 클릭된 위치에 레이어가 없고(즉, 빈 공간을 클릭했고),
+                        // ✨ 클릭된 객체도 없을 때만 선택을 해제합니다.
+                        if (!info.layer && !info.object) {
+                            console.log(" -> 조건 만족! 선택 해제 실행.");
+                            selectTripAndFocus(null);
+                        }
+                    }}
                     onViewStateChange={({ viewState: newViewState }) => {
                         setViewState(newViewState as MapViewState);
                     }}
@@ -652,6 +698,7 @@ export const SupplyChainMap: React.FC = () => {
                             <Marker key={`marker-${node.hubType}`} longitude={node.coord[0]} latitude={node.coord[1]} pitchAlignment="viewport" rotationAlignment="map" altitude={getIconAltitude(node)}
                                 onClick={(e) => {
                                     e.originalEvent.stopPropagation();
+                                    console.log("🖱️ Marker 클릭됨. Node로 선택 설정:", node);
                                     setSelectedObject(node);
                                 }}
                             >

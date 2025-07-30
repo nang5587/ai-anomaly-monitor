@@ -8,17 +8,12 @@ import type { NodeWithEventStats } from '@/types/map';
 import type { AnomalyType } from '../../types/data';
 import { type StatValue } from '@/types/map'
 
-// AnomalyType을 기준으로 색상을 정의합니다.
-const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
-    'fake': [215, 189, 226, 200],   // 시공간 점프 (연한 라벤더)
-    'tamper': [250, 215, 160, 200], // 이벤트 순서 오류 (부드러운 살구)
-    'clone': [252, 243, 207, 200],   // EPC 복제 (부드러운 크림)
-};
-
+import { ANOMALY_TYPE_COLORS } from '@/types/colorUtils';
 const ANOMALY_TYPE_ORDER: AnomalyType[] = [
     'fake',
     'tamper',
     'clone',
+    'other'
 ];
 const DEFAULT_COLOR: Color = [201, 203, 207];
 

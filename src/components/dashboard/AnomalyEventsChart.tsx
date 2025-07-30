@@ -1,6 +1,7 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
+import { pastelColorMap } from '@/types/anomalyUtils';
 
 type AnomalyDataPoint = {
     name: string;
@@ -14,12 +15,6 @@ type AnomalyEventsChartProps = {
     data: AnomalyDataPoint[];
 };
 
-const pastelColorMap: { [key: string]: string } = {
-    'fake': 'rgba(111,131,175)',
-    'tamper': 'rgba(111,131,175)',
-    'clone': 'rgba(111,131,175)',
-    'default': 'rgba(111,131,175)',
-};
 
 export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): JSX.Element {
     return (
@@ -28,14 +23,14 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                 <defs>
                     {Object.entries(pastelColorMap).map(([type, color]) => (
                         <linearGradient key={type} id={`grad-${type}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={color} stopOpacity={1} />
-                            <stop offset="100%" stopColor={color} stopOpacity={0.2} />
+                            <stop offset="0%" stopColor={'rgba(111,131,175)'} stopOpacity={1} />
+                            <stop offset="100%" stopColor={'rgba(111,131,175)'} stopOpacity={0.2} />
                         </linearGradient>
                     ))}
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke="rgba(111, 131, 175, 0.3)" />
                 <XAxis dataKey="name" stroke="rgba(111,131,175)" fontSize={12} tick={{ fill: 'rgba(111,131,175)' }} />
-                <YAxis stroke="rgba(111,131,175)" fontSize={12} allowDecimals={false} tick={{ fill: 'rgba(111,131,175)' }} domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.2) / 10) * 10]} />
+                <YAxis stroke="rgba(111,131,175)" fontSize={12} allowDecimals={false} tick={{ fill: 'rgba(111,131,175)' }} />
                 <Tooltip
                     cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
                     content={({ payload, label }) => (
@@ -58,11 +53,7 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                         fontSize={14}       // 글자 크기
                         fontWeight="bold"   // 글자 굵기
                         /> */}
-                    <LabelList
-                        dataKey="count"
-                        position="top"
-                        style={{ fill: 'rgba(111,131,175)', fontSize: 12 }}
-                    />
+
                     {data.map((entry, index) => {
                         const type = entry.type in pastelColorMap ? entry.type : 'default';
                         return (

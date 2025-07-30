@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { Filter } from 'lucide-react';
 
@@ -7,6 +8,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
     nodesAtom,
     tripsAtom,
+    selectedFileIdAtom,
     selectedObjectAtom,
     filterOptionsAtom,
     appliedFiltersAtom,
@@ -52,6 +54,7 @@ const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
 });
 
 export const SupplyChainDashboard: React.FC = () => {
+    const searchParams = useSearchParams();
     // --- Jotai 스토어에서 가져온 상태 관리 ---
     // const nodes = useAtomValue(nodesAtom);
     const trips = useAtomValue(tripsAtom);
@@ -66,7 +69,8 @@ export const SupplyChainDashboard: React.FC = () => {
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [appliedFilters, setAppliedFilters] = useAtom(appliedFiltersAtom);
 
-    // 액션(쓰기 전용) 아톰
+    // 액션(쓰기 전용) 아톰]
+    const setSelectedFileId = useSetAtom(selectedFileIdAtom);
     const loadInitialData = useSetAtom(loadInitialDataAtom);
     const loadTrips = useSetAtom(loadTripsDataAtom);
     const loadMore = useSetAtom(loadMoreTripsAtom);
@@ -77,9 +81,28 @@ export const SupplyChainDashboard: React.FC = () => {
     const [showFilterPanel, setShowFilterPanel] = useState(false);
 
     // 컴포넌트 마운트 시 초기 데이터(노드, 필터옵션) 로드
+    // useEffect(() => {
+    //     loadInitialData();
+    // }, [loadInitialData]);
     useEffect(() => {
-        loadInitialData();
-    }, [loadInitialData]);
+        const fileIdFromUrl = searchParams.get('fileId');
+
+        if (fileIdFromUrl) {
+            console.log(`페이지 로드: fileId(${fileIdFromUrl})로 데이터 로딩 시작`);
+            const fileId = Number(fileIdFromUrl);
+            
+            // 전역 fileId 상태를 먼저 설정합니다.
+            setSelectedFileId(fileId);
+            
+            // 그런 다음 데이터 로딩 액션들을 호출합니다.
+            loadInitialData();
+            loadTrips(); 
+        } else {
+            console.warn("URL에 fileId가 없어 초기 데이터를 로드할 수 없습니다.");
+            // 선택된 파일이 없다는 UI를 보여주는 로직을 추가할 수 있습니다.
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         resetAnomalyFilter();
@@ -90,13 +113,9 @@ export const SupplyChainDashboard: React.FC = () => {
         if (activeTab === 'heatmap') {
             return; // 함수를 즉시 종료
         }
-        if (selectedObject && trips.some(t => t.roadId === (selectedObject as MergeTrip).roadId)) {
-            console.log("Trip is already in the list, skipping redundant load.");
-            return;
-        }
 
         loadTrips();
-    }, [activeTab, appliedFilters, loadTrips, selectedObject]);
+    }, [activeTab, appliedFilters, loadTrips]);
 
     const filteredTrips = useMemo(() => {
         if (!selectedAnomalyFilter) {
@@ -168,7 +187,7 @@ export const SupplyChainDashboard: React.FC = () => {
                         position: 'absolute',
                         top: '20px',
                         left: '30px',
-                        width: '320px',
+                        width: '350px',
                         height: 'calc(100vh - 200px)',
                         zIndex: 4, // 리스트 패널보다 위에 위치
                         transform: showFilterPanel ? 'translateX(-6%)' : 'translateX(-120%)',
@@ -197,9 +216,9 @@ export const SupplyChainDashboard: React.FC = () => {
                 {/* 탭 UI */}
                 <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px]'>
                     <div className='flex whitespace-nowrap'>
-                        <button style={tabButtonStyle(activeTab === 'all')} onClick={() => setActiveTab('all')}>전체 이력 추적</button>
-                        <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 징후 분석</button>
-                        <button style={tabButtonStyle(activeTab === 'heatmap')} onClick={() => setActiveTab('heatmap')}>이벤트 히트맵</button>
+                        <button style={tabButtonStyle(activeTab === 'all')} onClick={() => setActiveTab('all')}>전체 운송 흐름</button>
+                        <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 흐름 분석</button>
+                        <button style={tabButtonStyle(activeTab === 'heatmap')} onClick={() => setActiveTab('heatmap')}>이상 발생 밀집도</button>
                     </div>
                     {activeTab === 'all' && (
                         <button
@@ -216,7 +235,7 @@ export const SupplyChainDashboard: React.FC = () => {
                 {activeTab !== 'heatmap' && (
                     <>
                         <div style={{
-                            width: '300px',
+                            width: '340px',
                             height: 'calc(100vh - 250px)',
                             minHeight: 0,
                             top: 0,

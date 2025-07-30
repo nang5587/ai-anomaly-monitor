@@ -3,14 +3,14 @@
 import { useState, useEffect, forwardRef, useMemo, useImperativeHandle, useRef } from "react";
 import { useDashboard } from "@/context/dashboardContext";
 
-import { CoverLetterProps, getLocationNameById } from "@/types/file";
+import { CoverLetterProps, getLocationNameById, preparePdfData } from "@/types/file";
 
 import ExcelJS from 'exceljs';
 
 // PDF 페이지들
 import ReportCoverLetter from "./ReportCoverLetter";
 import AnomalyDashboardPage from "./AnomalyDashboardPage"
-import AnomalyDetailsPage, { type AnomalyDetailsPageRef } from "./AnomalyDetailsPage";
+import AnomalyDetailsPage from "./AnomalyDetailsPage";
 import PerformanceDashboardPage from "./PerformanceDashboardPage";
 
 const formatDate = (dateString: string) => {
@@ -18,7 +18,7 @@ const formatDate = (dateString: string) => {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-    }).replace(/\. /g, '.').slice(0, -1);
+    }).slice(0, -1);
 };
 
 const formatDateNum = (timestamp: number) => {
@@ -29,7 +29,7 @@ const formatDateNum = (timestamp: number) => {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-    }).replace(/\. /g, '.').slice(0, -1);
+    }).slice(0, -1);
 };
 export const formatDateTime = (dateString: string | undefined | null): string => {
     if (!dateString) {
@@ -63,7 +63,7 @@ interface ReportViewProps {
 
 // forwardRef를 사용하여 부모 컴포넌트(ReportClient)에서 생성한 ref를 받아옵니다.
 const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }, ref) => {
-    const anomalyDetailsPageRef = useRef<AnomalyDetailsPageRef>(null);
+    // const anomalyDetailsPageRef = useRef<AnomalyDetailsPageRef>(null);
     const {
         selectedFileId,
         coverData,
@@ -101,20 +101,21 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
         performance: 4,
     };
 
-    const { fakeTrips, tamperTrips, cloneGroups } = useMemo(() => {
-        if (!anomalyTrips) return { fakeTrips: [], tamperTrips: [], cloneGroups: [] };
+    const { fakeTrips, tamperTrips, cloneGroups, otherTrips } = useMemo(() => {
+        if (!anomalyTrips) return { fakeTrips: [], tamperTrips: [], cloneGroups: [], otherTrips: [] };
 
         const sortByTime = (a: any, b: any) => a.from.eventTime - b.from.eventTime;
         const fakes = anomalyTrips.filter(t => t.anomalyTypeList.includes('fake')).sort(sortByTime);
         const tampers = anomalyTrips.filter(t => t.anomalyTypeList.includes('tamper')).sort(sortByTime);
         const clones = anomalyTrips.filter(t => t.anomalyTypeList.includes('clone')).sort(sortByTime);
+        const others = anomalyTrips.filter(t => t.anomalyTypeList.includes('other')).sort(sortByTime);
         const groups: Record<string, any[]> = {};
         clones.forEach(trip => {
             if (!groups[trip.epcCode]) groups[trip.epcCode] = [];
             groups[trip.epcCode].push(trip);
         });
         const groupedClones = Object.values(groups);
-        return { fakeTrips: fakes, tamperTrips: tampers, cloneGroups: groupedClones };
+        return { fakeTrips: fakes, tamperTrips: tampers, cloneGroups: groupedClones, otherTrips: others };
     }, [anomalyTrips]);
 
 
@@ -132,7 +133,7 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
         // --- 🎨 스타일 사전 정의 (재사용을 위해) ---
         const titleStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true, size: 18 }, alignment: { vertical: 'middle', horizontal: 'center' } };
         const sectionTitleStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true, size: 14 }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } } };
-        const headerStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' } }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } }, alignment: { horizontal: 'center' } };
+        const headerStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' } }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }, alignment: { horizontal: 'center' } };
         const labelStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true }, alignment: { horizontal: 'right' } };
 
         // =================================================================
@@ -142,7 +143,7 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
 
         // 보고서 제목
         coverSheet.mergeCells('A1:F1');
-        coverSheet.getCell('A1').value = '물류 경로 이상탐지 AI 분석 보고서';
+        coverSheet.getCell('A1').value = 'AI 물류 경로 이상탐지 보고서';
         coverSheet.getCell('A1').style = titleStyle;
         coverSheet.getRow(1).height = 40;
 
@@ -281,10 +282,26 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
                 });
             }
 
+            // 라. 미분류(other) 데이터 추가
+            if (otherTrips.length > 0) {
+                detailsSheet.addRow([]);
+                const otherTitleRow = detailsSheet.addRow(['라. 미분류(Other) 목록']);
+                detailsSheet.mergeCells(`A${otherTitleRow.number}:F${otherTitleRow.number}`);
+                otherTitleRow.getCell(1).style = sectionTitleStyle;
+
+                otherTrips.forEach(trip => {
+                    detailsSheet.addRow([
+                        counter++, '미분류(Other)', trip.epcCode, trip.productName,
+                        `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
+                        formatDateNum(trip.to.eventTime) // *️⃣ 백연결 시 함수 변경?
+                    ]);
+                });
+            }
+
             detailsSheet.getColumn('A').alignment = { vertical: 'middle', horizontal: 'center' };
             detailsSheet.getColumn('B').alignment = { vertical: 'middle', horizontal: 'center' };
-            detailsSheet.getColumn('C').alignment = { vertical: 'middle', horizontal: 'center'  }; // 세로 중앙 정렬만
-            detailsSheet.getColumn('D').alignment = { vertical: 'middle', horizontal: 'center'  };
+            detailsSheet.getColumn('C').alignment = { vertical: 'middle', horizontal: 'center' };
+            detailsSheet.getColumn('D').alignment = { vertical: 'middle', horizontal: 'center' };
             detailsSheet.getColumn('E').alignment = { vertical: 'middle' };
             detailsSheet.getColumn('F').alignment = { vertical: 'middle' };
 
@@ -355,13 +372,14 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
         }
     };
 
+    const pdfTableData = useMemo(() => {
+        return preparePdfData(fakeTrips, tamperTrips, cloneGroups, otherTrips);
+    }, [fakeTrips, tamperTrips, cloneGroups, otherTrips]);
+
     useImperativeHandle(ref, () => ({
         handleExcelDownload,
         getAnomalyDetailsPdfData: () => {
-            if (anomalyDetailsPageRef.current) {
-                return anomalyDetailsPageRef.current.getTableDataForPdf();
-            }
-            return null;
+            return pdfTableData;
         },
     }));
 
@@ -396,7 +414,8 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
     }
 
     return (
-        <div ref={pdfContentRef} className="flex flex-col items-center">
+        // <div ref={pdfContentRef} className="flex flex-col items-center">
+        <div ref={pdfContentRef} className="w-full flex flex-col items-center bg-gray-200 py-8">
             {/* 페이지 1: 커버 레터 - wrapper 제거 */}
             <div id="report-page-1"><ReportCoverLetter data={coverLetterData} /></div>
 
@@ -417,8 +436,7 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
             {showAnomalyDetails ? (
                 // 데이터가 있을 때: 기존 AnomalyDetailsPage를 렌더링
                 <AnomalyDetailsPage
-                    ref={anomalyDetailsPageRef}
-                    anomalyTrips={anomalyTrips}
+                    tableData={pdfTableData}
                 />
             ) : (
                 // 데이터가 없을 때: "내역 없음"을 표시하는 컴포넌트 렌더링
@@ -428,11 +446,18 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
                 >
                     <div className="a4-page-content">
                         <main className="flex-grow flex flex-col gap-8">
-                            <h2 className="text-base font-bold text-gray-600 mb-2">
+                            <h2
+                                style={{
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                    marginBottom: '8px',
+                                    color: 'rgb(75, 85, 99)',
+                                    margin: '0 0 8px 0'
+                                }}>
                                 3. 이상 탐지 상세 내역
                             </h2>
                             <div className="flex-grow flex items-center justify-center text-center text-gray-500 bg-gray-50 p-8 rounded-lg">
-                                <p>분석 기간 내에 상세 추적이 필요한<br />위조(Fake), 변조(Tamper), 복제(Clone) 유형의<br />이상 징후가 발견되지 않았습니다.</p>
+                                <p>분석 기간 내에 상세 추적이 필요한<br />위조(Fake), 변조(Tamper), 복제(Clone), 미분류(Other) 유형의<br />이상 징후가 발견되지 않았습니다.</p>
                             </div>
                         </main>
                         <footer className="report-footer">

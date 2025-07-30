@@ -1,23 +1,10 @@
 import { useState, useEffect } from "react";
 
 import type { AnalyzedTrip, AnomalyType } from "../../types/data";
-import { getAnomalyColor, getAnomalyName } from "../../types/colorUtils";
+import { getAnomalyName } from "../../types/colorUtils";
 import { pastelColorMap } from '../../types/anomalyUtils';
 
-const SIMULATION_START_DATE = new Date('2025-02-17T00:00:00Z');
-const TIME_UNIT_IN_HOURS = 1;
-
-// 숫자 타임스탬프를 'YYYY-MM-DD HH:mm' 형식으로 변환하는 함수
-const formatTimestamp = (time: number): string => {
-    const date = new Date(SIMULATION_START_DATE);
-    date.setHours(date.getHours() + time * TIME_UNIT_IN_HOURS);
-    return date.toLocaleString('ko-KR', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: false
-    }).replace(/\. /g, '-').replace('.', '');
-};
-
-// type TripWithId = AnalyzedTrip & { id: string };
+import { formatUnixTimestamp } from "@/types/map";
 
 interface TimeSliderProps {
     minTime: number;
@@ -193,7 +180,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     />
                 </div>
                 <div style={{ fontSize: '12px', color: '#ccc', textAlign: 'center', minWidth: '130px' }}>
-                    <strong style={{ color: 'white' }}>{formatTimestamp(currentTime)}</strong>
+                    <strong style={{ color: 'white' }}>{formatUnixTimestamp(currentTime)}</strong>
                 </div>
             </div>
 

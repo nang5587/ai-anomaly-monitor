@@ -40,7 +40,7 @@ export default function StatusBar() {
 
     return (
         // ✨ 2. 카드 스타일 및 위치 지정
-        <div className={`fixed bottom-4 right-4 w-96 bg-[rgba(111,131,175)] border border-gray-700 rounded-lg shadow-2xl text-white transition-all duration-300 ease-in-out z-70`}>
+        <div className={`fixed bottom-10 right-4 w-96 bg-[rgba(111,131,175)] border border-gray-700 rounded-lg shadow-2xl text-white transition-all duration-300 ease-in-out z-70`}>
             {/* --- 헤더: 항상 보이는 부분 --- */}
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">

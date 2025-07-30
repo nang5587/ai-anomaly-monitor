@@ -16,16 +16,17 @@ import {
 } from '@/stores/mapDataAtoms';
 
 import { MergeTrip } from './SupplyChainDashboard';
-
+import { formatUnixTimestamp } from "@/types/map";
 import { ChevronsRight } from 'lucide-react';
 
 interface WaypointItemProps {
     title: string;
     location: string;
+    eventTime: number;
     isLast: boolean;
 }
 
-const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) => {
+const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, eventTime, isLast }) => {
     const innerMarkerSize = 10;
     const outerMarkerSize = 18;
     return (
@@ -43,6 +44,7 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) 
                 <div>
                     <p style={{ margin: 0, fontSize: '12px', color: '#E0E0E0' }}>{title}</p>
                     <p style={{ margin: 0, fontSize: '15px', color: '#FFFFFF', marginTop: '2px' }}>{location}</p>
+                    <p style={{ margin: 0, fontSize: '15px', color: '#FFFFFF', marginTop: '2px' }}>{formatUnixTimestamp(eventTime)}</p>
                 </div>
             </div>
         </div>
@@ -52,8 +54,8 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, isLast }) 
 // O도착지---O출발지
 const TripTimeline: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const waypoints = [
-        { type: '도착지', location: trip.to.scanLocation },
-        { type: '출발지', location: trip.from.scanLocation },
+        { type: '도착지', location: trip.to.scanLocation, eventTime: trip.to.eventTime },
+        { type: '출발지', location: trip.from.scanLocation, eventTime: trip.from.eventTime },
     ];
 
     return (
@@ -63,6 +65,7 @@ const TripTimeline: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
                     key={`${point.type}-${index}`}
                     title={point.type}
                     location={point.location}
+                    eventTime={point.eventTime}
                     isLast={index === waypoints.length - 1}
                 />
             ))}
@@ -101,9 +104,13 @@ const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
                     <span className="text-white text-base">EPC : </span>
                     <span className="text-[#E0E0E0] font-mono">{trip.epcCode}</span>
                 </div>
-                <div className="mb-4">
+                <div>
                     <span className="text-white text-base">LOT ID : </span>
                     <span className="text-[#E0E0E0]">{trip.epcLot}</span>
+                </div>
+                <div className="mb-4">
+                    <span className="text-white text-base">Event Type : </span>
+                    <span className="text-[#E0E0E0]">{trip.eventType}</span>
                 </div>
             </div>
 
@@ -119,7 +126,11 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
     const relatedAnomalies = useMemo(() => {
         if (!node || !allAnomalies) return [];
         return allAnomalies.filter(
-            trip => (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation)
+            trip =>
+                // 조건 1: 이 trip이 선택된 노드와 관련이 있는가?
+                (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation) &&
+                // ✨ 조건 2: 그리고 이 trip에 이상 징후가 있는가? (이 줄 추가!)
+                (trip.anomalyTypeList && trip.anomalyTypeList.length > 0)
         );
     }, [node, allAnomalies]);
 
@@ -150,13 +161,14 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
                                     {trip.anomalyTypeList.length > 1 && ` 외 ${trip.anomalyTypeList.length - 1}건`}
                                 </div>
                                 <div>{trip.from.scanLocation} → {trip.to.scanLocation}</div>
+                                <div>EPC: {trip.epcCode}</div>
                                 <div>상품명: {trip.productName}</div>
                             </button>
                         );
                     })}
                 </div>
             ) : (
-                <p className="text-sm text-neutral-500 m-0">이 지점과 연관된 이상 징후가 없습니다.</p>
+                <p className="text-sm text-[#E0E0E0] m-0">이 지점과 연관된 이상 징후가 없습니다.</p>
             )}
         </>
     );
@@ -165,7 +177,7 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
 const EpcDupListItem: React.FC<{ trip: AnalyzedTrip; onClick: () => void; isSelected: boolean }> = ({ trip, onClick, isSelected }) => (
     <div
         onClick={onClick}
-        className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 flex items-start gap-3 ${isSelected ? 'bg-black/20' : 'bg-black/20 hover:bg-black/5 overflow-y-auto hide-scrollbar'}`}
+        className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 flex items-start gap-3 ${isSelected ? 'bg-black/20' : 'bg-black/20 hover:bg-black/5 overflow-y-auto'}`}
     >
         <div className="flex-grow">
             <p className="font-noto-500 text-white text-sm">
@@ -199,8 +211,16 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
     // ✨ 2. EPC 복제와 연관된 모든 경로 찾기
     const duplicateTrips = useMemo(() => {
         if (!isEpcDup || !selectedObject || !('epcCode' in selectedObject)) return [];
+
         const targetEpc = (selectedObject as AnalyzedTrip).epcCode;
-        return allAnomalyTrips.filter(trip => trip.epcCode === targetEpc && trip.anomalyTypeList.includes('clone'));
+        const selectedIndex = allAnomalyTrips.findIndex(trip => trip === selectedObject);
+
+        return allAnomalyTrips.filter((trip, index) =>
+            trip.epcCode === targetEpc &&
+            trip.anomalyTypeList.includes('clone') &&
+            // 현재 선택된 항목의 인덱스와 다른 항목만 필터링
+            index !== selectedIndex
+        );
     }, [isEpcDup, selectedObject, allAnomalyTrips]);
 
     const handleTripSelection = (trip: MergeTrip) => {
@@ -214,7 +234,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
     return (
         <div style={{
             position: 'absolute', top: '10px', right: '220px',
-            width: '320px', maxHeight: 'calc(100vh - 180px)',
+            width: '380px', maxHeight: 'calc(100vh - 180px)',
             background: 'rgba(111,131,175)',
             boxShadow: '0 0 0 1px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(6px)', borderRadius: '25px',
@@ -235,7 +255,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                     ×
                 </button>
             </div>
-            <div style={{ overflowY: 'auto', paddingRight: '10px' }} className="hide-scrollbar">
+            <div style={{ overflowY: 'auto', paddingRight: '10px' }}>
                 {isEpcDup ? (
                     <div>
                         {/* 섹션 1: 복제품 의심 목록 */}

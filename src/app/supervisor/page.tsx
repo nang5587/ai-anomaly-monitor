@@ -87,7 +87,6 @@ export default function SupervisorDashboard() {
     minTime,
     maxTime,
     handleFileSelect,
-    handleTabClick,
     handleLoadMore,
     clearFilters,
     openHistoryModal,
@@ -114,7 +113,7 @@ export default function SupervisorDashboard() {
 
   const handleWidgetClick = (tab: Tab) => {
     setActiveTab(tab);
-    router.push('/graph');
+    router.push('/map');
   };
 
   const handleFileUpload = async () => {

@@ -10,6 +10,7 @@ const ANOMALY_TYPES: AnomalyType[] = [
     "fake",
     "tamper",
     "clone",
+    "other"
 ];
 
 const tabButtonStyle = (isActive: boolean, disabled: boolean): React.CSSProperties => ({

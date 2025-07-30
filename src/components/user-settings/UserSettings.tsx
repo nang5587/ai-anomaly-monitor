@@ -58,7 +58,7 @@ const factoryCodeNameMap: { [key: number]: string } = {
 
 export default function UserSettings({ initialProfile }: UserSettingsProps) {
     const user = {
-        userName: 'admin_id', // 로그인 ID
+        userName: 'user2', // 로그인 ID
         role: 'ADMIN',       // 'ADMIN' 또는 'MANAGER'
         locationId: 0,      // MANAGER일 경우 1, 2, 3, 4 등으로 변경
     };
@@ -133,7 +133,7 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
 
         // ❗ 4. 사용자에게 정말 탈퇴할 것인지 확인받습니다. (매우 중요!)
         const isConfirmed = window.confirm(
-            '정말로 회원 탈퇴를 진행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'
+            '정말로 계정을 비활성화하시겠습니까?\n이 작업 후에는 관리자를 통해서만 계정을 복구할 수 있습니다.'
         );
 
         if (!isConfirmed) {
@@ -162,7 +162,7 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
 
     const factoryName = useMemo(() => {
         if (!user) return '';
-        if (user.role === 'ADMIN') return '전체 관리';
+        if (user.role === 'ADMIN') return '화성';
         return user.locationId ? factoryCodeNameMap[user.locationId] || '미지정' : '소속 없음';
     }, [user]);
 

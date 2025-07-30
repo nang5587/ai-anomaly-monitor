@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ArrowLeftRight } from 'lucide-react';
 import { Play } from 'lucide-react';
@@ -7,19 +8,19 @@ import { Play } from 'lucide-react';
 import { SupplyChainMapWidget } from './SupplyChainMapWidget';
 import { HeatmapViewWidget } from './HeatmapViewWidget';
 
+import { useSetAtom } from 'jotai'; // ✨ useSetAtom import
+import {
+    replayTriggerAtom,
+    loadInitialDataAtom,
+    selectedFileIdAtom
+} from '@/stores/mapDataAtoms';
+
 import { type Tab } from '@/components/visual/SupplyChainDashboard';
 import { type LocationNode, type AnalyzedTrip } from '../../../types/data';
 
 // Props 타입 정의
 type DashboardMapWidgetProps = {
-    nodes: LocationNode[];
-    anomalyTrips: AnalyzedTrip[]; // 히트맵 위젯용 데이터
-    allTripsForMap: AnalyzedTrip[]; // 경로 지도 위젯용 데이터
-    minTime: number;
-    maxTime: number;
-    replayTrigger: number;
     onWidgetClick: (tab: Tab) => void;
-    onReplayClick: () => void; // 다시보기 버튼 클릭 핸들러
 };
 
 // Framer Motion 애니메이션 Variants 정의
@@ -29,21 +30,31 @@ const widgetVariants: Variants = {
     exit: { x: '-100%', opacity: 0, scale: 0.9, transition: { duration: 0.5, ease: 'easeInOut' } },
 };
 
-export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({
-    nodes,
-    anomalyTrips,
-    allTripsForMap,
-    minTime,
-    maxTime,
-    replayTrigger,
-    onWidgetClick,
-    onReplayClick,
-}) => {
+export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidgetClick }) => {
     const [activeWidget, setActiveWidget] = useState<'path' | 'heatmap'>('heatmap');
+    const triggerReplay = useSetAtom(replayTriggerAtom);
+
+    const loadInitialData = useSetAtom(loadInitialDataAtom);
+    const setSelectedFileId = useSetAtom(selectedFileIdAtom);
+    const searchParams = useSearchParams();
 
     const toggleWidget = () => {
         setActiveWidget(prev => (prev === 'path' ? 'heatmap' : 'path'));
     };
+    const handleReplayClick = () => {
+        triggerReplay((c) => c + 1);
+    };
+
+    useEffect(() => {
+        const fileIdFromUrl = searchParams.get('fileId');
+        if (fileIdFromUrl) {
+            const fileId = Number(fileIdFromUrl);
+            setSelectedFileId(fileId);
+            loadInitialData();
+        } else {
+            console.warn("DashboardMapWidget: URL에서 fileId를 찾을 수 없습니다.");
+        }
+    }, [searchParams, setSelectedFileId, loadInitialData]);
 
     return (
         <div className="relative w-full h-full rounded-3xl overflow-hidden bg-black">
@@ -58,15 +69,10 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({
                         exit="exit"
                     >
                         <SupplyChainMapWidget
-                            key={replayTrigger} // 리플레이를 위해 key를 외부에서 받음
-                            nodes={nodes}
-                            analyzedTrips={allTripsForMap}
-                            minTime={minTime}
-                            maxTime={maxTime}
                             onWidgetClick={() => onWidgetClick('all')}
                         />
                         <button
-                            onClick={onReplayClick}
+                            onClick={handleReplayClick}
                             className="absolute top-4 left-4 text-white p-2 rounded-full bg-black/50 border border-white/30 hover:bg-black/80 transition-colors"
                             title="애니메이션 다시 재생"
                         >
@@ -85,8 +91,6 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({
                         exit="exit"
                     >
                         <HeatmapViewWidget
-                            nodes={nodes}
-                            trips={anomalyTrips} // 히트맵은 이상 데이터만 사용
                             showLegend={false}
                             onWidgetClick={() => onWidgetClick('heatmap')}
                         />

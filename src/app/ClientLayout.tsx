@@ -6,8 +6,10 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import StatusBar from '@/components/upload/StatusBar';
+import { useSetAtom } from 'jotai';
 
 import { useAuth } from "@/context/AuthContext";
+import { refetchUsersAtom } from '@/stores/userAtoms';
 
 const PUBLIC_ROUTES = ['/','/login', '/join'];
 
@@ -22,6 +24,23 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     // }
 
     const [sidebarHovered, setSidebarHovered] = useState(false);
+    const refetchUsers = useSetAtom(refetchUsersAtom);
+
+    useEffect(() => {
+        // ADMIN 역할일 때만 주기적으로 사용자 목록을 새로고침합니다.
+        if (user?.role === 'ADMIN') {
+            // 컴포넌트 마운트 시 즉시 한 번 실행
+            refetchUsers();
+
+            const intervalId = setInterval(() => {
+                console.log('사용자 목록을 주기적으로 새로고침합니다.');
+                refetchUsers();
+            }, 60000); // 60초(1분)마다 실행
+
+            // 컴포넌트 언마운트 시 인터벌 정리
+            return () => clearInterval(intervalId);
+        }
+    }, [user, refetchUsers]);
 
     const isPublicPage = PUBLIC_ROUTES.includes(pathname);
 
