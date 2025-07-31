@@ -12,7 +12,7 @@ export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
     fake: '위조',
     tamper: '변조',
     clone: '복제',
-    other: '미분류'
+    other: '신규 유형'
 };
 
 export interface TripEndpoint {
@@ -262,6 +262,7 @@ export async function getTrips(params?: { fileId?: number, [key: string]: any })
         nextCursor,
     };
 }
+//*️⃣
 // export async function getTrips(params?: Record<string, any>): Promise<PaginatedTripsResponse> {
 //     try {
 //         // Axios는 params 객체를 자동으로 쿼리 문자열로 변환해줍니다.
@@ -287,6 +288,7 @@ export async function getTrips(params?: { fileId?: number, [key: string]: any })
 export async function getNodes(params?: Record<string, any>): Promise<LocationNode[]> {
     try {
         const response = await apiClient.get<LocationNode[]>('/manager/nodes', {params});
+        console.log('노드들 이걸로 api 요청하던가',response.data)
         return response.data;
     } catch (error) {
         console.error('노드 데이터 로딩 실패:', error);

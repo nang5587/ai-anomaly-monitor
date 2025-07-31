@@ -43,7 +43,7 @@ export const getAnomalyName = (type?: AnomalyType): string => {
         case 'fake': return '위조';
         case 'tamper': return '변조';
         case 'clone': return '복제';
-        case 'other': return '미분류';
+        case 'other': return '신규 유형';
         default: return '알 수 없는 유형';
     }
 };

@@ -226,6 +226,27 @@ const DUMMY_COVER_DB: Record<number, CoverReportData> = {
         createdAt: "2025-07-28T11:00:00Z",
         period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
     },
+    6: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    7: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
+    8: {
+        fileName: "수원-물류센터.csv",
+        userName: "이수원",
+        locationId: 1,
+        createdAt: "2025-07-28T11:00:00Z",
+        period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
+    },
     10: {
         fileName: "수원-물류센터.csv",
         userName: "이수원",

@@ -282,16 +282,16 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
                 });
             }
 
-            // 라. 미분류(other) 데이터 추가
+            // 라. 신규 유형(other) 데이터 추가
             if (otherTrips.length > 0) {
                 detailsSheet.addRow([]);
-                const otherTitleRow = detailsSheet.addRow(['라. 미분류(Other) 목록']);
+                const otherTitleRow = detailsSheet.addRow(['라. 신규 유형(Other) 목록']);
                 detailsSheet.mergeCells(`A${otherTitleRow.number}:F${otherTitleRow.number}`);
                 otherTitleRow.getCell(1).style = sectionTitleStyle;
 
                 otherTrips.forEach(trip => {
                     detailsSheet.addRow([
-                        counter++, '미분류(Other)', trip.epcCode, trip.productName,
+                        counter++, '신규 유형(Other)', trip.epcCode, trip.productName,
                         `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
                         formatDateNum(trip.to.eventTime) // *️⃣ 백연결 시 함수 변경?
                     ]);
@@ -457,7 +457,7 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
                                 3. 이상 탐지 상세 내역
                             </h2>
                             <div className="flex-grow flex items-center justify-center text-center text-gray-500 bg-gray-50 p-8 rounded-lg">
-                                <p>분석 기간 내에 상세 추적이 필요한<br />위조(Fake), 변조(Tamper), 복제(Clone), 미분류(Other) 유형의<br />이상 징후가 발견되지 않았습니다.</p>
+                                <p>분석 기간 내에 상세 추적이 필요한<br />위조(Fake), 변조(Tamper), 복제(Clone), 신규 유형(Other) 유형의<br />이상 징후가 발견되지 않았습니다.</p>
                             </div>
                         </main>
                         <footer className="report-footer">

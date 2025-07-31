@@ -5,7 +5,7 @@ export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
     fake: '위조',
     tamper: '변조',
     clone: '복제',
-    other: '미분류'
+    other: '신규 유형'
 };
 
 // ✨ 코드 -> 상세 설명 변환 맵 (여기로 이동!)

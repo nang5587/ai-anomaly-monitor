@@ -237,16 +237,16 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
             const otherTitleRow = detailsSheet.addRow(['다. 복제(Clone) 의심 목록']);
             detailsSheet.mergeCells(`A${otherTitleRow.number}:F${otherTitleRow.number}`);
             otherTitleRow.getCell(1).style = sectionTitleStyle;
-            // 라. 미분류(other) 데이터 추가
+            // 라. 신규 유형(other) 데이터 추가
             if (otherTrips.length > 0) {
                 detailsSheet.addRow([]);
-                const otherTitleRow = detailsSheet.addRow(['라. 미분류(Other) 목록']);
+                const otherTitleRow = detailsSheet.addRow(['라. 신규 유형(Other) 목록']);
                 detailsSheet.mergeCells(`A${otherTitleRow.number}:F${otherTitleRow.number}`);
                 otherTitleRow.getCell(1).style = sectionTitleStyle;
 
                 otherTrips.forEach(trip => {
                     detailsSheet.addRow([
-                        otherCounter++, '미분류(Other)', trip.epcCode, trip.productName,
+                        otherCounter++, '신규 유형(Other)', trip.epcCode, trip.productName,
                         `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
                         formatPdfDateTime(trip.to.eventTime) // *️⃣ 백연결 시 함수 변경?
                     ]);
@@ -463,15 +463,15 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                         </tr>
                     )}
 
-                    {/* --- 라. 미분류(Other) --- */}
+                    {/* --- 라. 신규 유형(Other) --- */}
                     <tr className="bg-gray-100 font-bold">
-                        <td colSpan={6} className={tdClass}>라. 미분류(Other) 목록</td>
+                        <td colSpan={6} className={tdClass}>라. 신규 유형(Other) 목록</td>
                     </tr>
                     {otherTrips.length > 0 ? (
                         otherTrips.map(trip => (
                             <tr key={trip.epcCode + otherCounter}>
                                 <td className={tdClass}>{otherCounter++}</td>
-                                <td className={tdClass}>미분류(Other)</td>
+                                <td className={tdClass}>신규 유형(Other)</td>
                                 <td className={tdClass}>{trip.epcCode}</td>
                                 <td className={tdClass}>{trip.productName}</td>
                                 <td className={tdClass}>{`${trip.from.scanLocation} → ${trip.to.scanLocation}`}</td>

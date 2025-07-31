@@ -39,7 +39,7 @@ export default function ProductAnomalyChart({ data }: ProductAnomalyChartProps) 
                 <Line type="monotone" dataKey="fake" stroke={COLORS.fake} strokeWidth={2} name="위조" />
                 <Line type="monotone" dataKey="tamper" stroke={COLORS.tamper} strokeWidth={2} name="변조" />
                 <Line type="monotone" dataKey="clone" stroke={COLORS.clone} strokeWidth={2} name="복제" />
-                <Line type="monotone" dataKey="other" stroke={COLORS.other} strokeWidth={2} name="미분류" />
+                <Line type="monotone" dataKey="other" stroke={COLORS.other} strokeWidth={2} name="신규 유형" />
             </LineChart>
         </ResponsiveContainer>
     );

@@ -46,7 +46,7 @@ export default function ProductAnomalyChart({ data }: ProductAnomalyChartProps) 
                 <Bar dataKey="clone" stackId="a" name="복제" fill={COLORS.clone} >
                     <LabelList dataKey="clone" position="middle" style={{ fill: 'white', fontSize: 12, fontWeight: 'bold'  }} />
                 </Bar>
-                <Bar dataKey="clone" stackId="a" name="미분류" fill={COLORS.other} >
+                <Bar dataKey="clone" stackId="a" name="신규 유형" fill={COLORS.other} >
                     <LabelList dataKey="clone" position="middle" style={{ fill: 'white', fontSize: 12, fontWeight: 'bold'  }} />
                 </Bar>
             </BarChart>

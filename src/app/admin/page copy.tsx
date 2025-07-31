@@ -65,9 +65,13 @@ type User = {
     locationId: number;
 }
 
+
 export default function AdminDashboard() {
     const router = useRouter();
     const setActiveTab = useSetAtom(activeTabAtom);
+    const searchParams = useSearchParams();
+    const [selectedFileId, setSelectedFileId] = useAtom(selectedFileIdAtom);
+    const [, setSelectedFactoryName] = useAtom(selectedFactoryNameAtom);
 
     const {
         kpiData,
@@ -85,7 +89,6 @@ export default function AdminDashboard() {
         isFetchingMore,
         nextCursor,
         selectedFileName,
-        selectedFileId,
         isHistoryModalOpen,
         uploadHistory,
         viewProps,
@@ -97,6 +100,99 @@ export default function AdminDashboard() {
         openHistoryModal,
         closeHistoryModal,
     } = useDashboard();
+
+    // useEffect(() => {
+    //     if (!user) return; // 사용자 정보가 로드될 때까지 대기
+
+    //     const fileIdFromUrl = searchParams.get('fileId');
+    //     const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+
+    //     // 시나리오 1: URL에 fileId가 있는 경우
+    //     if (fileIdFromUrl) {
+    //         const fileIdNum = Number(fileIdFromUrl);
+    //         if (selectedFileId !== fileIdNum) {
+    //             setSelectedFileId(fileIdNum);
+    //             getFiles_client().then(history => {
+    //                 const file = history.find(f => f.fileId === fileIdNum);
+    //                 if (file?.locationId) {
+    //                     setSelectedFactoryName(factoryCodeNameMap[file.locationId] || '정보 없음');
+    //                 }
+    //             });
+    //         }
+    //         return;
+    //     }
+
+    //     // 시나리오 2: URL에 fileId가 없는 경우 (최초 접속 등)
+    //     const initializeAndRedirect = async () => {
+    //         try {
+    //             const history: FileItem[] = await getFiles_client();
+    //             if (history.length > 0) {
+    //                 const latestFile = history[0];
+    //                 // 현재 페이지의 URL만 교체 (예: /supervisor -> /supervisor?fileId=123)
+    //                 router.replace(`/${role}?fileId=${latestFile.fileId}`);
+    //             } else {
+    //                 router.replace(`/upload`);
+    //             }
+    //         } catch (error) {
+    //             console.error("초기 파일 목록 로딩 실패:", error);
+    //         }
+    //     };
+
+    //     initializeAndRedirect();
+    // }, [user, searchParams, selectedFileId, setSelectedFileId, setSelectedFactoryName, router]);
+    
+    useEffect(() => {
+        if (isAuthLoading || !user) {
+            // 아직 사용자 정보를 확인 중이거나 사용자가 없으면 아무것도 하지 않음
+            // (상위 로직에서 로그인 페이지로 리다이렉션할 것임)
+            return;
+        }
+
+        const fileIdFromUrl = searchParams.get('fileId');
+
+        // --- 시나리오 1: URL에 fileId가 있는 경우 (새로고침 또는 링크 이동) ---
+        if (fileIdFromUrl) {
+            const fileIdNum = Number(fileIdFromUrl);
+
+            // 현재 Jotai 상태와 URL의 fileId가 다를 경우에만 상태를 업데이트합니다.
+            // 이렇게 하면 불필요한 리렌더링과 API 호출을 방지할 수 있습니다.
+            if (selectedFileId !== fileIdNum) {
+                console.log(`URL fileId(${fileIdNum})와 상태가 다릅니다. 상태를 업데이트합니다.`);
+                setSelectedFileId(fileIdNum);
+
+                // useDashboard 훅은 selectedFileId 변경을 감지하고
+                // 자동으로 관련 데이터를 다시 불러올 것입니다.
+                // 따라서 여기서 getFiles_client를 직접 호출할 필요가 없습니다.
+            }
+        }
+        // --- 시나리오 2: URL에 fileId가 없는 경우 (최초 접속) ---
+        else {
+            console.log("URL에 fileId가 없습니다. 최신 파일로 리다이렉션합니다.");
+            const initializeAndRedirect = async () => {
+                try {
+                    const history: FileItem[] = await getFiles_client();
+                    const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
+
+                    if (history.length > 0) {
+                        const latestFile = history[0];
+                        // URL을 교체하여 페이지를 새로고침하지 않고 주소만 변경
+                        router.replace(`/${role}?fileId=${latestFile.fileId}`);
+                    } else {
+                        // 업로드된 파일이 하나도 없으면 업로드 페이지로 이동
+                        router.replace(`/upload`);
+                    }
+                } catch (error) {
+                    console.error("초기 파일 목록 로딩 실패:", error);
+                }
+            };
+            initializeAndRedirect();
+        }
+        // `user`가 변경되거나 `searchParams`가 변경될 때마다 이 로직을 실행합니다.
+    }, [user, isAuthLoading, searchParams, selectedFileId, setSelectedFileId, router]);
+
+    //⚠️ 백엔드 연결 시 삭제
+    // const user = MOCK_USER_ADMIN;
+    // const user = MOCK_USER_MANAGER; // 이건 매니저 테스트
 
     const [replayTrigger, setReplayTrigger] = useState(0);
 
@@ -156,21 +252,15 @@ export default function AdminDashboard() {
         );
     }
 
-    if (!kpiData && !isLoading) {
-        return (
-            <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
-                <p className="text-xl"></p>
-            </div>
-        );
-    }
-    // kpiData가 아직 로드되지 않았지만, 로딩 중도 아닌 경우 (초기 상태 또는 파일 없음)
+    // 4. 로딩이 끝났는데도 kpiData가 없는 경우 (API 호출 실패)
     if (!kpiData) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
-                <p className="text-xl">분석할 파일을 선택해주세요.</p>
+                <p className="text-xl">데이터를 불러오는 데 실패했습니다. 네트워크 연결을 확인하거나 관리자에게 문의하세요.</p>
             </div>
-        )
+        );
     }
+
     // 애니메이션 정의
     const containerVariants: Variants = {
         hidden: { opacity: 0 },

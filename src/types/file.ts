@@ -133,13 +133,13 @@ export const getAnomalyDetailsForPdf = (
         });
     }
 
-    // --- 라. 미분류(other) ---
+    // --- 라. 신규 유형(other) ---
     if (otherTrips.length > 0) {
-        body.push([{ content: '라. 미분류(other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
+        body.push([{ content: '라. 신규 유형(other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
         fakeTrips.forEach(trip => {
             body.push([
                 counter++,
-                '미분류(other)',
+                '신규 유형(other)',
                 trip.epcCode,
                 trip.productName,
                 `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
@@ -234,9 +234,9 @@ export const preparePdfData = (
 
     let counter = 1;
 
-    const otherGroupType = '미분류(Other)';
+    const otherGroupType = '신규 유형(Other)';
     // 그룹 헤더는 항상 추가
-    body.push([{ content: '라. 미분류(Other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
+    body.push([{ content: '라. 신규 유형(Other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
 
     if (otherTrips.length > 0) {
         otherTrips.forEach((trip: MergeTrip) => {

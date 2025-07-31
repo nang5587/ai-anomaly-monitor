@@ -9,6 +9,7 @@ import {
 import { anomalyDescriptionMap } from '../../types/anomalyUtils';
 import { getAnomalyColor, getAnomalyName } from '../../types/colorUtils';
 
+
 import {
     selectedObjectAtom,
     allAnomalyTripsAtom,
@@ -17,7 +18,7 @@ import {
 
 import { MergeTrip } from './SupplyChainDashboard';
 import { formatUnixTimestamp } from "@/types/map";
-import { ChevronsRight } from 'lucide-react';
+import { ChevronsRight, ArrowRight, Truck, Copy, Factory } from 'lucide-react';
 
 interface WaypointItemProps {
     title: string;
@@ -188,6 +189,11 @@ const EpcDupListItem: React.FC<{ trip: AnalyzedTrip; onClick: () => void; isSele
                 <ChevronsRight className="w-4 h-4 mx-1" />
                 <span>{trip.to.scanLocation}</span>
             </div>
+            <div className="text-xs text-[#E0E0E0] mt-1 flex items-center">
+                <span>{formatUnixTimestamp(trip.from.eventTime)}</span>
+                <ArrowRight className="w-4 h-4 mx-1" />
+                <span>{formatUnixTimestamp(trip.to.eventTime)}</span>
+            </div>
         </div>
     </div>
 );
@@ -245,10 +251,17 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#FFFFFF' }}>
                     {isEpcDup
-                        ? '복제품 의심 이력' // ✨ 타이틀 변경
+                        ?
+                        <div className='flex gap-2'>
+                            <Copy /><p>복제품 의심 이력</p>
+                        </div>
                         : isTrip
-                            ? '운송 상세'
-                            : (selectedObject as LocationNode).scanLocation
+                            ?
+                            <div className='flex gap-2'>
+                                <Truck /><p>운송 상세</p>
+                            </div>
+                            : 
+                            (selectedObject as LocationNode).scanLocation
                     }
                 </h3>
                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#FFFFFF', fontSize: '20px', cursor: 'pointer' }}>

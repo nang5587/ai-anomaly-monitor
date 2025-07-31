@@ -51,9 +51,11 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                 return;
         }
 
-        console.log('fileList에서 이동 : ',dashboardPath);
-        console.log('fileId입니다. : ',fileId);
-        router.push(dashboardPath);
+        // ✨ 템플릿 리터럴을 사용하여 URL에 쿼리 파라미터를 추가합니다.
+        const finalUrl = `${dashboardPath}?fileId=${fileId}`;
+
+        console.log('fileList에서 이동할 URL:', finalUrl);
+        router.push(finalUrl);
     };
 
     // 4. 필터링 및 페이지네이션 로직 (기존과 동일)

@@ -29,7 +29,7 @@ const radiusScale = scaleLinear<number>()
 const elevationScale = scaleLinear<number>()
     .domain([8, 9, 11, 14])
     // 출력값 범위 (높이 배율): [매우 높게, 높게, 보통, 기본]
-    .range([50000, 8000, 1500, 250])
+    .range([2000, 1000, 400, 100])
     .clamp(true);
 
 // 이 레이어가 받을 Props 타입을 정의합니다.
@@ -87,39 +87,38 @@ export class StackedColumnLayer extends CompositeLayer<StackedColumnLayerProps> 
             }
 
             // 🔥 각 노드별로 현재 스케일에서의 누적 높이를 다시 계산
-            let currentAccumulatedHeight = 0;
+            let accumulatedHeight = 0;
 
-            // 각 이벤트 타입에 대해 별도의 ColumnLayer를 생성합니다.
             return ANOMALY_TYPE_ORDER.map((type, index) => {
-                // 현재 노드에 이 `type`의 이벤트가 있는지 확인합니다.
                 const stats = eventTypeStats[type] as StatValue | undefined;
-
-                // 이벤트 데이터가 없으면 아무것도 렌더링하지 않고 null을 반환합니다.
                 if (!stats || stats.count === 0) {
                     return null;
                 }
-
-                // 🔥 현재 스케일에서의 세그먼트 높이 계산
+                
                 const segmentHeight = stats.count * actualElevationScale;
+                
+                // ✨ 1. 현재 세그먼트가 시작될 높이를 저장합니다.
+                //    (이것이 누적된 높이입니다)
+                const baseHeight = accumulatedHeight;
+                
+                // ✨ 2. 다음 세그먼트를 위해 높이를 누적시킵니다.
+                accumulatedHeight += segmentHeight;
 
-                const layer = new ColumnLayer(this.getSubLayerProps({
+                return new ColumnLayer(this.getSubLayerProps({
                     id: `${this.props.id}-${node.scanLocation}-${type}-${index}`,
                     data: [node],
-                    getPosition: (d: NodeWithEventStats) => {
-                        // 🔥 모든 세그먼트를 절대 높이 0에서 시작하도록 강제
-                        return [d.coord[0], d.coord[1], 0];
-                    },
+                    
+                    // ✨ 3. getPosition의 z값(높이)에 baseHeight를 사용합니다.
+                    //    이제 각 막대는 이전 막대의 꼭대기에서 시작됩니다.
+                    getPosition: (d: NodeWithEventStats) => [d.coord[0], d.coord[1], baseHeight],
+                    
                     getElevation: segmentHeight,
                     getFillColor: ANOMALY_TYPE_COLORS[type as AnomalyType] || DEFAULT_COLOR,
-                    radiusUnits: 'meters',
                     radius: actualRadius,
                     pickable: true,
                     coverage: 0.9,
                 }));
 
-                // 🔥 다음 세그먼트를 위해 높이를 누적 (현재 스케일 기준)
-                currentAccumulatedHeight += segmentHeight;
-                return layer;
             }).filter((layer): layer is ColumnLayer => layer !== null);
         });
     }

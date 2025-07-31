@@ -45,7 +45,6 @@ import { MergeTrip } from './SupplyChainDashboard';
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 // 애니메이션 설정
-const ANIMATION_SPEED = 200; // 속도 조절
 const TARGET_ANIMATION_DURATION_SECONDS = 15;
 
 // 3D 모델 파싱 (DeckGL에서 사용할 수 있도록 준비)
