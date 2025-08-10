@@ -40,6 +40,8 @@ const formatNumberCompact = (num: number): string => {
 export default function FactoryDetailView({ factoryName, kpiData }: FactoryDetailViewProps) {
     const anomalyPercentage = kpiData.anomalyRate * 100;
 
+    
+
     return (
         <div className="bg-[rgba(40,40,40)] p-6 rounded-3xl shadow-lg flex flex-col">
 

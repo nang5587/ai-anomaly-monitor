@@ -166,6 +166,21 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [routeGeometries, loadGeometries]);
 
+    // ✨ [추가] 선택된 파일이 변경될 때마다 해당 파일의 공장 이름을 찾아 selectedFactoryNameAtom을 업데이트합니다.
+    useEffect(() => {
+        // 이 로직은 uploadHistory가 업데이트된 후에 실행되어야 정확합니다.
+        if (selectedFileId && uploadHistory.length > 0) {
+            const selectedFile = uploadHistory.find(file => file.fileId === selectedFileId);
+            if (selectedFile?.locationId && factoryCodeNameMap[selectedFile.locationId]) {
+                setSelectedFactoryName(factoryCodeNameMap[selectedFile.locationId]);
+            } else {
+                setSelectedFactoryName('정보 없음'); // 매핑되는 공장이 없는 경우
+            }
+        } else if (!selectedFileId) {
+            setSelectedFactoryName(null); // 선택된 파일이 없으면 이름도 null로 설정
+        }
+    }, [selectedFileId, uploadHistory, setSelectedFactoryName]);
+
     useEffect(() => {
         // 사용자 정보가 로드될 때까지 기다립니다.
         if (isAuthLoading) return;
