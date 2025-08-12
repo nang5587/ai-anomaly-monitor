@@ -8,7 +8,6 @@ import type { FileItem } from '@/types/file';
 import type { JoinFormData } from '@/types/join';
 
 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
 if (!baseURL) {
     throw new Error('NEXT_PUBLIC_BACKEND_URL 환경변수를 찾을 수 없습니다.');
 }
