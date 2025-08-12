@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📂 Portfolio
 
-## Getting Started
+> 제 포트폴리오를 PDF와 PPT 버전으로 제공합니다.  
+> 아래 버튼 또는 미리보기를 클릭해 확인하세요.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 📄 바로가기
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+<a href="./포트폴리오v1.pdf" target="_blank">
+  <img src="https://img.shields.io/badge/PDF-포트폴리오-red?style=for-the-badge&logo=adobeacrobatreader" />
+</a>
+<a href="./포트폴리오v1.pptx" target="_blank">
+  <img src="https://img.shields.io/badge/PPT-포트폴리오-orange?style=for-the-badge&logo=microsoftpowerpoint" />
+</a>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🖼 미리보기
 
-## Learn More
+[![포트폴리오 미리보기](./preview.png)](./포트폴리오v1.pdf)
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📌 파일 설명
+- **`포트폴리오v1.pdf`** → 웹에서 바로 확인 가능  
+- **`포트폴리오v1.pptx`** → 다운로드 후 확인 가능  
+- **`preview.png`** → 포트폴리오 일부 페이지 캡처 이미지
