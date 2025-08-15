@@ -1,7 +1,6 @@
 import React from 'react';
 import { LocationNode } from '../../types/data';
 
-// 노드 타입별 SVG 아이콘 컴포넌트
 export const NodeIcon: React.FC<{ type: LocationNode['businessStep'] }> = ({ type }) => {
     const style = { width: '70%', height: '70%', fill: 'white' };
     switch (type) {
@@ -40,7 +39,6 @@ export const NodeIcon: React.FC<{ type: LocationNode['businessStep'] }> = ({ typ
     }
 };
 
-// 아이콘의 고도를 계산하는 함수
 export const getIconAltitude = (node: LocationNode): number => {
     const BUILDING_TOP_Z = 100;
     return BUILDING_TOP_Z;

@@ -18,7 +18,7 @@ export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
 export interface TripEndpoint {
     scanLocation: string;
     coord: [number, number];
-    eventTime: number; // 더미 데이터에서는 Unix 타임스탬프(초)를 사용합니다.
+    eventTime: number; 
     businessStep: string;
 }
 
@@ -58,14 +58,13 @@ export interface InventoryDistributionResponse {
     inventoryDistribution: InventoryDataPoint[];
 }
 
-// ✨ 최종 확정된 필터 옵션 타입
 export interface FilterOptions {
     scanLocations: string[];
-    eventTimeRange: [string, string]; // [min, max] 날짜-시간 문자열 배열
+    eventTimeRange: [string, string];
     businessSteps: string[];
     productNames: string[];
     eventTypes: string[];
-    anomalyTypes: string[]; // 코드 문자열 배열
+    anomalyTypes: string[]; 
 }
 
 export interface UploadFile {
@@ -86,10 +85,10 @@ export interface ProductCount {
     total: number;
 }
 
-// 제품별 추이 응답
+
 export type ByProductResponse = ProductCount[];
 
-// 페이지네이션 없는 이상 trips 응답
+
 export interface AllAnomaliesResponse {
     data: AnalyzedTrip[];
 }

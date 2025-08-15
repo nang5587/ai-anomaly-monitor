@@ -1,24 +1,19 @@
-// src/app/report/AnomalyDashboardPage.tsx
-
 'use client';
 
 import { useMemo } from "react";
 import dynamic from 'next/dynamic';
 
-// 차트 컴포넌트 동적 import
 const DynamicAnomalyChart = dynamic(() => import('@/components/dashboard/AnomalyEventsChart'), { ssr: false });
 const DynamicStageLollipopChart = dynamic(() => import('./StageLollipopChart'), { ssr: false });
 const DynamicProductChart = dynamic(() => import('./ProductAnomalyChart'), { ssr: false });
 const DynamicTimelineChart = dynamic(() => import('./AnomalyTimelineChart'), { ssr: false });
 
-// 필요한 타입들을 import 합니다.
 import { KpiSummary } from "@/types/api";
 import { ByProductResponse } from "@/types/data";
 import { StageBarDataPoint } from '@/types/chart';
 import { INSIGHTS_TEMPLATES, ACTION_ITEMS_TEMPLATES } from './Templates'
 import { AnomalyType } from "@/types/api";
 
-// --- 타입 정의 ---
 interface AnomalyChartPoint {
     name: string;
     type: AnomalyType;
@@ -37,7 +32,6 @@ interface AnomalyDashboardProps {
     mostAffectedProduct: string;
 }
 
-// 보고서용 KPI 카드 - 더 컴팩트하게 수정
 const ReportKpiCard = ({ title, value, description }: { title: string; value: string; description?: string }) => (
     <div
         style={{
@@ -67,7 +61,6 @@ const ReportKpiCard = ({ title, value, description }: { title: string; value: st
     </div>
 );
 
-// --- 메인 컴포넌트 ---
 export default function AnomalyDashboardPage({
     kpiData,
     anomalyChartData,
@@ -77,7 +70,6 @@ export default function AnomalyDashboardPage({
     mostProblematicRoute,
     mostAffectedProduct,
 }: AnomalyDashboardProps) {
-    // 프론트엔드에서 계산해야 하는 추가적인 KPI
     const mostFrequentAnomaly = useMemo(() => {
         if (!anomalyChartData || anomalyChartData.length === 0) {
             return { type: null, name: 'N/A', count: 0 };
@@ -102,13 +94,12 @@ export default function AnomalyDashboardPage({
                 display: 'flex',
                 flexDirection: 'column',
                 fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                padding: '10mm', // 더 작은 여백
+                padding: '10mm',
                 boxSizing: 'border-box',
                 pageBreakAfter: 'always',
                 breakAfter: 'page'
             }}
         >
-            {/* 헤더 - 더 컴팩트하게 */}
             <header style={{ marginBottom: '16px', flexShrink: 0 }}>
                 <h1
                     style={{
@@ -123,8 +114,6 @@ export default function AnomalyDashboardPage({
                     Ⅰ. 이상 탐지 요약
                 </h1>
             </header>
-
-            {/* 메인 콘텐츠 - 공간 최적화 */}
             <main
                 style={{
                     flex: 1,
@@ -134,7 +123,6 @@ export default function AnomalyDashboardPage({
                     overflow: 'hidden'
                 }}
             >
-                {/* 1. 핵심 요약 지표 (KPIs) - 더 컴팩트하게 */}
                 <section style={{ flexShrink: 0 }}>
                     <h2
                         style={{
@@ -176,8 +164,6 @@ export default function AnomalyDashboardPage({
                         />
                     </div>
                 </section>
-
-                {/* 2. 분석 요약 - 더 컴팩트하게 */}
                 <section style={{ flexShrink: 0 }}>
                     <h2
                         style={{
@@ -219,8 +205,6 @@ export default function AnomalyDashboardPage({
                         </ul>
                     </div>
                 </section>
-
-                {/* 3. 시각화 섹션 - 남은 공간 모두 활용 */}
                 <section
                     style={{
                         display: 'grid',
@@ -228,10 +212,9 @@ export default function AnomalyDashboardPage({
                         gridTemplateRows: 'repeat(2, 1fr)',
                         gap: '8px',
                         flex: 1,
-                        minHeight: '100mm' // 최소 높이 보장으로 차트 영역 확대
+                        minHeight: '100mm'
                     }}
                 >
-                    {/* 차트 1 */}
                     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
                         <h3
                             style={{
@@ -304,8 +287,6 @@ export default function AnomalyDashboardPage({
                             <DynamicStageLollipopChart data={stageChartData} />
                         </div>
                     </div>
-
-                    {/* 차트 3 */}
                     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
                         <h3
                             style={{
@@ -341,8 +322,6 @@ export default function AnomalyDashboardPage({
                             <DynamicProductChart data={productAnomalyData} />
                         </div>
                     </div>
-
-                    {/* 차트 4 */}
                     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '0' }}>
                         <h3
                             style={{
@@ -380,8 +359,6 @@ export default function AnomalyDashboardPage({
                     </div>
                 </section>
             </main>
-
-            {/* 푸터 - 더 컴팩트하게 */}
             <footer
                 style={{
                     marginTop: '8px',
@@ -392,7 +369,6 @@ export default function AnomalyDashboardPage({
                     flexShrink: 0
                 }}
             >
-
             </footer>
         </div>
     );

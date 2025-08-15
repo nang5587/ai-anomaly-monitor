@@ -12,8 +12,6 @@ import {
     ReactNode
 } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-
-// 필요한 모든 타입과 API 함수들을 import 합니다.
 import {
     KpiSummary,
     AnalyzedTrip,
@@ -44,12 +42,9 @@ import {
 import { getAnomalyName, getAnomalyColor, ALL_ANOMALY_TYPES } from '@/types/colorUtils';
 import { StageBarDataPoint } from '../types/chart';
 
-// --- 1. 유틸리티 객체 및 상수 ---
 const factoryCodeNameMap: { [key: number]: string } = { 1: '인천공장', 2: '화성공장', 3: '양산공장', 4: '구미공장' };
 
-// --- 2. Context에 담길 값들의 타입을 정의합니다 ---
 interface DashboardContextType {
-    // 데이터 상태
     coverData: CoverReportData | null;
     kpiData: KpiSummary | null;
     anomalyTrips: AnalyzedTrip[];
@@ -57,8 +52,6 @@ interface DashboardContextType {
     inventoryData: InventoryDataPoint[];
     nodes: LocationNode[];
     productAnomalyData: ByProductResponse;
-
-    // 계산된 차트 데이터
     anomalyChartData: any[];
     stageChartData: StageBarDataPoint[];
     eventTimelineData: any[];
@@ -66,8 +59,6 @@ interface DashboardContextType {
         mostProblematicRoute: string;
         mostAffectedProduct: string;
     };
-
-    // 로딩, 필터, 페이지네이션 상태
     isLoading: boolean;
     isFetchingMore: boolean;
     nextCursor: string | null;
@@ -77,17 +68,10 @@ interface DashboardContextType {
     selectedFileName: string | null;
     isAuthLoading: boolean;
     user: User | null;
-
     minTime: number;
     maxTime: number;
-
-    // UI 상태
     isHistoryModalOpen: boolean;
-
-    // 계산된 값
     viewProps: { factoryName: string | null };
-
-    // 함수 (액션)
     handleFileSelect: (fileId: number) => void;
     handleLoadMore: () => Promise<void>;
     clearFilters: () => void;
@@ -95,16 +79,12 @@ interface DashboardContextType {
     closeHistoryModal: () => void;
 }
 
-// --- 3. Context 생성 ---
 export const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
-// --- 4. Provider 컴포넌트 생성 ---
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-
-    // --- 데이터 상태 ---
     const [coverData, setCoverData] = useState<CoverReportData | null>(null);
     const [kpiData, setKpiData] = useState<KpiSummary | null>(null);
     const [anomalyTrips, setAnomalyTrips] = useState<AnalyzedTrip[]>([]);
@@ -114,20 +94,17 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [productAnomalyData, setProductAnomalyData] = useState<ByProductResponse>([]);
     const [uploadHistory, setUploadHistory] = useState<FileItem[]>([]);
 
-    // --- 로딩 및 필터 상태 ---
     const [isLoading, setIsLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
 
-    // --- Jotai 상태 ---
     const [selectedFileId, setSelectedFileId] = useAtom(selectedFileIdAtom);
     const [selectedFactoryName, setSelectedFactoryName] = useAtom(selectedFactoryNameAtom);
     const routeGeometries = useAtomValue(routeGeometriesAtom);
     const loadGeometries = useSetAtom(loadRouteGeometriesAtom);
 
-    // --- Computed Values ---
     const viewProps = useMemo(() => {
         return { factoryName: selectedFactoryName };
     }, [selectedFactoryName]);
@@ -157,21 +134,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [allTripsForMap]);
 
-    // --- RouteGeometries 로딩 ---
     useEffect(() => {
         if (!routeGeometries) {
             loadGeometries();
         }
     }, [routeGeometries, loadGeometries]);
 
-    // --- 데이터 로딩 로직 ---
     useEffect(() => {
-        // 초기화 완료, 사용자 정보, 라우트 지오메트리가 모두 준비되어야 함
         if (!user || !routeGeometries) {
             return;
         }
-
-        // selectedFileId가 유효한 숫자일 때만 데이터 로드
         if (typeof selectedFileId === 'number') {
             const loadData = async () => {
                 setIsLoading(true);
@@ -187,7 +159,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                         getTrips({ ...params, limit: 50 }),
                         getAnomalyCountsByProduct(params),
                     ];
-
                     const [
                         coverRes,
                         kpiRes,
@@ -197,21 +168,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                         allTripsRes,
                         productAnomalyRes
                     ] = await Promise.all(apiCalls);
-
                     setCoverData(coverRes);
                     setKpiData(kpiRes);
                     setInventoryData(inventoryRes.inventoryDistribution);
                     setNodes(nodesRes);
-                    const mergedAnomalyTrips = await mergeAndGenerateTimestamps(anomaliesRes.data, routeGeometries, /* Jotai set 함수 */);
-                    // setAnomalyTrips(mergeAndGenerateTimestamps(anomaliesRes.data, routeGeometries));
+                    const mergedAnomalyTrips = await mergeAndGenerateTimestamps(anomaliesRes.data, routeGeometries);
                     setNextCursor(anomaliesRes.nextCursor);
                     setAllTripsForMap(mergeAndGenerateTimestamps(allTripsRes.data, routeGeometries));
                     setProductAnomalyData(productAnomalyRes);
-
-                    console.log('데이터 로딩 완료:', params);
                 } catch (error) {
                     console.error("데이터 로딩 실패:", error);
-                    // 에러 시 상태 초기화
                     setCoverData(null);
                     setKpiData(null);
                     setAnomalyTrips([]);
@@ -224,10 +190,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     setIsLoading(false);
                 }
             };
-
             loadData();
         } else {
-            // selectedFileId가 없으면 상태 초기화
             if (!searchParams.get('fileId')) {
                 setIsLoading(false);
                 setCoverData(null);
@@ -242,13 +206,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user, selectedFileId, routeGeometries]);
 
-    // --- 차트 데이터 계산 ---
     const { anomalyChartData, stageChartData, eventTimelineData } = useMemo(() => {
         if (isLoading || !nodes.length || !anomalyTrips.length) {
             return { anomalyChartData: [], stageChartData: [], eventTimelineData: [] };
         }
-
-        // 1. 이상 탐지 유형별 건수 계산
         const countsByType = anomalyTrips.reduce((acc, trip) => {
             trip.anomalyTypeList?.forEach(code => { acc[code] = (acc[code] || 0) + 1; });
             return acc;
@@ -265,7 +226,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             };
         });
 
-        // 2. 공급망 단계별 이상 건수 계산
         const STAGES = [
             { from: 'Factory', to: 'WMS', name: '공장 → 창고' },
             { from: 'WMS', to: 'LogiHub', name: '창고 → 물류' },
@@ -285,7 +245,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             };
         });
 
-        // 3. 요일별 이상 발생 추이 계산
         const dayOfWeekData = [
             { day: '월', count: 0 }, { day: '화', count: 0 }, { day: '수', count: 0 },
             { day: '목', count: 0 }, { day: '금', count: 0 }, { day: '토', count: 0 },
@@ -317,21 +276,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [anomalyTrips, nodes, isLoading]);
 
-    // --- 콜백 함수들 ---
     const handleLoadMore = useCallback(async () => {
         if (!nextCursor || isFetchingMore || !selectedFileId) return;
-
         setIsFetchingMore(true);
-
         const params = {
             cursor: nextCursor,
             limit: 50,
             fileId: selectedFileId,
         };
-
         try {
             const response = await getAnomalies(params);
-
             if (response.data && response.data.length > 0) {
                 const newMergedTrips = mergeAndGenerateTimestamps(response.data, routeGeometries);
                 setAnomalyTrips(prevTrips => [...prevTrips, ...newMergedTrips]);
@@ -356,7 +310,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         try {
             const fullHistoryData = await getFiles_client();
             const recentHistory = fullHistoryData.slice(0, 5);
-
             setUploadHistory(recentHistory);
             setIsHistoryModalOpen(true);
         } catch (error) {
@@ -369,31 +322,24 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             alert("로그인 정보가 필요합니다.");
             return;
         }
-
         const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
         router.push(`/${role}/report?fileId=${fileId}`);
     }, [router, user]);
 
     const calculatedReportKpis = useMemo(() => {
-        // 최다 발생 구간 계산
         const routeCounts = anomalyTrips.reduce((acc, trip) => {
             const route = `${trip.from.scanLocation} → ${trip.to.scanLocation}`;
             acc[route] = (acc[route] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
-
         const mostProblematicRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-
-        // 최다 발생 제품 계산
         const mostAffectedProduct = [...productAnomalyData].sort((a, b) => b.total - a.total)[0]?.productName || 'N/A';
-
         return {
             mostProblematicRoute,
             mostAffectedProduct
         };
     }, [anomalyTrips, productAnomalyData]);
 
-    // --- Context 값 ---
     const value: DashboardContextType = {
         user, isAuthLoading, coverData,
         kpiData, anomalyTrips, allTripsForMap, inventoryData, nodes, productAnomalyData,

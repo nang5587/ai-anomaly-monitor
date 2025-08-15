@@ -1,7 +1,7 @@
 'use client';
 
 import Lottie from 'lottie-react';
-import animationData from '@/assets/logistics.json'; // json 경로는 실제 위치에 맞게
+import animationData from '@/assets/logistics.json';
 
 export default async function LottieCollage() {
     return (

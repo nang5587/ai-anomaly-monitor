@@ -21,16 +21,15 @@ import {
     visibleTripsAtom,
     replayTriggerAtom,
     loadInitialDataAtom,
-    loadTripsDataAtom, // ✨ trips 로딩 액션 import
+    loadTripsDataAtom,
     selectedFileIdAtom,
 } from '@/stores/mapDataAtoms';
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const TARGET_ANIMATION_DURATION_SECONDS = 15;
-// 위젯용 View State는 고정값으로 사용
 const WIDGET_VIEW_STATE = {
     longitude: 127.9,
     latitude: 36,
-    zoom: 6.8, // 전체를 조망하기 좋게 살짝 더 줌아웃
+    zoom: 6.8,
     pitch: 10,
     bearing: 0,
 };
@@ -67,15 +66,14 @@ const getTripColor = (trip: MergeTrip, options: { opacity: number }): Color => {
 };
 const getTripAnimationColor = (trip: MergeTrip): Color => {
     const isAnomalous = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
-    return isAnomalous ? [255, 64, 64] : [0, 255, 127]; // 초록색 대신 흰색으로 변경해도 좋습니다.
+    return isAnomalous ? [255, 64, 64] : [0, 255, 127];
 };
 
 export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWidgetClick }) => {
     const searchParams = useSearchParams();
     const loadInitialData = useSetAtom(loadInitialDataAtom);
-    const loadTrips = useSetAtom(loadTripsDataAtom); // ✨ trips 로딩 액션 추가
+    const loadTrips = useSetAtom(loadTripsDataAtom);
     const setSelectedFileId = useSetAtom(selectedFileIdAtom);
-
     const nodes = useAtomValue(nodesAtom);
     const analyzedTrips = useAtomValue(visibleTripsAtom);
     const replayTrigger = useAtomValue(replayTriggerAtom);
@@ -85,10 +83,8 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
         if (fileIdFromUrl) {
             const fileId = Number(fileIdFromUrl);
             setSelectedFileId(fileId);
-
-            // 초기 데이터(노드)와 함께 Trip 데이터도 로딩합니다.
             loadInitialData();
-            loadTrips(); // ✨ 이 호출이 핵심입니다!
+            loadTrips();
         }
     }, [searchParams, setSelectedFileId, loadInitialData, loadTrips]);
 
@@ -107,13 +103,11 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
     const animationSpeed = useMemo(() => {
         const totalDuration = maxTime - minTime;
         if (totalDuration <= 0) return 0;
-        const totalFrames = TARGET_ANIMATION_DURATION_SECONDS * 60; // 60fps 기준
+        const totalFrames = TARGET_ANIMATION_DURATION_SECONDS * 60;
         return totalDuration / totalFrames;
     }, [minTime, maxTime]);
 
-    // ✨ 4. 안정적인 애니메이션을 위한 useEffect 수정
     useEffect(() => {
-        // 애니메이션을 시작할 조건이 아니면 중단
         if (animationSpeed === 0) {
             setCurrentTime(minTime);
             return;
@@ -123,18 +117,15 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
             setCurrentTime(time => {
                 const newTime = time + animationSpeed;
                 if (newTime >= maxTime) {
-                    // 애니메이션이 끝나면 처음부터 다시 시작
                     return minTime;
                 }
                 return newTime;
             });
             animationFrameRef.current = requestAnimationFrame(animate);
         };
-
-        setCurrentTime(minTime); // 시간 초기화
+        setCurrentTime(minTime);
         animationFrameRef.current = requestAnimationFrame(animate);
 
-        // 클린업 함수
         return () => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
@@ -157,7 +148,6 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
         );
     }
 
-    // 데이터 로딩은 끝났지만, 실제 데이터가 0건일 때의 처리
     if (analyzedTrips.length === 0) {
         return (
             <div className="w-full h-full rounded-3xl bg-neutral-900 flex items-center justify-center">
@@ -166,7 +156,6 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
         )
     }
 
-    // 메쉬 레이어들 (상호작용 제거)
     const otherMeshLayers = Object.keys(OTHER_MODEL_MAPPING).map(type => {
         const filteredNodes = otherNodes.filter(node => node.businessStep === type);
         if (filteredNodes.length === 0) return null;
@@ -180,7 +169,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
             getOrientation: [-90, 0, 0],
             sizeScale: 50,
             getTranslation: [0, 0, 50],
-            pickable: false, // 위젯에서는 클릭/호버 비활성화
+            pickable: false,
             material
         });
     }).filter(Boolean);
@@ -195,14 +184,12 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
             getOrientation: [-90, 180, 0],
             sizeScale: 50,
             getTranslation: [0, 0, 50],
-            pickable: false, // 위젯에서는 클릭/호버 비활성화
+            pickable: false,
             material
         }),
     ];
 
-    // 모든 레이어를 합침
     const layers = [
-        // 정적 연결선 레이어 (선택 하이라이트 로직 제거)
         new PathLayer<MergeTrip>({
             id: 'widget-static-paths',
             data: analyzedTrips,
@@ -210,10 +197,8 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
             getColor: d => getTripColor(d, { opacity: 30 }),
             widthMinPixels: 3,
         }),
-        // 건물 및 굴뚝 레이어
         ...otherMeshLayers,
         ...factoryLayers,
-        // 동적 이동 애니메이션 레이어
         new TripsLayer<MergeTrip>({
             id: 'widget-trips-layer',
             data: analyzedTrips,
@@ -242,7 +227,7 @@ export const SupplyChainMapWidget: React.FC<SupplyChainMapWidgetProps> = ({ onWi
                 <DeckGL
                     layers={layers}
                     initialViewState={WIDGET_VIEW_STATE}
-                    controller={false} // 지도 컨트롤(줌, 이동) 비활성화
+                    controller={false}
                 >
                     <Map
                         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}

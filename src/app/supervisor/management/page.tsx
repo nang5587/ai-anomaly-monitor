@@ -14,7 +14,8 @@ export default async function page() {
                     </div>
                 </div>
                 <div className="flex justify-center">
-                    <UserManagementClient initialUsers={users} />
+                    {/* <UserManagementClient initialUsers={users} /> */}
+                    <UserManagementClient />
                 </div>
             </div>
         </div>

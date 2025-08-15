@@ -3,14 +3,13 @@
 import { MousePointerClick, ZoomIn, Orbit } from 'lucide-react';
 
 interface TutorialOverlayProps {
-    onClose: () => void; // 닫기 함수를 prop으로 받음
+    onClose: () => void;
 }
 
 const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onClose }) => {
     return (
-        // 전체 화면을 덮는 반투명 배경
         <div
-            onClick={onClose} // 클릭 시 닫기 함수 호출
+            onClick={onClose} 
             style={{
                 position: 'absolute',
                 top: 0,
@@ -23,7 +22,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onClose }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                zIndex: 1000, // 다른 UI 요소들 위에 보이도록 z-index를 높게 설정
+                zIndex: 1000,
                 cursor: 'pointer',
                 textAlign: 'center',
                 fontFamily: 'sans-serif',
@@ -60,8 +59,6 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onClose }) => {
                     (아무 곳이나 클릭하면 이 가이드가 사라집니다)
                 </p>
             </div>
-
-            {/* 간단한 CSS 애니메이션을 위한 스타일 태그 */}
             <style jsx>{`
                 @keyframes fadeIn {
                 from { opacity: 0; transform: translateY(20px); }

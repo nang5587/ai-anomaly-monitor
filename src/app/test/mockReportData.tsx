@@ -1,8 +1,3 @@
-// lib/mockReportData.ts
-
-// 이 파일은 ReportView 컴포넌트 테스트를 위한 가짜 데이터를 정의합니다.
-// 실제 데이터 구조와 최대한 비슷하게 만듭니다.
-
 export const mockCoverData = {
     fileName: "테스트용-리포트.csv",
     userName: "테스터",

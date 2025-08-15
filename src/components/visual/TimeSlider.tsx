@@ -31,15 +31,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
 
     const renderTooltip = () => {
         if (!tooltip) return null;
-
         const { anomalyTypeList } = tooltip.trip;
         const hasAnomalies = anomalyTypeList && anomalyTypeList.length > 0;
-
-        // 대표 색상은 첫 번째 이상 유형으로 결정
         const representativeColor = hasAnomalies ? pastelColorMap[anomalyTypeList[0]] : pastelColorMap['default'];
         const bgColor = `${representativeColor}26`;
         const textColor = representativeColor;
-
         return (
             <div style={{
                 position: 'fixed', top: tooltip.top, left: tooltip.left,
@@ -48,13 +44,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 pointerEvents: 'none', zIndex: 100, whiteSpace: 'nowrap',
                 border: `1px solid ${representativeColor}80`, backdropFilter: 'blur(4px)',
             }}>
-                {/* 여러 이상 유형의 이름을 쉼표로 구분하여 표시 */}
                 {hasAnomalies ? anomalyTypeList.map(getAnomalyName).join(', ') : '정상'}
             </div>
         );
     };
 
-    // ✨ 여러 색상을 가진 파이 차트 형태의 마커를 생성하는 컴포넌트
     const AnomalyMarker = ({ anomalyTypes }: { anomalyTypes: AnomalyType[] }) => {
         if (!anomalyTypes || anomalyTypes.length === 0) {
             return <div style={{ width: '15px', height: '15px', background: pastelColorMap['default'], borderRadius: '50%' }} />;
@@ -62,14 +56,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
         if (anomalyTypes.length === 1) {
             return <div style={{ width: '15px', height: '15px', background: pastelColorMap[anomalyTypes[0]], borderRadius: '50%' }} />;
         }
-
-        // 여러 색상을 conic-gradient로 표현
         const colorStops = anomalyTypes.map((type, index) => {
             const startAngle = (index / anomalyTypes.length) * 360;
             const endAngle = ((index + 1) / anomalyTypes.length) * 360;
             return `${pastelColorMap[type]} ${startAngle}deg ${endAngle}deg`;
         });
-
         return (
             <div style={{
                 width: '15px',
@@ -124,7 +115,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 position: 'absolute',
                 bottom: '30px',
                 left: '1%',
-                right: '1%', // 오른쪽 범례와 겹치지 않도록
+                right: '1%',
                 padding: '15px 20px',
                 color: 'white',
                 fontFamily: 'sans-serif',
@@ -132,8 +123,8 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 display: 'flex',
                 alignItems: 'center',
                 gap: '20px',
-                background: 'rgba(40, 40, 40)', // 배경 추가
-                backdropFilter: 'blur(10px)',       // 블러 효과 추가
+                background: 'rgba(40, 40, 40)', 
+                backdropFilter: 'blur(10px)',   
                 borderRadius: '25px',
             }}>
                 <button className="play-pause-btn" onClick={onTogglePlay}>
@@ -143,11 +134,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
                     )}
                 </button>
-
-                {/* ✨ 5. 마커와 슬라이더를 담을 컨테이너 */}
                 <div style={{ flexGrow: 1, position: 'relative', height: '15px', display: 'flex', alignItems: 'center' }}>
-
-                    {/* ✨ 6. 마커들을 렌더링하는 부분 */}
                     {anomalies.map((trip, index) => {
                         const positionPercent = ((trip.from.eventTime - minTime) / duration) * 100;
                         return (
@@ -183,7 +170,6 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     <strong style={{ color: 'white' }}>{formatUnixTimestamp(currentTime)}</strong>
                 </div>
             </div>
-
             {renderTooltip()}
         </>
     );

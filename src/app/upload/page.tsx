@@ -69,7 +69,7 @@ export default function BarcodeLogUploadPage() {
       return;
     }
     if (stompClientRef.current && stompClientRef.current.active) {
-      return; // 이미 연결됨
+      return;
     }
     const wsUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/webSocket?token=${currentToken}`;
     const client = new Client({
@@ -84,16 +84,12 @@ export default function BarcodeLogUploadPage() {
         const messageText = message.body;
         console.log("📬 WebSocket 메시지 수신:", messageText);
 
-        // --- 1. 최종 상태 (성공 또는 실패)를 먼저 확인합니다. ---
-
-        // 성공 메시지 처리
         if (messageText.includes("완료되었습니다") || messageText.includes("재전송 성공")) {
           setStatusBar({ visible: true, status: 'success', progress: 1, message: messageText });
           setIsResendError(false);
-          return; // 여기서 처리 종료
+          return;
         }
 
-        // 재전송 가능 오류 메시지 처리
         if (messageText.includes("재전송 시간이 너무 오래 걸려") || messageText.includes("재전송 중 알 수 없는 오류")) {
           if (isCsvSaveCompleted) {
             setStatusBar({ visible: true, status: 'error', progress: 1, message: messageText });
@@ -102,25 +98,19 @@ export default function BarcodeLogUploadPage() {
             setStatusBar({ visible: true, status: 'error', progress: 1, message: "AI 모듈 처리 전 오류가 발생했습니다. 파일을 다시 업로드해주세요." });
             setIsResendError(false);
           }
-          return; // 여기서 처리 종료
+          return;
         }
 
-        // 일반 오류 메시지 처리
         if (messageText.includes("오류 발생") || messageText.includes("실패") || messageText.includes("중단되었습니다")) {
           setStatusBar({ visible: true, status: 'error', progress: 1, message: messageText });
           setIsResendError(false);
-          return; // 여기서 처리 종료
+          return;
         }
 
-
-        // --- 2. 위에서 걸러지지 않았다면, 진행 중인 상태로 간주합니다. ---
-
-        // "CSV 저장 완료" 메시지를 받으면 isCsvSaveCompleted 상태를 업데이트
         if (messageText.includes("CSV 저장 완료")) {
           setIsCsvSaveCompleted(true);
         }
 
-        // 진행 단계별로 progress 세분화
         let progress = 0;
         if (messageText.includes("파일 업로드 시작")) progress = 0.1;
         else if (messageText.includes("CSV 저장 완료")) progress = 0.2;
@@ -130,14 +120,12 @@ export default function BarcodeLogUploadPage() {
         else if (messageText.includes("이상 종류 판별 생성 중")) progress = 0.7;
         else if (messageText.includes("KPI 분석 생성 중")) progress = 0.8;
         else if (messageText.includes("통계 데이터 생성 중")) progress = 0.9;
-        // 그 외 모르는 진행 메시지는 progress를 변경하지 않음
 
-        // 최종적으로 진행 상태를 한 번만 업데이트합니다.
         setStatusBar(prev => ({
           ...prev,
-          status: 'uploading', // 진행 중 상태
-          message: messageText, // 최신 메시지로 업데이트
-          progress: progress > 0 ? Math.max(prev.progress, progress) : prev.progress // progress가 0이면 이전 값 유지
+          status: 'uploading',
+          message: messageText,
+          progress: progress > 0 ? Math.max(prev.progress, progress) : prev.progress
         }));
       });
     };
@@ -156,7 +144,6 @@ export default function BarcodeLogUploadPage() {
   };
 
   useEffect(() => {
-    // 컴포넌트 언마운트 시 WebSocket 연결 해제
     return () => {
       if (stompClientRef.current?.active) {
         stompClientRef.current.deactivate();
@@ -214,10 +201,7 @@ export default function BarcodeLogUploadPage() {
       message: '파일 분석 중...',
       progress: 0,
     });
-
     setErrors([]);
-
-    // 상태 초기화
     setPreviewRows([]);
     setPreviewCols([]);
     setCurrentPage(1);
@@ -339,25 +323,19 @@ export default function BarcodeLogUploadPage() {
 
       let messageForStatus = resultText;
       try {
-        // 1. fetch 응답을 JSON으로 파싱합니다.
         const parsedResult = JSON.parse(resultText);
         messageForStatus = parsedResult.message || resultText;
 
-        // 2. "업로드 시작됨" 메시지에서 fileId를 추출합니다.
         if (messageForStatus.includes("업로드 시작됨. 파일 ID:")) {
-          // 정규 표현식을 사용하여 "파일 ID: " 뒤의 숫자를 찾습니다.
           const match = messageForStatus.match(/파일 ID: (\d+)/);
 
           if (match && match[1]) {
             const fileId = parseInt(match[1], 10);
             console.log(`✅ 파일 ID (${fileId}) 추출 성공! Atom에 저장합니다.`);
-
-            // 3. 추출한 fileId를 Jotai atom에 저장합니다.
             setSelectedFileId(fileId);
           }
         }
       } catch (e) {
-        // JSON 파싱에 실패해도 오류로 처리하지 않고, 원본 텍스트를 메시지로 사용합니다.
         console.warn("파일 전송 응답이 JSON 형식이 아닙니다:", resultText);
       }
 
@@ -365,14 +343,14 @@ export default function BarcodeLogUploadPage() {
       setStatusBar(prev => ({
         ...prev,
         message: resultText,
-        progress: 0.1, // 10%로 설정
+        progress: 0.1,
       }));
     } catch (error: any) {
       setStatusBar({
         visible: true,
         status: 'error',
         message: error.message || '업로드 요청 중 오류가 발생했습니다.',
-        progress: 1, // 실패 시 바를 꽉 채울 수도 있습니다.
+        progress: 1,
       });
     }
   };
@@ -439,24 +417,16 @@ export default function BarcodeLogUploadPage() {
 
     if (fileIdForRedirect) {
       const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
-      // ❗ STEP 4: fileId를 포함하여 대시보드 URL로 이동합니다.
       router.push(`/${role}?fileId=${fileIdForRedirect}`);
     } else {
       alert("분석이 완료된 파일 정보가 없습니다. 잠시 후 다시 시도해주세요.");
-      // 또는 가장 최근 파일로 이동하는 로직을 추가할 수도 있습니다.
       const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
       router.push(`/${role}`);
     }
   };
 
-  // BarcodeLogUploadPage.tsx의 return 문 내부를 이 코드로 교체하세요.
-
   return (
     <div className="w-full h-full">
-      {/* 
-          업로드 페이지의 기본 UI는 항상 렌더링됩니다.
-          PreviewTable은 이 UI 위에 position: fixed로 띄워집니다.
-        */}
       <div className="w-full h-full bg-[rgba(40,40,40)] p-10">
         <div className="flex items-center mb-20 gap-4">
           <div className="flex flex-col justify-center gap-1">
@@ -466,7 +436,6 @@ export default function BarcodeLogUploadPage() {
         </div>
 
         <div className="flex justify-center">
-          {/* isLoading이 false일 때: 드래그 앤 드롭 영역 */}
           {!isLoading ? (
             <div
               className={`w-full max-w-3xl flex-1 flex flex-col justify-center items-center border-2 border-dashed rounded-lg transition-colors
@@ -499,15 +468,12 @@ export default function BarcodeLogUploadPage() {
               </div>
             </div>
           ) : (
-            /* isLoading이 true일 때: 진행 상황 및 결과 UI */
             <div className="w-full max-w-3xl text-center">
-
-              {/* 1. 미리보기 버튼 (항상 상단에 표시될 수 있음) */}
               {statusBar.status !== 'success' && (
               <div className="mb-8">
                 <button
                   onClick={() => setIsPreviewVisible(true)}
-                  disabled={!isUploaded} // isUploaded(파싱완료)가 true일 때만 활성화
+                  disabled={!isUploaded}
                   className="px-6 py-2 bg-[rgba(111,131,175)] cursor-pointer text-white font-semibold rounded-lg hover:bg-[rgba(101,121,165)] disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >
                   {isUploaded ? "업로드 파일 미리보기" : "파일 파싱 중 (미리보기 준비 중...)"}
@@ -517,10 +483,6 @@ export default function BarcodeLogUploadPage() {
                 </p>
               </div>
               )}
-
-              {/* 2. 최종 결과 UI (성공/오류/재시도) */}
-
-              {/* 재전송 오류 UI */}
               {statusBar.status === 'error' && isResendError && (
                 <div className="p-8 bg-[rgba(50,50,50)] rounded-lg shadow-lg">
                   <h2 className="text-2xl font-bold text-white mb-2">재전송 오류</h2>
@@ -535,8 +497,6 @@ export default function BarcodeLogUploadPage() {
                   </div>
                 </div>
               )}
-
-              {/* 일반 오류 UI */}
               {statusBar.status === 'error' && !isResendError && (
                 <div className="p-8 bg-[rgba(50,50,50)] rounded-lg shadow-lg">
                   <h2 className="text-2xl font-bold text-white mb-2">오류 발생</h2>
@@ -546,8 +506,6 @@ export default function BarcodeLogUploadPage() {
                   </button>
                 </div>
               )}
-
-              {/* 업로드 성공 UI */}
               {statusBar.status === 'success' && (
                 <div className="py-8 px-20 bg-[rgba(50,50,50)] rounded-4xl shadow-lg flex flex-col justify-center items-center">
                   <div className='w-1/2 mb-10'>

@@ -13,7 +13,7 @@ const FACTORY_OPTIONS: { [key: string]: string } = {
 interface ChangeFactoryModalProps {
     user: User;
     onClose: () => void;
-    onSuccess: (userId: string, newFactoryId: string) => void; // 성공 시 부모에게 알리기 위한 콜백
+    onSuccess: (userId: string, newFactoryId: string) => void;
 }
 
 export default function ChangeFactoryModal({ user, onClose, onSuccess }: ChangeFactoryModalProps) {

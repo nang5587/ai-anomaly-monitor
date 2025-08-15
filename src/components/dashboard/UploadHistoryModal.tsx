@@ -17,13 +17,13 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
     const router = useRouter();
 
     const handleItemClick = (fileId: number) => {
-        onFileSelect(fileId); // 부모 컴포넌트(DashboardProvider)에 파일 ID 전달
-        onClose();            // 모달 닫기
+        onFileSelect(fileId);
+        onClose(); 
     };
 
     const handleGoToFullHistory = () => {
-        router.push('/filelist'); // '/filelist' 경로로 이동
-        onClose(); // 이동 후 모달 닫기
+        router.push('/filelist'); 
+        onClose(); 
     };
 
     const formatFileSize = (bytes: number) => {
@@ -36,15 +36,11 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
 
     const formatDateTime = (dateTimeString: string) => {
         try {
-            // "YYYY-MM-DD HH:mm:ss" -> "YYYY-MM-DDTHH:mm:ss"
             const isoString = dateTimeString.replace(' ', 'T');
             const date = new Date(isoString);
-
-            // 유효하지 않은 날짜일 경우 원본 문자열을 그대로 반환 (방어 코드)
             if (isNaN(date.getTime())) {
                 return dateTimeString;
             }
-
             return date.toLocaleString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
@@ -54,31 +50,25 @@ export default function UploadHistoryModal({ isOpen, onClose, files, onFileSelec
                 hour12: true
             });
         } catch (e) {
-            // 예기치 않은 오류 발생 시 원본 문자열 반환
             return dateTimeString;
         }
     };
 
     return (
-        // Backdrop (모달 바깥의 어두운 배경)
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center"
             onClick={onClose}
         >
-            {/* Modal Content */}
             <div
                 className="bg-gradient-to-br from-[#2A2A2A] to-[#1E1E1E] border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
-                onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 닫히지 않도록 함
+                onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-white/10">
                     <h2 className="text-lg font-bold text-white">최근 업로드 내역</h2>
                     <button onClick={onClose} className="p-1 rounded-full text-neutral-400 hover:bg-white/10 hover:text-white">
                         <X size={20} />
                     </button>
                 </div>
-
-                {/* Body (Scrollable List) */}
                 <div className="flex-grow overflow-y-auto p-4">
                     {files.length > 0 ? (
                         <ul className="space-y-2">

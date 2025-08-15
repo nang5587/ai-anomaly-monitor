@@ -66,7 +66,7 @@ type User = {
 }
 
 export default function SupervisorDashboard() {
-  const router = useRouter();
+    const router = useRouter();
     const setActiveTab = useSetAtom(activeTabAtom);
 
     const {
@@ -99,13 +99,10 @@ export default function SupervisorDashboard() {
     } = useDashboard();
 
     const [replayTrigger, setReplayTrigger] = useState(0);
-
-    // 제품별 or 요일별
     const [isShowingProductChart, setIsShowingProductChart] = useState(true);
 
     const handleWidgetClick = (tab: Tab) => {
         setActiveTab(tab);
-        // ✨ 지도 페이지로 이동할 때도 fileId를 함께 전달합니다.
         router.push(`/map?fileId=${selectedFileId}`);
     };
 
@@ -125,10 +122,6 @@ export default function SupervisorDashboard() {
         setIsShowingProductChart(prevState => !prevState);
     };
 
-    const handleReplayAnimation = () => {
-        setReplayTrigger(prev => prev + 1);
-    };
-
     if (isAuthLoading) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
@@ -137,8 +130,6 @@ export default function SupervisorDashboard() {
         );
     }
 
-    // 2. 인증 로딩은 끝났지만, 로그인이 안 되어 있거나 권한이 없는 경우
-    // (Context에서 리다이렉션하지만, 안전장치로 남겨둠)
     if (!user) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
@@ -147,7 +138,6 @@ export default function SupervisorDashboard() {
         );
     }
 
-    // 3. 데이터 로딩 중 (kpiData가 아직 없는 초기 로딩 상태)
     if (isLoading && !kpiData) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
@@ -163,7 +153,7 @@ export default function SupervisorDashboard() {
             </div>
         );
     }
-    // kpiData가 아직 로드되지 않았지만, 로딩 중도 아닌 경우 (초기 상태 또는 파일 없음)
+
     if (!kpiData) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
@@ -171,24 +161,24 @@ export default function SupervisorDashboard() {
             </div>
         )
     }
-    // 애니메이션 정의
+
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.3, // 자식 요소들을 0.1초 간격으로 순차적으로 애니메이션합니다.
+                staggerChildren: 0.3,
             },
         },
     };
 
     const itemVariants: Variants = {
-        hidden: { y: 20, opacity: 0 }, // 아래에서 20px 밑에서 시작하고, 투명합니다.
+        hidden: { y: 20, opacity: 0 },
         visible: {
             y: 0,
             opacity: 1,
             transition: {
-                duration: 0.6, // 0.5초 동안 애니메이션됩니다.
+                duration: 0.6,
                 ease: "easeOut",
             },
         },
@@ -203,7 +193,6 @@ export default function SupervisorDashboard() {
                 files={uploadHistory}
                 onFileSelect={handleFileSelect}
             />
-            {/* --- 첫 번째 행: 상단 고정 영역 --- */}
             <motion.div
                 className="px-8 pb-6 space-y-4 "
                 variants={containerVariants}
@@ -219,7 +208,6 @@ export default function SupervisorDashboard() {
                         <motion.div variants={itemVariants}><StatCard title="총 이상 이벤트(건)" value={kpiData.anomalyCount.toString()} icon={<AlertTriangle className="text-[#E0E0E0]" />} /></motion.div>
                         <motion.div variants={itemVariants}><StatCard title="판매율(%)" value={kpiData.salesRate.toFixed(1)} icon={<TrendingUp className="text-[#E0E0E0]" />} /></motion.div>
                         <motion.div variants={itemVariants}><StatCard title="출고율(%)" value={kpiData.dispatchRate.toFixed(1)} icon={<Truck className="text-[#E0E0E0]" />} /></motion.div>
-                        {/* <motion.div variants={itemVariants}><StatCard title="전체 재고 비율(%)" value={kpiData.inventoryRate.toFixed(1)} icon={<Package className="text-[#E0E0E0]" />} /></motion.div> */}
                     </motion.div>
                 </div>
                 <motion.div variants={itemVariants} className="font-vietnam flex justify-between items-center bg-[rgba(40,40,40)] p-2 rounded-[50px]">
@@ -253,35 +241,22 @@ export default function SupervisorDashboard() {
                     initial="hidden"
                     animate="visible"
                 >
-
-                    {/* --- 메인 그리드 (3단) --- */}
-                    {/* ✨ 3. 그리드에서 모든 고정 높이 스타일을 제거합니다. */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                        {/* 1열: 공장 상세 뷰 */}
                         <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
                             <FactoryDetailView
-                                factoryName={viewProps.factoryName} // 탭 대신 단일 공장 이름 전달
+                                factoryName={viewProps.factoryName}
                                 kpiData={kpiData}
                             />
                         </motion.div>
-
-                        {/* 2열: 중앙 분석 패널 */}
                         <motion.div variants={itemVariants} className="lg:col-span-6 h-full flex flex-col">
                             <div className="grid grid-cols-2 gap-6 h-full">
-
-                                {/* --- 왼쪽 열 --- */}
                                 <div className="flex flex-col gap-6">
-
-                                    {/* 1. 이상 탐지 유형별 건수 */}
                                     <div className="bg-[#E0E0E0] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
                                         <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 탐지 유형별 건수</h3>
                                         <div className="flex-grow overflow-hidden">
                                             <DynamicAnomalyChart data={anomalyChartData} />
                                         </div>
                                     </div>
-
-                                    {/* 2. 시간대별 이상 발생 추이 */}
                                     <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[260px] flex flex-col flex-grow">
                                         <div className="flex justify-between items-center px-3 pb-3 mb-2 flex-shrink-0">
                                             <h3 className="font-noto-400 text-white text-xl">
@@ -303,21 +278,14 @@ export default function SupervisorDashboard() {
                                             )}
                                         </div>
                                     </div>
-
                                 </div>
-
-                                {/* --- 오른쪽 열 --- */}
                                 <div className="flex flex-col gap-6">
-
-                                    {/* 3. 공급망 */}
                                     <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[260px] flex flex-col flex-grow">
                                         <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트</h3>
                                         <div className="flex-grow overflow-hidden">
                                             <DynamicStageLollipopChart data={stageChartData} />
                                         </div>
                                     </div>
-
-                                    {/* 4. 유형별 재고 분산 */}
                                     <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
                                         <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
                                         <div className="flex-grow overflow-hidden">
@@ -328,16 +296,12 @@ export default function SupervisorDashboard() {
 
                             </div>
                         </motion.div>
-
-                        {/* 3열: 지도 */}
                         <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
                             <DashboardMapWidget
-                                onWidgetClick={handleWidgetClick} // 확대 버튼 핸들러
+                                onWidgetClick={handleWidgetClick}
                             />
                         </motion.div>
                     </div>
-
-                    {/* 하단 리스트 */}
                     <motion.div variants={itemVariants}>
                         <h3 className="font-noto-400 text-white text-2xl mb-4">이상 탐지 리스트</h3>
                         <div className="font-vietnam mb-20">

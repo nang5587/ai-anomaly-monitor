@@ -17,7 +17,6 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
             background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
             boxShadow: '0 0 0 1px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(6px)',
-            // borderRadius: '25px',
             borderTopRightRadius: '25px',
             borderTopLeftRadius: '25px',
             color: '#FFFFFF',
@@ -59,7 +58,6 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                             className={`p-3 mb-2 rounded-xl cursor-pointer transition-all duration-200 ease-in-out border border-transparent ${isSelected ? 'bg-neutral-700/50' : 'hover:bg-neutral-800/50'}`}
                         >
                             <div className="flex items-center justify-between mb-2">
-                                {/* ✨ 수정: 여러 개의 태그를 렌더링하기 위한 컨테이너 */}
                                 <div className="flex items-center gap-1 flex-wrap">
                                     {trip.anomalyTypeList.map((typeCode, index) => {
                                         const pastel = pastelColorMap[typeCode] || pastelColorMap['default'];
@@ -68,7 +66,7 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
 
                                         return (
                                             <span
-                                                key={`${typeCode}-${index}`} // 각 태그는 고유한 키가 필요
+                                                key={`${typeCode}-${index}`}
                                                 className="px-2 py-0.5 text-xs font-bold rounded-full"
                                                 style={{ backgroundColor: bgColor, color: textColor }}
                                             >

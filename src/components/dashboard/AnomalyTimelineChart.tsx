@@ -1,4 +1,3 @@
-// src/components/dashboard/AnomalyTimelineChart.tsx
 'use client';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 

@@ -1,16 +1,13 @@
-// src/app/login/LoginForm.tsx (새 파일)
-
-'use client'; // 이 컴포넌트는 클라이언트에서 실행됩니다.
+'use client'
 
 import { useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { loginAction } from './actions'; // 서버 액션 import
+import { loginAction } from './actions';
 import jwtDecode from 'jwt-decode';
 import { FcGoogle } from 'react-icons/fc';
 
-// 타입과 헬퍼 함수들을 여기에 다시 정의합니다.
 interface DecodedToken {
     role: string;
 }
@@ -39,7 +36,6 @@ function LoginButton() {
     );
 }
 
-// 클라이언트 로직을 담당하는 폼 컴포넌트
 export default function LoginForm() {
     const [state, formAction] = useFormState(loginAction, initialState);
     const router = useRouter();

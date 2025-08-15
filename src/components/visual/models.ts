@@ -1,4 +1,4 @@
-// 간단한 정육면체(창고, 도소매점 등) 모델 데이터 (.obj 형식)
+
 export const cubeModel = `
 # Vertices
 v -1.0 -1.0 -1.0

@@ -15,7 +15,6 @@ type AnomalyEventsChartProps = {
     data: AnomalyDataPoint[];
 };
 
-
 export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): JSX.Element {
     return (
         <ResponsiveContainer width="100%" height="100%">
@@ -45,15 +44,6 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                     )}
                 />
                 <Bar dataKey="count" barSize={60}>
-                    {/* <LabelList
-                        dataKey="count"     // 막대에 표시할 데이터의 키
-                        position="top"      // 막대의 '위쪽(top)'에 표시
-                        offset={8}          // 막대 끝에서 8px 떨어진 위치
-                        fill="rgba(40,40,40,0.8)" // 글자 색상
-                        fontSize={14}       // 글자 크기
-                        fontWeight="bold"   // 글자 굵기
-                        /> */}
-
                     {data.map((entry, index) => {
                         const type = entry.type in pastelColorMap ? entry.type : 'default';
                         return (
@@ -68,7 +58,6 @@ export default function AnomalyEventsChart({ data }: AnomalyEventsChartProps): J
                                     borderTop: "10px"
                                 }}
                             />
-
                         );
                     })}
                 </Bar>

@@ -3,13 +3,12 @@ import React, { ReactNode } from 'react';
 interface StatCardProps {
     title: string;
     value: string;
-    change?: string; // (선택) 전일 대비 변화량 등
+    change?: string;
     changeType?: 'increase' | 'decrease';
     icon?: ReactNode;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon }) => {
-
     return (
         <div className='flex items-center'>
             <div className="bg-[rgba(40,40,40)] p-8 rounded-3xl flex items-center justify-center">
@@ -20,7 +19,6 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon }) => {
                     : icon
                 }
             </div>
-
             <div className='flex flex-col pl-4'>
                 <h3 className="text-sm text-gray-300 mb-2">{title}</h3>
                 <div className='flex items-end gap-7'>

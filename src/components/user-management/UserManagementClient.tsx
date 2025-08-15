@@ -4,11 +4,9 @@ import { useState, useEffect, useMemo, useTransition } from 'react';
 import ChangeFactoryModal from './ChangeFactoryModal';
 import { toast } from 'sonner';
 import { UserPlusIcon, UserMinusIcon, TrashIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
-// ✨ 실제 API 함수만 import 합니다.
 import { updateUser, changeUserFactory, type AdminUser } from '@/api/adminApi';
 
 import { useAtomValue, useSetAtom } from 'jotai';
-// ✨ 실제 Jotai 아톰들만 import 합니다.
 import { usersAtom, usersLoadingAtom, loadUsersAtom, refetchUsersAtom } from '@/stores/userAtoms';
 
 const FACTORY_NAME_MAP: { [key: string]: string } = {
@@ -33,7 +31,6 @@ const StatusToggle = ({ isActive, onClick }: { isActive: boolean; onClick: () =>
                 className={`${isActive ? 'bg-[rgba(111,131,175)]' : 'bg-gray-500'} absolute inset-0 rounded-full`}
                 aria-hidden="true"
             />
-            {/* ✨ 핵심 수정: className 대신 style 속성을 사용합니다. */}
             <span
                 className="inline-block w-4 h-4 bg-white rounded-full transition-transform duration-200 ease-in-out"
                 style={{
@@ -47,31 +44,20 @@ const StatusToggle = ({ isActive, onClick }: { isActive: boolean; onClick: () =>
 
 type ActiveTab = 'pending' | 'active' | 'rejected' | 'del';
 
-// ⚠️ api 연동 시 env로 가서 false로 바꿔야 함
-const USE_DUMMY_DATA = process.env.NEXT_PUBLIC_USE_DUMMY_DATA === 'true';
-
-// type Props = {
-//     initialUsers: AdminUser[];
-// };
-
 export default function UserManagementClient() {
     const [activeTab, setActiveTab] = useState<ActiveTab>('pending');
     const [selectedUserForFactoryChange, setSelectedUserForFactoryChange] = useState<AdminUser | null>(null);
     const [isProcessing, startTransition] = useTransition();
 
-    // --- Jotai 상태 사용 ---
     const isLoading = useAtomValue(usersLoadingAtom);
     const allUsers = useAtomValue(usersAtom);
     const loadUsers = useSetAtom(loadUsersAtom);
     const refetchUsers = useSetAtom(refetchUsersAtom);
 
-    // ✨ 1. 컴포넌트가 마운트될 때 API로부터 데이터를 로드합니다.
     useEffect(() => {
         loadUsers();
     }, [loadUsers]);
 
-    // --- 핸들러 함수들 (API 호출로 변경) ---
-    // ✨ 핸들러의 user 타입을 AdminUser로 명확히 합니다.
     const handleUpdateUser = (user: AdminUser, updates: Partial<AdminUser>, confirmMessage: string) => {
         if (confirm(confirmMessage)) {
             startTransition(async () => {
@@ -108,7 +94,6 @@ export default function UserManagementClient() {
         });
     };
 
-    // --- 필터링 로직 (✨ 'del' 탭 조건 추가) ---
     const filteredUsers = useMemo(() => {
         if (!allUsers) return [];
         switch (activeTab) {
@@ -118,20 +103,18 @@ export default function UserManagementClient() {
                 return allUsers.filter(u => u.status === 'active' || u.status === 'inactive');
             case 'rejected':
                 return allUsers.filter(u => u.status === 'rejected');
-            case 'del': // ✨ 'del' 상태의 사용자만 필터링하는 탭
+            case 'del':
                 return allUsers.filter(u => u.status === 'del');
             default:
                 return [];
         }
     }, [activeTab, allUsers]);
 
-    // --- 렌더링 함수들 ---
     const renderTableHeader = () => {
         let actionHeader = '관리';
         if (activeTab === 'pending') actionHeader = '승인 / 거절';
         if (activeTab === 'active') actionHeader = '상태 / 삭제';
         if (activeTab === 'rejected' || activeTab === 'del') actionHeader = '복구';
-
         return (
             <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">
                 {actionHeader}
@@ -172,7 +155,6 @@ export default function UserManagementClient() {
         { id: 'del', label: '삭제된 사용자' },
     ];
 
-    // --- 최종 JSX 리턴 ---
     return (
         <div className='relative bg-[rgba(30,30,30)] p-4 sm:p-6 rounded-2xl w-full'>
             <div className="mb-6 inline-flex items-center rounded-2xl bg-[rgba(30,30,30)] p-1">
@@ -189,7 +171,6 @@ export default function UserManagementClient() {
                     <p className="text-white text-lg animate-pulse">처리 중...</p>
                 </div>
             )}
-
 
             {isLoading ? (
                 <p className='text-gray-300 p-4 text-center'>사용자 목록을 불러오는 중...</p>
@@ -220,12 +201,10 @@ export default function UserManagementClient() {
                                             <td className="px-6 py-3 whitespace-nowrap text-center text-gray-300">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <span>{FACTORY_NAME_MAP[user.locationId] || '미지정'}</span>
-
-                                                    {/* '사용자 관리' 탭이고, active/inactive 상태일 때만 아이콘 표시 */}
                                                     {(activeTab === 'active' && (user.status === 'active' || user.status === 'inactive')) && (
                                                         <button
                                                             onClick={(e) => {
-                                                                e.stopPropagation(); // 행의 다른 이벤트 방지
+                                                                e.stopPropagation();
                                                                 setSelectedUserForFactoryChange(user);
                                                             }}
                                                             className="p-1 rounded-md text-gray-400 hover:bg-white/10 hover:text-white"

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Suspense } from 'react';
 
-
 import { useAtomValue } from 'jotai';
 import { pendingUserCountAtom } from '@/stores/userAtoms';
 import { selectedFileIdAtom } from '@/stores/mapDataAtoms';
@@ -43,7 +42,6 @@ function NotificationBadge() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // 컴포넌트가 클라이언트에서 마운트된 후에 isClient 상태를 true로 변경
     setIsClient(true);
   }, []);
 
@@ -82,8 +80,6 @@ export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps)
         <div className="flex flex-col space-y-4">
           {visibleMenus.map((menu) => {
             let href = menu.href;
-
-            // AI 분석 리포트 경로 동적 설정 (기존 로직)
             if (menu.name === 'AI 분석 리포트') {
               if (userRole === 'ADMIN') {
                 href = '/supervisor/report';
@@ -92,19 +88,15 @@ export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps)
               }
             }
 
-            // ✨✨✨ 3. "AI 분석 지도" 메뉴일 경우, fileId를 href에 추가합니다. ✨✨✨
             if (menu.name === 'AI 분석 지도') {
-              // selectedFileId가 null이 아닐 경우에만 파라미터를 추가합니다.
               if (selectedFileId) {
                 href = `/map?fileId=${selectedFileId}`;
               }
-              // selectedFileId가 null이면 기본 href('/map')를 그대로 사용합니다.
             }
             if (menu.name === '대시보드') {
-              let rolePath = '/'; // 기본 경로
+              let rolePath = '/'; 
               if (userRole === 'ADMIN') rolePath = '/supervisor';
               if (userRole === 'MANAGER') rolePath = '/admin';
-              
               if (selectedFileId) {
                 href = `${rolePath}?fileId=${selectedFileId}`;
               } else {

@@ -18,22 +18,16 @@ export const anomalyIconMap: { [key: string]: JSX.Element } = {
 
 
 const formatUnixTimestamp = (timestamp: number | string): string => {
-    // 유효하지 않은 타임스탬프는 'N/A'로 처리
     if (!timestamp || timestamp === 0) return 'N/A';
-
-    // Unix 타임스탬프(초 단위)는 밀리초로 변환해야 함 ( * 1000 )
     const date = new Date(Number(timestamp) * 1000);
-
-    // 'sv-SE' 로케일은 YYYY-MM-DD 형식에 가장 가까워 편리함
     const formatter = new Intl.DateTimeFormat('sv-SE', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false, // 24시간 표기법 사용
+        hour12: false,
     });
-
     return formatter.format(date);
 };
 
@@ -56,9 +50,7 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
 
     return (
         <div className="w-full">
-            {/* 헤더 */}
             <div className="whitespace-nowrap hidden sm:grid grid-cols-[1.5fr_1.5fr_1.5fr_1fr_1.5fr_2fr_1.5fr] gap-x-4 text-center bg-[rgba(40,40,40)] rounded-3xl text-white py-4 px-12 mb-3">
-                {/* 헤더의 열 개수를 7개로 맞춥니다. */}
                 <div className="col-span-1">상품명 / EPC</div>
                 <div className="col-span-1">시간</div>
                 <div className="col-span-1">비지니스 스텝</div>
@@ -74,40 +66,33 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                 if (!hasAnomalies) return null;
 
                 return (
-                    // ✨ 2. 바디: 헤더와 동일한 7개 컬럼 그리드를 정의합니다.
                     <div
                         key={`${trip.roadId}-${trip.from.eventTime}-${index}-${trip.to.eventTime}`}
                         className={`group font-noto-400 border-b border-b-[#e0e0e034] hover:bg-[rgba(30,30,30)]
                                     sm:grid sm:grid-cols-[1.5fr_1.5fr_1.5fr_1fr_1.5fr_2fr_1.5fr] sm:gap-x-4 sm:items-center sm:text-center
                                     flex flex-col gap-2 py-4 px-6 sm:px-12`}
                     >
-                        {/* 1. 상품명 / EPC */}
                         <div className="sm:col-span-1 text-white flex flex-col sm:items-center sm:justify-center text-left">
                             <p className="font-medium">{trip.productName}</p>
                             <p className="text-xs text-[#a0a0a0]">{trip.epcCode}</p>
                         </div>
-                        {/* 2. 시간 */}
                         <div className="sm:col-span-1 text-xs flex flex-col gap-1 justify-center sm:items-center text-[#E0E0E0]">
                             <p>출발: {formatUnixTimestamp(trip.from.eventTime)}</p>
                             <p>도착: {formatUnixTimestamp(trip.to.eventTime)}</p>
                         </div>
-                        {/* 3. 비지니스 스텝 */}
                         <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
                             <span className="truncate">{trip.from.businessStep}</span>
                             <ArrowRight size={14} className="shrink-0 text-[#E0E0E0]" />
                             <span className="truncate">{trip.to.businessStep}</span>
                         </div>
-                        {/* 4. 이벤트 타입 */}
                         <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
                             <span className="truncate">{trip.eventType}</span>
                         </div>
-                        {/* 5. 경로 */}
                         <div className="sm:col-span-1 text-[#E0E0E0] flex items-center justify-center gap-2">
                             <span className="truncate">{trip.from.scanLocation}</span>
                             <ArrowRight size={14} className="shrink-0 text-[#E0E0E0]" />
                             <span className="truncate">{trip.to.scanLocation}</span>
                         </div>
-                        {/* 6. 상세 내용 */}
                         <div className="sm:col-span-1 text-xs text-[#E0E0E0] text-left sm:text-center">
                             <ul className="list-disc list-inside">
                                 {trip.anomalyTypeList.map(code => (
@@ -115,7 +100,6 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
                                 ))}
                             </ul>
                         </div>
-                        {/* 7. 이상 유형 */}
                         <div className="sm:col-span-1 flex flex-wrap items-center justify-center gap-1">
                             {trip.anomalyTypeList.map(code => {
                                 const tagColor = pastelColorMap[code] || pastelColorMap['default'];
@@ -137,7 +121,6 @@ export default function AnomalyList({ anomalies }: AnomalyListProps): JSX.Elemen
         </div>
     );
 }
-
 
 const ArrowRight = ({ size = 24, className = '' }: { size?: number, className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>

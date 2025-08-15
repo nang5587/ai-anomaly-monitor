@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 
 import apiClient, { getFiles_client, markFileAsDeleted } from '../../api/apiClient';
 
-import { selectedFileIdAtom } from "@/stores/mapDataAtoms"; // Jotai 아톰 경로
+import { selectedFileIdAtom } from "@/stores/mapDataAtoms";
 import { useRouter } from "next/navigation";
 import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { FileItem } from "@/types/file";
@@ -19,18 +19,15 @@ interface FileListClientProps {
 
 export default function FileListClient({ initialFiles }: FileListClientProps) {
     const { user } = useAuth();
-    // 1. 상태 관리 로직
     const [files, setFiles] = useState<FileItem[]>(initialFiles);
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 10;
 
-    // 2. Jotai 및 Next.js Router 설정
     const setFileId = useSetAtom(selectedFileIdAtom);
     const router = useRouter();
 
-    // 3. 파일 선택 핸들러
     const handleFileSelect = (fileId: number) => {
         if (!user || !user.role) {
             alert("사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.");
@@ -50,15 +47,9 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                 alert("정의되지 않은 역할입니다. 관리자에게 문의하세요.");
                 return;
         }
-
-        // ✨ 템플릿 리터럴을 사용하여 URL에 쿼리 파라미터를 추가합니다.
         const finalUrl = `${dashboardPath}?fileId=${fileId}`;
-
-        console.log('fileList에서 이동할 URL:', finalUrl);
         router.push(finalUrl);
     };
-
-    // 4. 필터링 및 페이지네이션 로직 (기존과 동일)
     const filteredFiles = files.filter((file) =>
         file.fileName.toLowerCase().includes(search.toLowerCase())
     );
@@ -70,27 +61,17 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
 
     const handleDownload = async (fileId: number, fileName: string) => {
         try {
-            // apiClient를 사용하여 GET 요청을 보냅니다.
-            // 인터셉터가 자동으로 Authorization 헤더에 토큰을 추가해줍니다.
             const response = await apiClient.get(`/manager/download/${fileId}`, {
-                // ✨ 응답 타입을 'blob'으로 지정하여 파일 데이터를 받습니다.
                 responseType: 'blob',
             });
-
-            // Blob 데이터를 사용하여 다운로드 가능한 URL을 생성합니다.
             const url = window.URL.createObjectURL(new Blob([response.data]));
-
-            // 임시 <a> 태그를 만들어 프로그래밍 방식으로 클릭하여 다운로드를 실행합니다.
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', fileName); // 다운로드될 파일의 이름을 지정합니다.
+            link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
-
-            // 다운로드 후 임시 URL과 <a> 태그를 정리합니다.
             link.parentNode?.removeChild(link);
             window.URL.revokeObjectURL(url);
-
         } catch (error) {
             console.error("파일 다운로드 실패:", error);
             alert("파일을 다운로드하는 중 오류가 발생했습니다.");
@@ -101,14 +82,10 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
         if (!window.confirm(`'${fileName}' 파일을 정말로 삭제하시겠습니까?`)) {
             return;
         }
-
         try {
             await markFileAsDeleted(fileId);
-
             setFiles(prevFiles => prevFiles.filter(file => file.fileId !== fileId));
-
             alert(`'${fileName}' 파일이 성공적으로 삭제되었습니다.`);
-
         } catch (error) {
             console.error("파일 삭제 실패:", error);
             alert("파일을 삭제하는 중 오류가 발생했습니다.");
@@ -119,7 +96,6 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
         if (initialFiles && initialFiles.length > 0) {
             return;
         }
-
         async function fetchFilesOnClient() {
             console.log("서버에서 데이터를 가져오지 못했습니다. 클라이언트에서 재시도합니다.");
             setIsLoading(true);
@@ -133,7 +109,6 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                 setIsLoading(false);
             }
         }
-
         fetchFilesOnClient();
     }, [initialFiles]);
 
@@ -150,10 +125,7 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                         <span className="text-[#E0E0E0]">업로드된 CSV 파일 이력입니다.</span>
                     </div>
                 </div>
-
-                {/* ✅ 1. 부모 div에서 flex-col을 추가하여 자식 요소들을 수직으로 정렬합니다. */}
                 <div className="flex flex-col flex-1">
-                    {/* 검색 및 컨트롤 영역 */}
                     <div className="flex justify-end mb-4">
                         <div className="relative">
                             <input
@@ -161,7 +133,7 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                                 value={search}
                                 onChange={(e) => {
                                     setSearch(e.target.value);
-                                    setCurrentPage(1); // 검색어 변경 시 첫 페이지로 이동
+                                    setCurrentPage(1);
                                 }}
                                 placeholder="파일명으로 검색..."
                                 className="w-72 pl-10 pr-4 py-2 text-sm text-white bg-[rgba(40,40,40)] border border-[rgba(111,131,175)] rounded-lg focus:outline-none"
@@ -169,8 +141,6 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                             <SearchIcon className="absolute left-3 top-1/4 w-5 h-5 text-gray-400" />
                         </div>
                     </div>
-
-                    {/* 테이블 영역 */}
                     <div className="flex-1 overflow-auto rounded-2xl bg-[rgba(30,30,30)] p-4">
                         <table className="min-w-full text-sm text-left text-gray-300">
                             <thead className="text-sm font-medium text-white uppercase sticky top-0 border-b-2 border-b-[rgba(111,131,175)]">
@@ -228,8 +198,6 @@ export default function FileListClient({ initialFiles }: FileListClientProps) {
                             </tbody>
                         </table>
                     </div>
-
-                    {/* 페이지네이션 영역 */}
                     <div className="flex items-center justify-end pt-4">
                         <span className="text-sm text-gray-400 mr-4">
                             총 {filteredFiles.length}개 중 {displayedFiles.length}개 표시

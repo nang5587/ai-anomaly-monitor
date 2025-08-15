@@ -44,15 +44,10 @@ export async function loginAction(prevState: FormState, formData: FormData): Pro
                 path: '/',
                 sameSite: 'strict',
             });
-            
-            // ✨ 1. 성공 시, try 블록 안에서 즉시 성공 상태를 반환합니다.
             return { message: '로그인 성공!', success: true, token: token, rememberMe };
-
         } else {
-            // 토큰이 없는 경우도 실패로 간주하고 에러를 던져 catch 블록에서 처리
             throw new Error('인증 토큰이 없습니다.');
         }
-
     } catch (err) {
         const error = err as AxiosError<{ message: string }> | Error;
         const errorMessage = (error as AxiosError<{ message: string }>)?.response?.data?.message || error.message || '아이디 또는 비밀번호가 잘못되었습니다.';

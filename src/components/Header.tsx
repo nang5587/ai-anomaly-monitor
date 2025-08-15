@@ -26,18 +26,15 @@ export default function Header() {
               onClick={logout}
               className="text-white hover:text-[rgba(111,131,175,1)] transition-colors cursor-pointer"
             >
-              {/* 로그아웃 */}
               <LogOut className="w-6 h-6" />
             </button>
           </>
         ) : (
           <>
             <button onClick={() => router.push('/login')} className="text-white p-3 cursor-pointer">
-              {/* 로그인 */}
               <LogIn className="w-6 h-6" />
             </button>
             <button onClick={() => router.push('/join')} className="text-white p-3 cursor-pointer">
-              {/* 회원가입 */}
               <UserPlus className="w-6 h-6" />
             </button>
           </>

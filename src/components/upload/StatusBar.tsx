@@ -39,28 +39,22 @@ export default function StatusBar() {
 
 
     return (
-        // ✨ 2. 카드 스타일 및 위치 지정
         <div className={`fixed bottom-10 right-4 w-96 bg-[rgba(111,131,175)] rounded-lg shadow-2xl text-white transition-all duration-300 ease-in-out z-70`}>
-            {/* --- 헤더: 항상 보이는 부분 --- */}
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
-                    {/* 상태 아이콘 */}
                     {(statusBar.status === 'uploading' || statusBar.status === 'parsing') &&
                         <Loader size={18} className="text-white animate-spin" />}
                     {statusBar.status === 'success' && <CheckCircle2 size={18} className="text-green-400" />}
                     {statusBar.status === 'error' && <AlertTriangle size={18} className="text-red-400" />}
-                    {/* 축소 시/확장 시 다른 텍스트 표시 */}
                     <span className="font-noto-400 text-sm">
                         {titleText}
                     </span>
                 </div>
 
                 <div className="flex items-center gap-1">
-                    {/* 축소/확장 버튼 */}
                     <button onClick={toggleExpansion} className="p-1 rounded-full hover:bg-white/10">
                         {isExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                     </button>
-                    {/* 닫기 버튼 */}
                     {(statusBar.status === 'success' || statusBar.status === 'error') && (
                         <button onClick={handleClose} className="p-1 rounded-full hover:bg-white/10">
                             <X size={18} />
@@ -68,19 +62,14 @@ export default function StatusBar() {
                     )}
                 </div>
             </div>
-
-            {/* ✨ 3. 축소/확장 가능한 콘텐츠 영역 */}
             <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="px-3 pb-4">
-
                     {statusBar.message && (
                         <div className={`text-sm p-3 rounded-md ${statusBar.status === 'error' ? 'bg-red-500/20 text-white' : 'bg-white/20 text-white'}`}>
                             <p>{statusBar.message}</p>
                         </div>
                     )}
-
-                    {/* 프로그레스 바와 로티 */}
-                    <div className="relative w-full pt-4"> {/* 로티가 위로 삐져나갈 공간 확보 */}
+                    <div className="relative w-full pt-4">
                         <div className="w-full bg-gray-600 rounded-full h-2">
                             <div
                                 className={`h-2 rounded-full transition-all duration-500 ${statusBar.status === 'error' ? 'bg-red-500' :
@@ -93,8 +82,7 @@ export default function StatusBar() {
                         <div
                             className="absolute bottom-[-15px] transition-all duration-500 ease-linear"
                             style={{
-                                // ✨ 4. left와 transform으로 위치 정밀 조정
-                                left: `calc(${statusBar.progress * 100}% - 60px)`, // (로티 너비 / 2) 만큼 빼서 중앙 정렬
+                                left: `calc(${statusBar.progress * 100}% - 60px)`,
                                 opacity: statusBar.progress > 0 ? 1 : 0,
                             }}
                         >

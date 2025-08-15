@@ -8,7 +8,7 @@ import { Play } from 'lucide-react';
 import { SupplyChainMapWidget } from './SupplyChainMapWidget';
 import { HeatmapViewWidget } from './HeatmapViewWidget';
 
-import { useSetAtom } from 'jotai'; // ✨ useSetAtom import
+import { useSetAtom } from 'jotai';
 import {
     replayTriggerAtom,
     loadInitialDataAtom,
@@ -18,12 +18,10 @@ import {
 import { type Tab } from '@/components/visual/SupplyChainDashboard';
 import { type LocationNode, type AnalyzedTrip } from '../../../types/data';
 
-// Props 타입 정의
 type DashboardMapWidgetProps = {
     onWidgetClick: (tab: Tab) => void;
 };
 
-// Framer Motion 애니메이션 Variants 정의
 const widgetVariants: Variants = {
     hidden: { x: '100%', opacity: 0, scale: 0.9 },
     visible: { x: 0, opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeInOut' } },
@@ -33,11 +31,9 @@ const widgetVariants: Variants = {
 export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidgetClick }) => {
     const [activeWidget, setActiveWidget] = useState<'path' | 'heatmap'>('heatmap');
     const triggerReplay = useSetAtom(replayTriggerAtom);
-
     const loadInitialData = useSetAtom(loadInitialDataAtom);
     const setSelectedFileId = useSetAtom(selectedFileIdAtom);
     const searchParams = useSearchParams();
-
     const toggleWidget = () => {
         setActiveWidget(prev => (prev === 'path' ? 'heatmap' : 'path'));
     };
@@ -61,7 +57,7 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
             <AnimatePresence mode="wait">
                 {activeWidget === 'path' && (
                     <motion.div
-                        key="path" // AnimatePresence가 컴포넌트를 식별하는 고유 키
+                        key="path"
                         className="w-full h-full"
                         variants={widgetVariants}
                         initial="hidden"
@@ -80,7 +76,6 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
                         </button>
                     </motion.div>
                 )}
-
                 {activeWidget === 'heatmap' && (
                     <motion.div
                         key="heatmap"
@@ -97,8 +92,6 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* 카드 넘김 버튼 */}
             <button
                 onClick={toggleWidget}
                 className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/50 border border-white/30 hover:bg-black/80 transition-colors"

@@ -1,7 +1,7 @@
 import { CoverLetterProps } from "@/types/file";
 interface ReportCoverLetterProps {
     data: CoverLetterProps;
-    isLastPage?: boolean; // 선택적 prop. 마지막 페이지 여부를 받습니다.
+    isLastPage?: boolean;
 }
 const baseStyle: React.CSSProperties = {
     padding: '48px',
@@ -16,7 +16,6 @@ const baseStyle: React.CSSProperties = {
     fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 };
 
-// 페이지를 나눌 때만 추가될 스타일입니다.
 const pageBreakStyle: React.CSSProperties = {
     pageBreakAfter: 'always',
     breakAfter: 'page',
@@ -26,7 +25,6 @@ export default function ReportCoverLetter({ data, isLastPage = false }: ReportCo
 
     return (
         <div style={finalStyle}>
-            {/* 2. 헤더: 페이지 상단에 위치 */}
             <header style={{ textAlign: 'center' }}>
                 <div 
                     style={{
@@ -47,8 +45,6 @@ export default function ReportCoverLetter({ data, isLastPage = false }: ReportCo
                     </h1>
                 </div>
             </header>
-
-            {/* 3. 중앙 본문: 남는 공간을 모두 차지하고, 내부 내용을 중앙에 배치 */}
             <main 
                 style={{
                     flexGrow: 1,
@@ -58,7 +54,6 @@ export default function ReportCoverLetter({ data, isLastPage = false }: ReportCo
                 }}
             >
                 <div style={{ textAlign: 'center' }}>
-                    {/* 정보 */}
                     <div 
                         style={{
                             display: 'inline-block',
@@ -116,8 +111,6 @@ export default function ReportCoverLetter({ data, isLastPage = false }: ReportCo
                             : {data.createdAt}
                         </div>
                     </div>
-
-                    {/* 작성자 정보 */}
                     <div 
                         style={{
                             marginTop: '80px',
@@ -136,8 +129,6 @@ export default function ReportCoverLetter({ data, isLastPage = false }: ReportCo
                     </div>
                 </div>
             </main>
-
-            {/* 4. 푸터: 페이지 하단에 위치 */}
             <footer 
                 style={{
                     display: 'flex',

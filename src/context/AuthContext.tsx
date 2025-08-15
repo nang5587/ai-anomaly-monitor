@@ -8,11 +8,9 @@ interface JwtPayload {
 }
 
 export interface User {
-  userId: string; // 로그인 ID
+  userId: string;
   role: string;
   locationId?: number;
-
-  // 선택적
   userName?: string;
   email?: string;
 }
@@ -35,8 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-
-
   const login = useCallback((token: string, rememberMe: boolean) => {
     const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
     const storage = rememberMe ? localStorage : sessionStorage;
@@ -55,7 +51,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [router]);
 
   useEffect(() => {
-    // 세션 또는 로컬 스토리지 중 토큰이 있는 곳을 찾음
     const storage = localStorage.getItem('accessToken') ? localStorage : (sessionStorage.getItem('accessToken') ? sessionStorage : null);
 
     if (storage) {
@@ -70,21 +65,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(restoredUser);
         } catch (error) {
           console.error("Invalid token found in storage.", error);
-          logout(); // logout 함수가 알아서 상태를 초기화하고 리디렉션합니다.
+          logout();
         } finally {
           setIsLoading(false);
         }
       } else {
-        // storage는 있지만 토큰이 없는 이상한 경우 (거의 발생 안 함)
         setIsLoading(false);
       }
     } else {
-      // localStorage와 sessionStorage에 토큰이 모두 없는 경우
       setIsLoading(false);
     }
   }, [logout]);
 
-  // 회원정보 변경 적용
   const updateUserContext = useCallback((updatedInfo: Partial<User>) => {
     setUser(prevUser => {
       if (!prevUser) return null;

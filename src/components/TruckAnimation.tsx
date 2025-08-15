@@ -21,9 +21,8 @@ export default function TruckAnimation({ progress }: TruckAnimationProps) {
   }, [progress]);
 
   return (
-    <div className="relative w-full h-20 overflow-hidden"> {/* 부모 기준으로 이동 */}
+    <div className="relative w-full h-20 overflow-hidden">
       {progress !== undefined ? (
-        // 업로드 중 트럭 진행
         <motion.div
           className="absolute top-0"
           animate={{ left: `${progress * 100}%` }}
@@ -33,12 +32,10 @@ export default function TruckAnimation({ progress }: TruckAnimationProps) {
           <Image src="/images/truck100.png" alt="트럭" width={160} height={100} />
         </motion.div>
       ) : showFinalPosition ? (
-        // 애니메이션 끝난 후 중앙 고정
         <div className="absolute top-0 -translate-x-1/2 left-1/2">
           <Image src="/images/truck100.png" alt="트럭" width={160} height={100} />
         </div>
       ) : (
-        // 초기 화면 - 왼쪽 → 중앙 애니메이션
         <motion.div
           className="absolute top-0"
           initial={{ left: "0%" }}

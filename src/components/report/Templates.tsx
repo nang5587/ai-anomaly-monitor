@@ -1,6 +1,5 @@
 import { AnomalyType } from "@/types/api";
 
-// 각 이상 유형에 대한 설명을 담은 템플릿
 export const INSIGHTS_TEMPLATES: Record<AnomalyType, string> = {
     fake: "전체 이상 건수의 [PERCENTAGE]%가 '위조 EPC' 유형으로, 비인가 제품이 공급망에 침투했을 가능성이 있어 즉각적인 조사가 필요합니다.",
     tamper: "전체 이상 건수의 [PERCENTAGE]%가 '변조' 유형으로, 제품 운송 중 무단 개봉 또는 손상이 발생했을 수 있습니다.",
@@ -9,7 +8,6 @@ export const INSIGHTS_TEMPLATES: Record<AnomalyType, string> = {
 
 };
 
-// 각 이상 유형에 대한 권장 조치를 담은 템플릿
 export const ACTION_ITEMS_TEMPLATES: Record<AnomalyType, { short: string; mid: string; long: string; }> = {
     fake: {
         short: "'[PRODUCT]' 제품의 최근 유통 경로를 역추적하고, 비인가 유통이 시작된 지점을 파악하십시오. (담당: 보안팀)",

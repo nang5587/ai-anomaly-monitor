@@ -52,7 +52,6 @@ const WaypointItem: React.FC<WaypointItemProps> = ({ title, location, eventTime,
     );
 };
 
-// O도착지---O출발지
 const TripTimeline: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
     const waypoints = [
         { type: '도착지', location: trip.to.scanLocation, eventTime: trip.to.eventTime },
@@ -79,7 +78,6 @@ const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
 
     return (
         <>
-            {/* 이상 현상 상세 설명 섹션 */}
             {hasAnomalies && (
                 <div className="flex flex-col gap-4 p-3 mb-6 rounded-lg bg-black/20">
                     {trip.anomalyTypeList.map((code, index) => (
@@ -94,8 +92,6 @@ const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
                     ))}
                 </div>
             )}
-
-            {/* 기본 정보 섹션 */}
             <div className="flex flex-col gap-2 text-sm text-neutral-400">
                 <div>
                     <span className="text-white text-base">상품명 : </span>
@@ -114,7 +110,6 @@ const TripDetails: React.FC<{ trip: AnalyzedTrip }> = ({ trip }) => {
                     <span className="text-[#E0E0E0]">{trip.eventType}</span>
                 </div>
             </div>
-
             <TripTimeline trip={trip} />
         </>
     );
@@ -128,9 +123,7 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
         if (!node || !allAnomalies) return [];
         return allAnomalies.filter(
             trip =>
-                // 조건 1: 이 trip이 선택된 노드와 관련이 있는가?
                 (trip.from.scanLocation === node.scanLocation || trip.to.scanLocation === node.scanLocation) &&
-                // ✨ 조건 2: 그리고 이 trip에 이상 징후가 있는가? (이 줄 추가!)
                 (trip.anomalyTypeList && trip.anomalyTypeList.length > 0)
         );
     }, [node, allAnomalies]);
@@ -148,10 +141,8 @@ const NodeDetails: React.FC<{ node: LocationNode; }> = ({ node }) => {
             {relatedAnomalies.length > 0 ? (
                 <div className="flex flex-col gap-2">
                     {relatedAnomalies.map((trip, index) => {
-                        // 각 trip의 대표 이상 유형을 찾음
                         const representativeAnomaly = trip.anomalyTypeList[0];
                         return (
-                            // ✨ div를 button으로 바꾸고 onClick 핸들러 추가
                             <button
                                 key={`${trip.roadId}-${trip.from.eventTime}-${index}`}
                                 onClick={() => handleAnomalyClick(trip)}
@@ -198,7 +189,6 @@ const EpcDupListItem: React.FC<{ trip: AnalyzedTrip; onClick: () => void; isSele
     </div>
 );
 
-// --- 메인 컴포넌트 ---
 interface DetailsPanelProps {
     selectedObject: AnalyzedTrip | LocationNode | null;
     onClose: () => void;
@@ -207,14 +197,11 @@ interface DetailsPanelProps {
 const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) => {
     const selectTrip = useSetAtom(selectTripAndFocusAtom);
     const allAnomalyTrips = useAtomValue(allAnomalyTripsAtom);
-
-    // ✨ 1. 선택된 객체가 EPC 복제 유형인지 확인
     const isEpcDup = useMemo(() =>
         selectedObject && 'anomalyTypeList' in selectedObject && selectedObject.anomalyTypeList?.includes('clone'),
         [selectedObject]
     );
 
-    // ✨ 2. EPC 복제와 연관된 모든 경로 찾기
     const duplicateTrips = useMemo(() => {
         if (!isEpcDup || !selectedObject || !('epcCode' in selectedObject)) return [];
 
@@ -224,7 +211,6 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
         return allAnomalyTrips.filter((trip, index) =>
             trip.epcCode === targetEpc &&
             trip.anomalyTypeList.includes('clone') &&
-            // 현재 선택된 항목의 인덱스와 다른 항목만 필터링
             index !== selectedIndex
         );
     }, [isEpcDup, selectedObject, allAnomalyTrips]);
@@ -271,7 +257,6 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
             <div style={{ overflowY: 'auto', paddingRight: '10px' }}>
                 {isEpcDup ? (
                     <div>
-                        {/* 섹션 1: 복제품 의심 목록 */}
                         <p className="text-xs text-[#E0E0E0] mb-4">선택된 경로와 동일한 EPC를 사용하는 복제품 의심 경로 목록입니다.</p>
                         <div className="space-y-2">
                             {duplicateTrips.map((trip, index) => (
@@ -283,11 +268,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedObject, onClose }) 
                                 />
                             ))}
                         </div>
-
-                        {/* 구분선 */}
                         <div className="my-6 border-t border-gray-600/50" />
-
-                        {/* 섹션 2: 선택된 경로의 상세 정보 */}
                         <h4 className="text-base font-noto-500 text-white mb-2">선택된 경로 상세</h4>
                         {isTrip && <TripDetails trip={selectedObject as AnalyzedTrip} />}
                     </div>

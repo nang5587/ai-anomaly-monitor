@@ -59,7 +59,7 @@ const MapLegend: React.FC<MapLegendProps> = ({ onHover, onToggleVisibility, visi
                             height: '28px',
                             minWidth: '28px',
                             borderRadius: '20%',
-                            backgroundColor: 'rgb(60, 60, 60)', // 원래 색상
+                            backgroundColor: 'rgb(60, 60, 60)', 
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

@@ -29,18 +29,15 @@ import type { LocationNode, AnalyzedTrip } from '../../types/data';
 import { SupplyChainMap } from './SupplyChainMap';
 import { HeatmapView } from './HeatmapView';
 
-// --- 하위 컴포넌트 import ---
 import AnomalyList from './AnomalyList';
 import DetailsPanel from './DetailsPanel';
 import FilterPanel from './FilterPanel';
 import TripList from './TripList';
 import AnomalyFilterTabs from './AnomalyFilterTabs';
 
-// 탭 타입 정의 : anomalies는 이상 탐지 리스트, all은 전체 운송 목록
 export type Tab = 'anomalies' | 'all' | 'heatmap';
 export type MergeTrip = AnalyzedTrip & { path?: [number, number][]; timestamps?: number[] };
 
-// 탭 버튼 스타일
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '10px 20px',
     fontSize: '16px',
@@ -55,8 +52,6 @@ const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
 
 export const SupplyChainDashboard: React.FC = () => {
     const searchParams = useSearchParams();
-    // --- Jotai 스토어에서 가져온 상태 관리 ---
-    // const nodes = useAtomValue(nodesAtom);
     const trips = useAtomValue(tripsAtom);
     const selectedAnomalyFilter = useAtomValue(anomalyFilterAtom);
     const filterOptions = useAtomValue(filterOptionsAtom);
@@ -64,12 +59,10 @@ export const SupplyChainDashboard: React.FC = () => {
     const isLoading = useAtomValue(isLoadingAtom);
     const isFetchingMore = useAtomValue(isFetchingMoreAtom);
 
-    // 읽고 쓰기가 모두 필요한 상태
     const [activeTab, setActiveTab] = useAtom(activeTabAtom);
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [appliedFilters, setAppliedFilters] = useAtom(appliedFiltersAtom);
 
-    // 액션(쓰기 전용) 아톰]
     const setSelectedFileId = useSetAtom(selectedFileIdAtom);
     const loadInitialData = useSetAtom(loadInitialDataAtom);
     const loadTrips = useSetAtom(loadTripsDataAtom);
@@ -77,49 +70,35 @@ export const SupplyChainDashboard: React.FC = () => {
     const resetAnomalyFilter = useSetAtom(resetAnomalyFilterAtom);
     const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
-    // 필터 패널 표시 여부는 이 컴포넌트의 로컬 상태로 유지하는 것이 적합합니다.
     const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-    // 컴포넌트 마운트 시 초기 데이터(노드, 필터옵션) 로드
-    // useEffect(() => {
-    //     loadInitialData();
-    // }, [loadInitialData]);
     useEffect(() => {
         const fileIdFromUrl = searchParams.get('fileId');
-
         if (fileIdFromUrl) {
             console.log(`페이지 로드: fileId(${fileIdFromUrl})로 데이터 로딩 시작`);
             const fileId = Number(fileIdFromUrl);
-            
-            // 전역 fileId 상태를 먼저 설정합니다.
             setSelectedFileId(fileId);
-            
-            // 그런 다음 데이터 로딩 액션들을 호출합니다.
             loadInitialData();
             loadTrips(); 
         } else {
             console.warn("URL에 fileId가 없어 초기 데이터를 로드할 수 없습니다.");
-            // 선택된 파일이 없다는 UI를 보여주는 로직을 추가할 수 있습니다.
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
         resetAnomalyFilter();
     }, [activeTab, appliedFilters, resetAnomalyFilter]);
 
-    // 탭이나 필터가 변경될 때마다 Trip 데이터 로드
     useEffect(() => {
         if (activeTab === 'heatmap') {
-            return; // 함수를 즉시 종료
+            return;
         }
-
         loadTrips();
     }, [activeTab, appliedFilters, loadTrips]);
 
     const filteredTrips = useMemo(() => {
         if (!selectedAnomalyFilter) {
-            return trips; // 필터가 없으면 전체 데이터를 반환
+            return trips;
         }
         return trips.filter(trip =>
             trip.anomalyTypeList?.includes(selectedAnomalyFilter)
@@ -131,11 +110,6 @@ export const SupplyChainDashboard: React.FC = () => {
         setShowFilterPanel(false);
     };
 
-    const handleTabClick = (tab: Tab) => {
-        // activeTabAtom의 값을 변경하면, 위의 useEffect가 자동으로 트리거됩니다.
-        setActiveTab(tab);
-    };
-
     return (
         <div style={{
             position: 'relative',
@@ -144,7 +118,6 @@ export const SupplyChainDashboard: React.FC = () => {
             width: '100%',
             height: '100%',
         }}>
-            {/* 지도 위 이상타입 필터 탭 */}
             {(activeTab === 'all' || activeTab === 'anomalies') && (
                 <div style={{
                     position: 'absolute',
@@ -167,8 +140,6 @@ export const SupplyChainDashboard: React.FC = () => {
                 </Suspense>
             )}
 
-            {/* 2. 경로 지도 뷰 렌더링 */}
-            {/* activeTab이 'heatmap'이 아닐 때 렌더링합니다. */}
             {activeTab !== 'heatmap' && (
                 <>
                     <SupplyChainMap />
@@ -189,10 +160,10 @@ export const SupplyChainDashboard: React.FC = () => {
                         left: '30px',
                         width: '350px',
                         height: 'calc(100vh - 200px)',
-                        zIndex: 4, // 리스트 패널보다 위에 위치
+                        zIndex: 4,
                         transform: showFilterPanel ? 'translateX(-6%)' : 'translateX(-120%)',
                         transition: 'transform 0.3s ease-in-out',
-                        display: activeTab === 'all' ? 'block' : 'none', // '전체' 탭에서만 활성화
+                        display: activeTab === 'all' ? 'block' : 'none',
                     }}>
                         <FilterPanel
                             options={filterOptions}
@@ -213,7 +184,6 @@ export const SupplyChainDashboard: React.FC = () => {
                 flexDirection: 'column',
                 gap: '15px',
             }}>
-                {/* 탭 UI */}
                 <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px]'>
                     <div className='flex whitespace-nowrap'>
                         <button style={tabButtonStyle(activeTab === 'all')} onClick={() => setActiveTab('all')}>전체 운송 흐름</button>
@@ -231,7 +201,6 @@ export const SupplyChainDashboard: React.FC = () => {
                     )}
                 </div>
 
-                {/* 2. 리스트 콘텐츠 영역 */}
                 {activeTab !== 'heatmap' && (
                     <>
                         <div style={{
@@ -267,7 +236,6 @@ export const SupplyChainDashboard: React.FC = () => {
 
                             {activeTab === 'all' && (
                                 <>
-                                    {/* 리스트 본문 */}
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <TripList
                                             trips={filteredTrips}
@@ -275,8 +243,6 @@ export const SupplyChainDashboard: React.FC = () => {
                                             selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
                                         />
                                     </div>
-
-                                    {/* '더 보기' 버튼 (푸터) */}
                                     <div className="bg-[rgba(40,40,40)] rounded-b-[25px] flex-shrink-0 p-4 text-center text-white text-xs border-t border-white/10">
                                         <p className="mb-2">현재 {filteredTrips.length}개의 경로 표시 중</p>
                                         {nextCursor && (
@@ -288,18 +254,13 @@ export const SupplyChainDashboard: React.FC = () => {
                                 </>
                             )}
                         </div>
-
-
                     </>
                 )}
-
             </div>
-
             <DetailsPanel
                 selectedObject={selectedObject}
                 onClose={() => selectTripAndFocus(null)}
             />
-
         </div>
     );
 };

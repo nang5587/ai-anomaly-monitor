@@ -5,7 +5,6 @@ import { anomalyFilterAtom } from '@/stores/mapDataAtoms';
 import { getAnomalyName } from '../../types/colorUtils';
 import type { AnomalyType } from '../../types/data';
 
-// 필터링할 이상 유형 목록
 const ANOMALY_TYPES: AnomalyType[] = [
     "fake",
     "tamper",
@@ -44,15 +43,12 @@ const AnomalyFilterTabs: React.FC<AnomalyFilterTabsProps> = ({disabled}) => {
             border: '1px solid rgba(255, 255, 255, 0.1)',
             pointerEvents: disabled ? 'none' : 'auto',
         }}>
-            {/* 전체 보기 버튼 */}
             <button
                 style={tabButtonStyle(selectedFilter === null, disabled)}
                 onClick={() => setSelectedFilter(null)}
             >
                 전체
             </button>
-
-            {/* 각 이상 유형별 버튼 */}
             {ANOMALY_TYPES.map(type => (
                 <button
                     key={type}

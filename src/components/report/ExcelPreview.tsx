@@ -1,6 +1,5 @@
 'use client';
 
-// import React, { useState, useMemo } from 'react';
 import React, { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { useDashboard } from '@/context/dashboardContext';
 import type { MergeTrip } from '@/context/MapDataContext';
@@ -8,11 +7,9 @@ import ExcelJS from 'exceljs';
 
 import { formatPdfDateTime } from '@/types/file';
 
-// 탭 버튼 스타일
 const tabStyle = "px-4 py-2 text-sm font-semibold border-b-2 cursor-pointer";
 const activeTabStyle = "border-blue-500 text-blue-500";
 const inactiveTabStyle = "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300";
-
 const tableClass = "w-full text-sm text-left text-gray-500";
 const theadClass = "text-xs text-gray-700 uppercase bg-gray-50";
 const thClass = "px-6 py-3";
@@ -30,8 +27,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
     } = useDashboard();
 
     const showAnomalyDetails = anomalyTrips && anomalyTrips.length > 0;
-
-    // AnomalyDetailsPage와 동일한 데이터 분류 로직
     const { fakeTrips, tamperTrips, cloneGroups, otherTrips } = useMemo(() => {
         if (!anomalyTrips) return { fakeTrips: [], tamperTrips: [], cloneGroups: [], otherTrips: [] };
         const sortByTime = (a: MergeTrip, b: MergeTrip) => a.from.eventTime - b.from.eventTime;
@@ -48,55 +43,39 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
         return { fakeTrips: fakes, tamperTrips: tampers, cloneGroups: groupedClones, otherTrips: others };
     }, [anomalyTrips]);
 
-    // ⭐⭐⭐⭐⭐⭐⭐⭐⭐
     if (!coverData || !kpiData || !user) {
         return <div className="p-8 text-center text-gray-500">미리보기 데이터를 불러오는 중...</div>;
     }
 
     const handleExcelDownload = async () => {
-        console.log("Excel 다운로드 시작 (from ExcelPreview)");
-
         if (!coverData || !kpiData) {
             alert("보고서 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
             return;
         }
-
         const workbook = new ExcelJS.Workbook();
-
-        // --- 🎨 스타일 사전 정의 (재사용을 위해) ---
         const titleStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true, size: 18 }, alignment: { vertical: 'middle', horizontal: 'center' } };
         const sectionTitleStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true, size: 14 }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } } };
         const headerStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }, alignment: { horizontal: 'center' } };
         const labelStyle: Partial<ExcelJS.Style> = { font: { name: '맑은 고딕', bold: true }, alignment: { horizontal: 'right' } };
 
-        // =================================================================
-        // 📄 시트 1: 표지 (Cover Letter)
-        // =================================================================
         const coverSheet = workbook.addWorksheet('표지');
-
-        // 보고서 제목
         coverSheet.mergeCells('A1:F1');
         coverSheet.getCell('A1').value = '물류 경로 이상탐지 AI 분석 보고서';
         coverSheet.getCell('A1').style = titleStyle;
         coverSheet.getRow(1).height = 40;
 
-        // 보고서 정보
-        coverSheet.addRow([]); // 빈 줄
+        coverSheet.addRow([]);
         coverSheet.addRow(['', '분석 파일명', coverData.fileName]);
         coverSheet.addRow(['', '분석 기간', `${coverData.period ? formatPdfDateTime(coverData.period[0]) : '-'} ~ ${coverData.period ? formatPdfDateTime(coverData.period[1]) : '-'}`]);
         coverSheet.addRow(['', '작성자', user.userName || user.userId]);
         coverSheet.addRow(['', '분석 요청일', formatPdfDateTime(coverData.createdAt)]);
 
-        // 표지 스타일링
         ['B3', 'B4', 'B5', 'B6'].forEach(key => {
             coverSheet.getCell(key).style = labelStyle;
         });
         coverSheet.getColumn('B').width = 20;
         coverSheet.getColumn('C').width = 50;
 
-        // =================================================================
-        // 📄 시트 2: 이상 탐지 요약 (AnomalyDashboardPage)
-        // =================================================================
         const anomalySheet = workbook.addWorksheet('이상 탐지 요약');
 
         anomalySheet.mergeCells('A1:B1');
@@ -130,9 +109,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
         anomalySheet.getColumn('A').width = 30;
         anomalySheet.getColumn('B').width = 15;
 
-        // =================================================================
-        // 📄 시트 3: 이상 탐지 상세 내역 (AnomalyDetailsPage)
-        // =================================================================
         const detailsSheet = workbook.addWorksheet('이상 탐지 상세 내역');
 
         if (showAnomalyDetails) {
@@ -143,10 +119,7 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
             const centerAlignStyle: Partial<ExcelJS.Style> = { alignment: { vertical: 'middle', horizontal: 'center' } };
             const noDataStyle: Partial<ExcelJS.Style> = { font: { color: { argb: 'FF888888' }, italic: true }, alignment: { horizontal: 'center' } };
 
-            // --- 데이터 추가 및 셀 병합 (수정된 로직) ---
-
-            // ✨ 1. 가. 위조(Fake) 데이터 추가
-            let fakeCounter = 1; // 카운터를 루프 밖에서 초기화
+            let fakeCounter = 1;
             const fakeTitleRow = detailsSheet.addRow(['가. 위조(Fake) 의심 목록']);
             detailsSheet.mergeCells(`A${fakeTitleRow.number}:F${fakeTitleRow.number}`);
             fakeTitleRow.getCell(1).style = sectionTitleStyle;
@@ -168,9 +141,8 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                 noDataRow.getCell(1).style = noDataStyle;
             }
 
-            // ✨ 2. 나. 변조(Tamper) 데이터 추가
-            let tamperCounter = 1; // 카운터를 새로 초기화
-            detailsSheet.addRow([]); // 빈 줄 추가로 섹션 구분
+            let tamperCounter = 1;
+            detailsSheet.addRow([]);
             const tamperTitleRow = detailsSheet.addRow(['나. 변조(Tamper) 의심 목록']);
             detailsSheet.mergeCells(`A${tamperTitleRow.number}:F${tamperTitleRow.number}`);
             tamperTitleRow.getCell(1).style = sectionTitleStyle;
@@ -192,9 +164,8 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                 noDataRow.getCell(1).style = noDataStyle;
             }
 
-            // ✨ 3. 다. 복제(Clone) 데이터 추가
-            let cloneCounter = 1; // 그룹 단위 카운터를 새로 초기화
-            detailsSheet.addRow([]); // 빈 줄 추가로 섹션 구분
+            let cloneCounter = 1;
+            detailsSheet.addRow([]);
             const cloneTitleRow = detailsSheet.addRow(['다. 복제(Clone) 의심 목록']);
             detailsSheet.mergeCells(`A${cloneTitleRow.number}:F${cloneTitleRow.number}`);
             cloneTitleRow.getCell(1).style = sectionTitleStyle;
@@ -204,7 +175,7 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                     const startRowNum = detailsSheet.lastRow!.number + 1;
                     group.forEach((trip, index) => {
                         detailsSheet.addRow([
-                            '', // 카운터는 나중에 한 번에 채움
+                            '',
                             '복제(Clone)',
                             trip.epcCode,
                             trip.productName,
@@ -232,12 +203,11 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                 noDataRow.getCell(1).style = noDataStyle;
             }
 
-            let otherCounter = 1; // 그룹 단위 카운터를 새로 초기화
-            detailsSheet.addRow([]); // 빈 줄 추가로 섹션 구분
+            let otherCounter = 1;
+            detailsSheet.addRow([]);
             const otherTitleRow = detailsSheet.addRow(['다. 복제(Clone) 의심 목록']);
             detailsSheet.mergeCells(`A${otherTitleRow.number}:F${otherTitleRow.number}`);
             otherTitleRow.getCell(1).style = sectionTitleStyle;
-            // 라. 신규 유형(other) 데이터 추가
             if (otherTrips.length > 0) {
                 detailsSheet.addRow([]);
                 const otherTitleRow = detailsSheet.addRow(['라. 신규 유형(Other) 목록']);
@@ -252,7 +222,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                     ]);
                 });
             }
-
 
             detailsSheet.getColumn('A').alignment = { vertical: 'middle', horizontal: 'center' };
             detailsSheet.getColumn('B').alignment = { vertical: 'middle', horizontal: 'center' };
@@ -270,21 +239,16 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                 column.width = maxLength < 12 ? 12 : maxLength + 2;
             });
         } else {
-            // 데이터가 없을 때: "내역 없음" 메시지를 시트에 추가
-            detailsSheet.mergeCells('A1:F10'); // 셀을 넉넉하게 병합
+            detailsSheet.mergeCells('A1:F10');
             const cell = detailsSheet.getCell('A1');
             cell.value = '분석 기간 내 상세 추적이 필요한 이상 징후가 발견되지 않았습니다.';
             cell.style = {
                 font: { name: '맑은 고딕', size: 12 },
                 alignment: { vertical: 'middle', horizontal: 'center', wrapText: true }
             };
-            detailsSheet.getRow(1).height = 100; // 셀 높이 조절
+            detailsSheet.getRow(1).height = 100;
         }
 
-
-        // =================================================================
-        // 📄 시트 4: 전체 성과 요약 (PerformanceDashboardPage)
-        // =================================================================
         const performanceSheet = workbook.addWorksheet('전체 성과 요약');
 
         performanceSheet.mergeCells('A1:B1');
@@ -329,8 +293,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
         handleExcelDownload,
     }));
 
-    // --- 시트 렌더링 함수들 ---
-
     const CoverSheet = () => (
         <div className="p-6 space-y-2">
             <h1 className="text-3xl font-bold mb-6">물류 경로 이상탐지 AI 분석 보고서</h1>
@@ -366,8 +328,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
         if (anomalyTrips.length === 0) {
             return <p className="p-6 text-gray-500">상세 추적이 필요한 이상 징후가 발견되지 않았습니다.</p>;
         }
-
-        // ✨ 각 섹션의 카운터를 별도로 관리합니다.
         let fakeCounter = 1;
         let tamperCounter = 1;
         let cloneCounter = 1;
@@ -386,7 +346,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {/* --- 가. 위조(Fake) --- */}
                     <tr className="bg-gray-100 font-bold">
                         <td colSpan={6} className={tdClass}>가. 위조(Fake) 의심 목록</td>
                     </tr>
@@ -402,15 +361,12 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                             </tr>
                         ))
                     ) : (
-                        // ✨ 데이터 없을 때 표시할 행
                         <tr>
                             <td colSpan={6} className={`${tdClass} text-center text-gray-400`}>
                                 해당 유형의 이상 징후가 없습니다.
                             </td>
                         </tr>
                     )}
-
-                    {/* --- 나. 변조(Tamper) --- */}
                     <tr className="bg-gray-100 font-bold">
                         <td colSpan={6} className={tdClass}>나. 변조(Tamper) 의심 목록</td>
                     </tr>
@@ -426,15 +382,12 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                             </tr>
                         ))
                     ) : (
-                        // ✨ 데이터 없을 때 표시할 행
                         <tr>
                             <td colSpan={6} className={`${tdClass} text-center text-gray-400`}>
                                 해당 유형의 이상 징후가 없습니다.
                             </td>
                         </tr>
                     )}
-
-                    {/* --- 다. 복제(Clone) --- */}
                     <tr className="bg-gray-100 font-bold">
                         <td colSpan={6} className={tdClass}>다. 복제(Clone) 의심 목록</td>
                     </tr>
@@ -443,7 +396,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                             <React.Fragment key={group[0].epcCode}>
                                 {group.map((trip: MergeTrip, index: number) => (
                                     <tr key={trip.epcCode + index}>
-                                        {/* ✨ cloneCounter를 사용하도록 수정 */}
                                         {index === 0 && <td rowSpan={group.length} className={tdClass}>{cloneCounter++}</td>}
                                         {index === 0 && <td rowSpan={group.length} className={tdClass}>복제(Clone)</td>}
                                         {index === 0 && <td rowSpan={group.length} className={tdClass}>{trip.epcCode}</td>}
@@ -455,15 +407,12 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                             </React.Fragment>
                         ))
                     ) : (
-                        // ✨ 데이터 없을 때 표시할 행
                         <tr>
                             <td colSpan={6} className={`${tdClass} text-center text-gray-400`}>
                                 해당 유형의 이상 징후가 없습니다.
                             </td>
                         </tr>
                     )}
-
-                    {/* --- 라. 신규 유형(Other) --- */}
                     <tr className="bg-gray-100 font-bold">
                         <td colSpan={6} className={tdClass}>라. 신규 유형(Other) 목록</td>
                     </tr>
@@ -479,7 +428,6 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                             </tr>
                         ))
                     ) : (
-                        // ✨ 데이터 없을 때 표시할 행
                         <tr>
                             <td colSpan={6} className={`${tdClass} text-center text-gray-400`}>
                                 해당 유형의 이상 징후가 없습니다.
@@ -537,6 +485,4 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
 });
 
 ExcelPreview.displayName = 'ExcelPreview';
-
-// 7. ✨ export default를 파일 맨 아래에 둡니다.
 export default ExcelPreview;

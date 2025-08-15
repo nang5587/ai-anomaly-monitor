@@ -102,51 +102,43 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
             const pdf = new jsPDF({
                 putOnlyUsedFonts: true,
                 compress: true,
-                orientation: 'p', // portrait (세로)
+                orientation: 'p',
                 unit: 'mm',
                 format: 'a4'
             });
 
-            // --- 1. 한글 폰트 설정 (필수!) ---
             const fontRegularResponse = await fetch('/fonts/NanumGothic.ttf');
             if (!fontRegularResponse.ok) throw new Error("NanumGothic.ttf 폰트 파일을 불러올 수 없습니다.");
             const fontRegularBuffer = await fontRegularResponse.arrayBuffer();
             const fontRegularBase64 = btoa(new Uint8Array(fontRegularBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-
             const fontBoldResponse = await fetch('/fonts/NanumGothicBold.ttf');
             if (!fontBoldResponse.ok) throw new Error("NanumGothicBold.ttf 폰트 파일을 불러올 수 없습니다.");
             const fontBoldBuffer = await fontBoldResponse.arrayBuffer();
             const fontBoldBase64 = btoa(new Uint8Array(fontBoldBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
 
-            // ✨ Base64 문자열을 VFS에 추가
             pdf.addFileToVFS('NanumGothic.ttf', fontRegularBase64);
             pdf.addFileToVFS('NanumGothicBold.ttf', fontBoldBase64);
 
-            // 폰트 등록
             pdf.addFont('NanumGothic.ttf', 'NanumGothic', 'normal');
             pdf.addFont('NanumGothicBold.ttf', 'NanumGothic', 'bold');
 
-            // 문서 기본 폰트 설정
             pdf.setFont('NanumGothic', 'normal');
 
-            // --- 2. html2canvas로 렌더링할 페이지들 캡처 ---
             const pagesToCapture = ['report-page-1', 'report-page-2'];
             for (let i = 0; i < pagesToCapture.length; i++) {
                 const pageId = pagesToCapture[i];
                 const element = document.getElementById(pageId);
                 if (element) {
-                    // ✨ 3. 첫 페이지(i=0)가 아닐 때만 새 페이지 추가
                     if (i > 0) pdf.addPage();
                     const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' } as any);
                     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
                 }
             }
 
-            // --- 3. AnomalyDetailsPage의 테이블 데이터를 가져와 autoTable로 그리기 ---
             const tableData = reportViewRef.current.getAnomalyDetailsPdfData();
 
             if (tableData && tableData.body.length > 0) {
-                pdf.addPage(); // 테이블을 위한 새 페이지 추가
+                pdf.addPage();
                 pdf.setTextColor(75, 85, 99);
                 pdf.setFont('NanumGothic', 'bold');
                 pdf.setFontSize(12);
@@ -159,29 +151,28 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     startY: 30,
                     theme: 'grid',
                     styles: {
-                        font: 'NanumGothic', // 테이블 전체에 'NanumGothic' 폰트 패밀리 사용
+                        font: 'NanumGothic',
                         fontSize: 8,
                         cellPadding: 2
                     },
                     headStyles: {
                         fillColor: [44, 62, 80],
                         textColor: 255,
-                        fontStyle: 'bold' // 'NanumGothic'의 'bold' 스타일을 사용
+                        fontStyle: 'bold'
                     },
                     bodyStyles: {
-                        fontStyle: 'normal' // 본문은 'NanumGothic'의 'normal' 스타일을 사용
+                        fontStyle: 'normal'
                     },
                     columnStyles: {
-                        0: { cellWidth: 7 },    // #
-                        1: { cellWidth: 20 },    // 유형
-                        2: { cellWidth: 30 },    // EPC Code
-                        3: { cellWidth: 20 },    // 제품명
-                        4: { cellWidth: 'auto' }, // 탐지 경로 (가장 김): 남은 공간을 모두 사용
-                        5: { cellWidth: 38 }     // 탐지 시간: 충분한 너비(30mm)를 고정 할당
+                        0: { cellWidth: 7 },
+                        1: { cellWidth: 20 },
+                        2: { cellWidth: 30 }, 
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 'auto' }, 
+                        5: { cellWidth: 38 } 
                     }
                 });
             } else {
-                // 데이터 없을 때 페이지 추가
                 const noDetailsElement = document.getElementById('report-page-no-details');
                 if (noDetailsElement) {
                     pdf.addPage();
@@ -189,8 +180,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
                 }
             }
-
-            // --- 4. 마지막 페이지 캡처 ---
             const finalPageElement = document.getElementById('report-page-final');
             if (finalPageElement) {
                 pdf.addPage();
@@ -198,10 +187,9 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                 const imgData = canvas.toDataURL('image/png');
                 pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
             }
-
             const totalPages = (pdf.internal as any).getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i); // 각 페이지로 이동
+                pdf.setPage(i);
                 pdf.setFontSize(10);
                 pdf.setTextColor(150);
                 const text = `Page ${i} / ${totalPages}`;
@@ -226,8 +214,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
         if (isDownloading) return;
         setIsDownloading(true);
         setDownloadType('excel');
-
-        // reportViewRef 대신 excelPreviewRef를 사용합니다.
         if (excelPreviewRef.current?.handleExcelDownload) {
             await excelPreviewRef.current.handleExcelDownload();
         } else {
@@ -279,7 +265,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                             <span>{isDownloading && downloadType === 'pdf' ? '생성 중...' : 'PDF'}</span>
                         </button>
                     )}
-                    {/* Excel 미리보기가 활성화되어 있을 때만 Excel 다운로드 버튼을 보여줍니다. */}
                     {activeTab === 'excel' && (
                         <button onClick={handleExcelDownload} disabled={isDownloading} className="flex items-center gap-2 px-4 py-2 bg-[#43A047] text-white rounded-3xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                             <FileSpreadsheet size={16} />
@@ -296,7 +281,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     height: 'calc(100vh - 120px)'
                 }}
             >
-                {/* 왼쪽: 파일 목록 관리 */}
                 <aside
                     style={{
                         width: '25%',
@@ -342,8 +326,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                         ))}
                     </ul>
                 </aside>
-
-                {/* 오른쪽: 상세 보고서 뷰 */}
                 <main
                     style={{
                         flex: 1,

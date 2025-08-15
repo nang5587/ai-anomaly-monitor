@@ -34,7 +34,6 @@ export default function AuthSection() {
 
     return (
         <div className="relative w-2/3 h-full px-8 py-12 rounded-3xl backdrop-blur-m shadow-2xl text-center flex flex-col items-center justify-center gap-12">
-            {/* 타이틀 */}
             <motion.div
                 className="w-full"
                 variants={fadeInUp}
@@ -45,8 +44,6 @@ export default function AuthSection() {
                     투명한 공급망,<br />신뢰를 스캔하다.
                 </h1>
             </motion.div>
-
-            {/* 기능 소개 아이콘 카드 */}
             <motion.div
                 className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full"
                 variants={fadeInUp}
@@ -69,8 +66,6 @@ export default function AuthSection() {
                     </motion.div>
                 ))}
             </motion.div>
-
-            {/* 버튼 섹션 */}
             <motion.div
                 className="w-full flex flex-col items-start gap-4"
                 variants={fadeInUp}

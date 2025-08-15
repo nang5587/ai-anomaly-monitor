@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/context/AuthContext'; // ✨ 인증 상태를 가져올 훅
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { KeyIcon, UserCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { getMyProfile, updateProfileInfo, deleteMyAccount, changePassword } from '@/api/userApi'
@@ -21,24 +21,18 @@ interface UserSettingsProps {
 }
 
 export default function UserSettings({ initialProfile }: UserSettingsProps) {
-    const { user, logout, updateUserContext } = useAuth(); // ✨ AuthContext에서 user 정보와 업데이트 함수를 가져옴
-
-    // 폼 데이터를 관리할 상태
+    const { user, logout, updateUserContext } = useAuth();
     const [formData, setFormData] = useState(initialProfile);
-    // 비밀번호 변경 폼 데이터를 관리할 상태
     const [passwordData, setPasswordData] = useState({ password: '', newPassword: '', confirmPassword: '' });
-
     const [originalProfile, setOriginalProfile] = useState(initialProfile);
     const [isProfileChanged, setIsProfileChanged] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         async function fetchProfile() {
-            // AuthContext의 user가 로드된 후에 실행
             if (user) {
                 setIsLoading(true);
                 try {
-                    // API는 토큰으로 사용자를 식별하므로 인자가 필요 없습니다.
                     const profileFromServer = await getMyProfile();
                     setFormData(profileFromServer);
                     setOriginalProfile(profileFromServer);
@@ -52,7 +46,6 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
         fetchProfile();
     }, [user]);
 
-    // 폼 데이터가 변경될 때마다 원본과 비교
     useEffect(() => {
         const hasChanged = formData.userName !== originalProfile.userName || formData.email !== originalProfile.email;
         setIsProfileChanged(hasChanged);
@@ -61,7 +54,6 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPasswordData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-    // 프로필 정보 저장
     const handleProfileSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !isProfileChanged) return;
@@ -70,8 +62,8 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
         try {
             await updateProfileInfo({ userName: formData.userName, email: formData.email });
             toast.success("프로필이 성공적으로 업데이트되었습니다.");
-            updateUserContext({ userName: formData.userName }); // AuthContext의 이름은 실제 이름으로 업데이트하지 않음 (ID이므로)
-            setOriginalProfile(formData); // 원본 데이터 갱신
+            updateUserContext({ userName: formData.userName });
+            setOriginalProfile(formData);
         } catch (error) {
             toast.error("프로필 업데이트에 실패했습니다.");
         }
@@ -80,27 +72,17 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
     const handlePasswordSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
-
         if (!passwordData.password || !passwordData.newPassword || !passwordData.confirmPassword) {
             toast.error("모든 비밀번호 필드를 입력해주세요.");
             return;
         }
-
         if (passwordData.newPassword !== passwordData.confirmPassword) {
             toast.error("새 비밀번호가 일치하지 않습니다."); return;
         }
-
         if (passwordData.newPassword.length < 8) {
             toast.error("새 비밀번호는 8자 이상이어야 합니다.");
             return;
         }
-
-        // const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-        // if (!passwordRegex.test(passwordData.newPassword)) {
-        //     toast.error("비밀번호는 8자 이상의 영문과 숫자를 포함해야 합니다.");
-        //     return;
-        // }
-
         toast.loading("비밀번호를 변경하는 중...");
         try {
             await changePassword({
@@ -110,33 +92,23 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
             toast.success("비밀번호가 성공적으로 변경되었습니다.");
             setPasswordData({ password: '', newPassword: '', confirmPassword: '' });
         } catch (error) {
-            // apiClient에서 에러 처리를 하므로 여기서는 추가 토스트가 필요 없을 수 있습니다.
         }
     };
 
     const handleDeleteAccount = async () => {
         if (!user) return;
-
         const isConfirmed = window.confirm(
             '정말로 회원 탈퇴를 진행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'
         );
-
         if (!isConfirmed) return;
-
         toast.loading("회원 탈퇴 처리 중...");
         try {
-            // 4. userApi에 있는 deleteMyAccount 함수를 호출합니다.
             await deleteMyAccount();
-
             toast.success("회원 탈퇴가 완료되었습니다. 잠시 후 로그아웃됩니다.");
-
-            // 5. 성공 시, AuthContext의 logout 함수를 호출하여 세션을 종료합니다.
             setTimeout(() => {
                 logout();
             }, 1500);
-
         } catch (error) {
-            // apiClient에서 이미 에러 토스트를 띄울 수 있으므로, 여기서는 콘솔 로그만 남기거나 비워둘 수 있습니다.
             console.error("회원 탈퇴 실패:", error);
             toast.error("회원 탈퇴 중 오류가 발생했습니다.");
         }
@@ -158,7 +130,6 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
     return (
         <div className="p-4 sm:p-8 text-white w-full flex flex-col items-center gap-10">
             <div className="w-full flex justify-center gap-10">
-                {/* 프로필 정보 수정 섹션 */}
                 <div className="flex flex-col justify-between bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
                     <div className="flex items-center gap-4 mb-6">
                         <UserCircleIcon className="w-8 h-8 text-[#E0E0E0}" />
@@ -188,8 +159,6 @@ export default function UserSettings({ initialProfile }: UserSettingsProps) {
                         </div>
                     </form>
                 </div>
-
-                {/* 비밀번호 변경 섹션 */}
                 <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl w-1/2">
                     <div className="flex items-center gap-4 mb-6">
                         <KeyIcon className="w-8 h-8 text-[#E0E0E0}" />

@@ -27,17 +27,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     const refetchUsers = useSetAtom(refetchUsersAtom);
 
     useEffect(() => {
-        // ADMIN 역할일 때만 주기적으로 사용자 목록을 새로고침합니다.
         if (user?.role === 'ADMIN') {
-            // 컴포넌트 마운트 시 즉시 한 번 실행
             refetchUsers();
-
             const intervalId = setInterval(() => {
                 console.log('사용자 목록을 주기적으로 새로고침합니다.');
                 refetchUsers();
-            }, 60000); // 60초(1분)마다 실행
-
-            // 컴포넌트 언마운트 시 인터벌 정리
+            }, 60000);
             return () => clearInterval(intervalId);
         }
     }, [user, refetchUsers]);
@@ -45,16 +40,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     const isPublicPage = PUBLIC_ROUTES.includes(pathname);
 
     useEffect(() => {
-        // 로딩이 끝났고, 유저가 없으며, 현재 페이지가 공용 페이지가 아닐 때만 리디렉션
         if (!isLoading && !user && !isPublicPage) {
             window.location.href = '/login';
         }
-
         if (!isLoading && user && isPublicPage) {
             const role = user.role.toUpperCase() === 'ADMIN' ? 'supervisor' : 'admin';
             window.location.href = `/${role}`;
         }
-
     }, [user, isLoading, isPublicPage, pathname]);
 
     if (isPublicPage) {
@@ -72,7 +64,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         );
     }
 
-    // 로딩 중이거나 (리디렉션 되기 전의) 유저가 없는 상태를 표시
     if (isLoading || !user) {
         return (
             <div className="bg-black h-screen flex items-center justify-center">
@@ -84,16 +75,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return (
         <div className="bg-black">
             <Header />
-
             <div className="flex">
                 <Sidebar userRole={user.role as 'ADMIN' | 'MANAGER'} hovered={sidebarHovered} setHovered={setSidebarHovered} />
-
                 <main className={`flex-1 h-screen overflow-hidden relative pt-20`}>
                     {children}
                 </main>
-
             </div>
-
             <StatusBar />
         </div>
     );

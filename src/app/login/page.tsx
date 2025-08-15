@@ -4,10 +4,8 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { loginAction } from './actions';
-
-
-import { FcGoogle } from 'react-icons/fc';
 import jwtDecode from 'jwt-decode';
+
 interface DecodedToken {
   role: string;
 }
@@ -26,28 +24,25 @@ const initialState: { message: string; success: boolean; token?: string; remembe
 };
 
 function LoginButton() {
-  // 3. useFormStatus 훅으로 폼의 제출 상태(pending)를 가져옴
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
       className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-md text-sm disabled:bg-indigo-300"
-      disabled={pending} // 4. 로딩 중일 때 버튼 비활성화
+      disabled={pending}
     >
       {pending ? '로그인 중...' : '로그인'}
     </button>
   );
 }
 
-// ✅ default export 되는 로그인 컴포넌트
 export default function LoginPage() {
   const [state, formAction] = useFormState(loginAction, initialState);
   const router = useRouter();
   const { login } = useAuth();
 
   useEffect(() => {
-    // 1. 로그인에 성공했고, state에 토큰이 포함되어 있다면
     if (state.success && state.token && typeof state.rememberMe === 'boolean') {
       login(state.token, state.rememberMe);
 
@@ -57,7 +52,6 @@ export default function LoginPage() {
         router.push(redirectUrl);
       } catch (error) {
         console.error("토큰 디코딩 실패:", error);
-        // 디코딩 실패 시 기본 페이지로 이동
         router.push('/');
       }
     }
@@ -84,19 +78,6 @@ export default function LoginPage() {
 
           <h2 className="text-2xl font-semibold text-center text-gray-800">Log in</h2>
 
-          {/* <div className="flex gap-3">
-            <button className="flex-1 flex items-center justify-center gap-2 border rounded-md py-2 text-sm hover:bg-gray-100 bg-white">
-              <FcGoogle className="w-5 h-5" />
-              Google
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <hr className="w-full border-gray-300" />
-            <span className="px-2 text-gray-400 text-sm">Or</span>
-            <hr className="w-full border-gray-300" />
-          </div> */}
-
           <form action={formAction} className="space-y-4">
             <div>
               <label className="text-sm text-gray-600">아이디</label>
@@ -116,7 +97,6 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
                 required
-              // autoComplete="current-password"
               />
             </div>
 
@@ -133,7 +113,6 @@ export default function LoginPage() {
 
             <LoginButton />
 
-            {/* 10. 서버로부터 받은 에러 메시지 표시 */}
             {!state.success && state.message && (
               <p className="text-sm text-red-500 text-center">{state.message}</p>
             )}

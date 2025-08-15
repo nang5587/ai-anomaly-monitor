@@ -1,5 +1,3 @@
-// src/app/report/PerformanceDashboardPage.tsx
-
 'use client';
 
 import React from 'react';
@@ -11,10 +9,9 @@ import { KpiSummary, InventoryDataPoint } from "@/types/api";
 import { getNodeName } from "@/types/colorUtils";
 
 declare module 'chart.js' {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface PluginOptionsByType<TType extends ChartType> {
-        doughnutCenterText?: { // 우리 플러그인의 옵션 이름
-            total: number; // 플러그인이 받을 데이터의 타입
+        doughnutCenterText?: {
+            total: number;
         }
     }
 }
@@ -22,29 +19,24 @@ declare module 'chart.js' {
 const doughnutCenterTextPlugin = {
     id: 'doughnutCenterText',
     beforeDraw: (chart: Chart) => {
-        // 옵션을 통해 전달된 total 값이 없으면 아무것도 하지 않음
         const total = chart.config.options?.plugins?.doughnutCenterText?.total;
         if (!total) return;
 
         const { ctx, chartArea: { top, right, bottom, left, width, height } } = chart;
         ctx.save();
 
-        // 텍스트 스타일 설정 (총 재고량 숫자)
         ctx.font = 'bold 20px sans-serif';
-        ctx.fillStyle = 'rgb(55, 65, 81)'; // text-gray-700 RGB 값
+        ctx.fillStyle = 'rgb(55, 65, 81)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const centerX = left + width / 2;
         const centerY = top + height / 2;
 
-        // 숫자 그리기 (천 단위 콤마 포함)
         ctx.fillText(total.toLocaleString(), centerX, centerY - 10);
 
-        // 텍스트 스타일 설정 (라벨)
         ctx.font = 'normal 14px sans-serif';
-        ctx.fillStyle = 'rgb(107, 114, 128)'; // text-gray-500 RGB 값
+        ctx.fillStyle = 'rgb(107, 114, 128)';
 
-        // "총 재고량" 라벨 그리기
         ctx.fillText('총 재고량', centerX, centerY + 20);
         ctx.restore();
     }
@@ -98,22 +90,16 @@ const KpiCard = ({ title, value, unit = '', fixed = 0 }: {
 };
 
 const InsightSummarySection = ({ kpiData, inventoryData }: { kpiData: KpiSummary; inventoryData: InventoryDataPoint[] }) => {
-    // 재고가 가장 많이 쌓인 단계 찾기
     const bottleneckStage = inventoryData.reduce((max, item) => item.value > max.value ? item : max, inventoryData[0]);
     const totalInventory = inventoryData.reduce((sum, item) => sum + item.value, 0);
     const bottleneckPercentage = ((bottleneckStage.value / totalInventory) * 100).toFixed(1);
-
     const insights = [];
-
-    // 리드타임 분석
-    if (kpiData.avgLeadTime > 5) { // 예시: 리드타임 5일 초과 시
+    if (kpiData.avgLeadTime > 5) {
         insights.push(`평균 리드타임이 ${kpiData.avgLeadTime.toFixed(1)}일로, 고객 경험에 영향을 줄 수 있는 수준입니다.`);
     }
 
-    // 재고 병목 현상 분석
     insights.push(`전체 재고의 ${bottleneckPercentage}%가 '${bottleneckStage.businessStep}' 단계에 집중되어 있어, 해당 단계의 병목 현상 해결이 시급합니다.`);
 
-    // 판매율/출고율 분석
     if (kpiData.salesRate < 90 || kpiData.dispatchRate < 90) {
         insights.push(`판매율 또는 출고율이 90% 미만으로, 일부 재고가 장기화될 위험이 있습니다.`);
     }
@@ -261,8 +247,6 @@ export default function PerformanceDashboardPage({
                 }}
             >
                 <InsightSummarySection kpiData={kpiData} inventoryData={inventoryData} />
-
-                {/* 1. 핵심 지표 (KPI) */}
                 <section>
                     <h2
                         style={{
@@ -275,7 +259,6 @@ export default function PerformanceDashboardPage({
                     >
                         2. 운영 효율성 지표 현황
                     </h2>
-                    {/* ✨ 3. kpiData에 있는 모든 유용한 지표를 표시합니다. */}
                     <div
                         style={{
                             display: 'grid',
@@ -289,8 +272,6 @@ export default function PerformanceDashboardPage({
                         <KpiCard title="출고율" value={kpiData.dispatchRate} unit="%" fixed={1} />
                     </div>
                 </section>
-
-                {/* ✨ 4. 시각화 섹션을 2개의 컬럼으로 구성합니다. */}
                 <section
                     style={{
                         display: 'grid',
@@ -298,7 +279,6 @@ export default function PerformanceDashboardPage({
                         gap: '24px'
                     }}
                 >
-                    {/* 왼쪽: 공급망 단계별 재고 분포 */}
                     <div>
                         <h2
                             style={{
@@ -333,8 +313,6 @@ export default function PerformanceDashboardPage({
                             <Doughnut data={inventoryChartData} options={doughnutOptions} />
                         </div>
                     </div>
-
-                    {/* 오른쪽: 제품 포트폴리오 및 기타 정보 */}
                     <div>
                         <h2
                             style={{
