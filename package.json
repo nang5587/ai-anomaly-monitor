@@ -41,6 +41,7 @@
     "framer-motion": "^12.23.0",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
+    "jose": "^6.0.12",
     "jotai": "^2.12.5",
     "jotai-immer": "^0.4.1",
     "jotai-utils": "^0.0.0",

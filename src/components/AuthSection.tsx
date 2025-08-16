@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-import { CheckCheck, ActivitySquare, ScanBarcode, Radar, LogIn, UserPlus } from 'lucide-react';
+import { CheckCheck, ActivitySquare, ScanBarcode, Radar } from 'lucide-react';
 
 const fadeInUp: Variants = {
     hidden: { y: 40, opacity: 0 },
@@ -51,7 +51,7 @@ export default function AuthSection() {
                 animate="visible"
             >
                 {[
-                    { icon: <Radar size={24} />, text: '실시간 유통 경로 추적' },
+                    { icon: <Radar size={24} />, text: '유통 경로 추적' },
                     { icon: <ActivitySquare size={24} />, text: 'AI 기반 이상 패턴 탐지' },
                     { icon: <CheckCheck size={24} />, text: '데이터 시각화 대시보드' },
                     { icon: <ScanBarcode size={24} />, text: '간편한 바코드 인증' },
@@ -77,14 +77,14 @@ export default function AuthSection() {
                     <button
                         onClick={handleLogin}
                         className="w-full flex items-center justify-center gap-2 bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] 
-                                text-white py-2 px-3 rounded-4xl shadow-md transition-all duration-200 whitespace-nowrap cursor-pointer"
+                                text-white py-2 px-3 rounded-xl shadow-md transition-all duration-200 whitespace-nowrap cursor-pointer"
                     >
                         로그인
                     </button>
                     <button
                         onClick={handleSignup}
                         className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 
-                                text-gray-900 py-2 px-2 rounded-4xl shadow-md transition-all duration-200 whitespace-nowrap cursor-pointer"
+                                text-gray-900 py-2 px-2 rounded-xl shadow-md transition-all duration-200 whitespace-nowrap cursor-pointer"
                     >
                         회원가입
                     </button>

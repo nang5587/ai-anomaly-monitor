@@ -1,12 +1,8 @@
 'use client';
 
-import { useAuth } from '@/context/AuthContext'; // ℹ️ 백이랑 연결 시 주석 풀기
+import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAtom } from 'jotai';
-
-import { selectedFileIdAtom, selectedFactoryNameAtom } from '@/stores/mapDataAtoms';
-import { getFiles_client } from '@/api/apiClient';
-import { FileItem } from '@/types/file';
 
 import { useState, useEffect } from 'react';
 import { useSetAtom } from 'jotai';
@@ -59,11 +55,6 @@ import {
     X,
     Repeat,
 } from "lucide-react";
-
-type User = {
-    role: 'ADMIN' | 'MANAGER';
-    locationId: number;
-}
 
 export default function SupervisorDashboard() {
     const router = useRouter();

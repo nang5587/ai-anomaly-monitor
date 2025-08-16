@@ -29,7 +29,7 @@ function LoginButton() {
   return (
     <button
       type="submit"
-      className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-md text-sm disabled:bg-indigo-300"
+      className="w-full bg-[rgba(111,131,175)] hover:bg-[rgba(101,121,165)] text-white font-noto-400 py-6 rounded-lg text-xl transition-colors duration-200 disabled:bg-[rgba(121,141,185)] cursor-pointer"
       disabled={pending}
     >
       {pending ? '로그인 중...' : '로그인'}
@@ -58,70 +58,70 @@ export default function LoginPage() {
   }, [state.success, state.token, state.rememberMe, router, login]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
-      <img
-        src="/images/bgTruck.png"
-        alt="물류 배경"
-        className="absolute top-0 left-0 w-full h-full object-cover opacity-80 z-0"
-      />
-      <div className="absolute top-0 left-0 w-full h-full bg-black/30 z-0" />
+    <div className="min-h-screen bg-[rgba(40,40,40)] text-white flex items-center justify-center p-4">
+      <div className="w-full flex overflow-hidden">
 
-      <div className="relative z-10 flex items-center justify-center h-full">
-        <div className="w-full max-w-xl p-8 bg-white bg-opacity-90 rounded-xl shadow-lg space-y-6">
-          <div className="flex justify-center">
-            <div className="bg-indigo-500 rounded-full p-4">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18m-6 6 6-6-6-6" />
-              </svg>
-            </div>
+        <div className="w-full flex justify-center items-center p-8 md:p-12">
+          <div className='w-3/4'>
+            <h1 className="text-5xl font-noto-500 font-black mb-4 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.7)]">
+              복잡한 물류 분석,<br />
+              이제는 간편하게.
+            </h1>
+            <p className="font-noto-400 text-[#E0E0E0] text-xl drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]">
+              CSV 파일 업로드만으로 AI 이상 탐지부터 시각화, 보고서 작성까지.<br />
+              당신의 가장 강력한 물류 분석가가 지금 대기중입니다.
+            </p>
           </div>
-
-          <h2 className="text-2xl font-semibold text-center text-gray-800">Log in</h2>
-
-          <form action={formAction} className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-600">아이디</label>
-              <input
-                type="text"
-                name="userId"
-                placeholder="아이디 입력"
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600">비밀번호</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                required
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-1">
+        </div>
+        <div className="w-full flex justify-center p-8 md:p-12">
+          <div className='w-3/4'>
+            <form action={formAction} className="space-y-6">
+              <div>
+                <label className="text-xl font-noto-400 text-gray-400">아이디</label>
                 <input
-                  type="checkbox"
-                  name="rememberMe"
-                  className="form-checkbox"
+                  type="text"
+                  name="userId"
+                  placeholder="아이디를 입력하세요"
+                  className="w-full mt-2 px-4 py-6 border border-gray-600 rounded-lg font-noto-400 text-xl bg-[rgba(30,30,30)] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgba(111,131,175)] transition-shadow duration-200"
+                  required
                 />
-                로그인 상태 유지
-              </label>
-            </div>
+              </div>
+              <div>
+                <label className="text-xl font-noto-400 text-gray-400">비밀번호</label>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  className="w-full mt-2 px-4 py-6 border border-gray-600 rounded-lg font-noto-400 text-xl bg-[rgba(30,30,30)] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgba(111,131,175)] transition-shadow duration-200"
+                  required
+                />
+              </div>
 
-            <LoginButton />
+              <div className="flex items-center justify-between text-xl">
+                <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="rememberMe"
+                    className="form-checkbox h-4 w-4 bg-gray-700 border-gray-600 font-noto-400 text-[rgba(111,131,175)] focus:ring-[rgba(111,131,175)] rounded"
+                  />
+                  로그인 상태 유지
+                </label>
+              </div>
 
-            {!state.success && state.message && (
-              <p className="text-sm text-red-500 text-center">{state.message}</p>
-            )}
-          </form>
+              <LoginButton />
 
-          <p className="text-sm text-center text-gray-700">
-            계정이 없으신가요?{' '}
-            <a href="/join" className="text-indigo-600 hover:underline">회원가입</a>
-          </p>
+              {state.message && (
+                <p className={`text-xl text-center ${state.success ? 'text-green-400' : 'text-red-400'}`}>
+                  {state.message}
+                </p>
+              )}
+            </form>
+
+            <p className="font-noto-400 text-xl text-center text-gray-500 mt-8">
+              계정이 없으신가요?{' '}
+              <a href="/join" className="font-noto-400 text-[rgba(111,131,175)] hover:underline">회원가입</a>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -4,16 +4,20 @@ import {
     getNodes,
     getAnomalies,
     getTrips,
-    getFilterOptions,
     getAllAnomalies,
-    type LocationNode,
-    type AnalyzedTrip,
-    type FilterOptions,
-    type PaginatedTripsResponse,
-    type AnomalyType,
+    getFilterOptions,
+} from '@/services/dataService';
+
+import type {
+    LocationNode,
+    AnalyzedTrip,
+    FilterOptions,
+    PaginatedTripsResponse,
+    AnomalyType,
 } from '../types/data';
 
 import { MergeTrip, Tab } from '@/components/visual/SupplyChainDashboard';
+// import { getFilterOptions } from '@/types/data';
 
 export interface MapViewState {
     longitude: number;
@@ -174,7 +178,7 @@ export const loadTripsDataAtom = atom(null, async (get, set) => {
     const currentTab = get(activeTabAtom);
     const currentFilters = get(appliedFiltersAtom);
     const fetchFunction = currentTab === 'anomalies' ? getAnomalies : getTrips;
-    const params = { ...currentFilters, fileId, limit: 50, cursor: null };
+    const params = { ...currentFilters, fileId, limit: 50};
 
     try {
         const response = await fetchFunction(params);
@@ -312,7 +316,7 @@ export const selectTripAndFocusAtom = atom(
                 const fetchFunc = get(activeTabAtom) === 'anomalies' ? getAnomalies : getTrips;
 
                 try {
-                    const response = await fetchFunc({ ...filters, fileId, limit: 50, cursor: null });
+                    const response = await fetchFunc({ ...filters, fileId, limit: 50 });
                     const fetchedTrips = mergeAndGenerateTimestamps(response.data, geometries);
                     const otherTrips = fetchedTrips.filter(t => t.roadId !== trip.roadId);
                     set(tripsAtom, [trip, ...otherTrips]);

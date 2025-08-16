@@ -30,8 +30,13 @@ import {
     getNodes,
     getTrips,
     getAnomalyCountsByProduct
-} from '@/types/data';
-import { getCoverReportData, getFiles_client } from '@/api/apiClient';
+} from '@/services/dataService';
+
+import { 
+    getCoverReportData, 
+    getFiles_client 
+} from '@/services/apiService';
+
 import {
     mergeAndGenerateTimestamps,
     routeGeometriesAtom,

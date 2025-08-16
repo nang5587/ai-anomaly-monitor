@@ -1,5 +1,5 @@
 import apiClient from "@/api/apiClient";
-// --- 1. 타입 정의 ---
+
 export interface LocationNode {
     hubType: string;
     scanLocation: string;
