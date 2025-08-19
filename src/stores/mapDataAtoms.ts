@@ -1,5 +1,5 @@
 import { atom } from 'jotai';
-import { FlyToInterpolator } from 'deck.gl';
+import { FlyToInterpolator, WebMercatorViewport } from 'deck.gl';
 import {
     getNodes,
     getAnomalies,
@@ -137,9 +137,6 @@ export const loadRouteGeometriesAtom = atom(null, async (get, set) => {
 
 export const loadInitialDataAtom = atom(null, async (get, set) => {
     const fileId = get(selectedFileIdAtom);
-
-    // ✨ 2. fileId가 없으면 데이터 로딩을 중단합니다.
-    //    (SupplyChainDashboard에서 fileId를 먼저 설정해주므로 이 경우는 거의 없습니다.)
     if (!fileId) {
         console.warn("loadInitialDataAtom: fileId가 설정되지 않아 데이터 로딩을 중단합니다.");
         return;
@@ -237,7 +234,7 @@ export const flyToLocationAtom = atom(
             ...currentViewState,
             longitude: location.longitude ?? currentViewState.longitude,
             latitude: location.latitude ?? currentViewState.latitude,
-            zoom: location.zoom ?? 17,
+            zoom: location.zoom ?? 14,
             pitch: location.pitch ?? 50,
             bearing: location.bearing ?? 0,
             transitionDuration: 2000, 
@@ -269,12 +266,12 @@ export const resetAnomalyFilterAtom = atom(
 export const selectTripAndFocusAtom = atom(
     null,
     (get, set, trip: MergeTrip | null) => {
+        const currentViewState = get(mapViewStateAtom);
+
         if (trip === null) {
-            console.log("🚀 selectTripAndFocusAtom이 'null'로 호출됨 (선택 해제)");
             set(selectedObjectAtom, null);
             set(timeRangeAtom, null);
             return;
-        } else {
         }
 
         const currentTab = get(activeTabAtom);
@@ -289,17 +286,37 @@ export const selectTripAndFocusAtom = atom(
             const endTime = trip.timestamps[trip.timestamps.length - 1];
             set(timeRangeAtom, [startTime, endTime]);
         }
+        
+        const allCoords = trip.path || [trip.from.coord, trip.to.coord];
+        if (allCoords && allCoords.length > 0) {
+            const bounds: [[number, number], [number, number]] = allCoords.reduce(
+                (acc, coord) => [
+                    [Math.min(acc[0][0], coord[0]), Math.min(acc[0][1], coord[1])],
+                    [Math.max(acc[1][0], coord[0]), Math.max(acc[1][1], coord[1])],
+                ],
+                [[Infinity, Infinity], [-Infinity, -Infinity]]
+            );
 
-        if (trip.path && trip.path.length > 1) {
-            const lastIndex = trip.path.length - 1;
-            const destination = trip.path[lastIndex];
+            const viewport = new WebMercatorViewport({
+                ...currentViewState,
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
 
-            const newLocation = {
-                longitude: destination[0], 
-                latitude: destination[1],  
-                zoom: 14,
-            };
-            set(flyToLocationAtom, newLocation);
+            const { longitude, latitude, zoom } = viewport.fitBounds(bounds, {
+                padding: 200 
+            });
+
+            set(mapViewStateAtom, {
+                ...currentViewState,
+                longitude,
+                latitude,
+                zoom,
+                pitch: 50,
+                bearing: 0,
+                transitionDuration: 2000,
+                transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+            });
         }
 
         const currentTrips = get(tripsAtom);

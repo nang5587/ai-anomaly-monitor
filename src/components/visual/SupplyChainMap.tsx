@@ -22,6 +22,7 @@ import DeckGL, { FlyToInterpolator } from 'deck.gl';
 import { PathLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
+import { PathStyleExtension } from '@deck.gl/extensions'
 import { WebMercatorViewport } from '@deck.gl/core';
 import { OBJLoader } from '@loaders.gl/obj';
 import { parseSync } from '@loaders.gl/core';
@@ -81,6 +82,7 @@ export const SupplyChainMap: React.FC = () => {
     const [hoveredType, setHoveredType] = useState<string | null>(null);
     const [visibleTypes, setVisibleTypes] = useState<Record<string, boolean>>({ Factory: true, WMS: true, LogiHub: true, Wholesaler: true, Reseller: true, POS: true });
     const [isPlaying, setIsPlaying] = useState(true);
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [pulseRadius, setPulseRadius] = useState(0);
 
     const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
@@ -179,7 +181,7 @@ export const SupplyChainMap: React.FC = () => {
                     setIsPlaying(false); // 재생 중지
                     return activeTimeRange.maxTime;
                 }
-                const nextTime = prevTime + dynamicAnimationSpeed;
+                const nextTime = prevTime + (dynamicAnimationSpeed * playbackSpeed);
                 if (nextTime >= activeTimeRange.maxTime) {
                     setIsPlaying(false);
                     return activeTimeRange.maxTime;
@@ -192,7 +194,7 @@ export const SupplyChainMap: React.FC = () => {
         };
         animationFrame = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animationFrame);
-    }, [isPlaying, activeTimeRange, setIsPlaying, dynamicAnimationSpeed]);
+    }, [isPlaying, activeTimeRange, setIsPlaying, dynamicAnimationSpeed, playbackSpeed]);
 
     useEffect(() => {
         let animationFrame: number;
@@ -429,31 +431,81 @@ export const SupplyChainMap: React.FC = () => {
         return processedJourneys;
     }, [trips, nodes]);
 
+    const selectedTrip = useMemo(() => {
+        if (selectedObject && 'roadId' in selectedObject) {
+            return selectedObject as MergeTrip;
+        }
+        return null;
+    }, [selectedObject]);
+
+    const uniqueStaticPaths = useMemo(() => {
+        const uniquePaths = new Map<string, MergeTrip>();
+        validTrips.forEach(trip => {
+            const pathKey = `${trip.from.scanLocation}-${trip.to.scanLocation}`;
+            if (!uniquePaths.has(pathKey)) {
+                uniquePaths.set(pathKey, trip);
+            }
+        });
+        return Array.from(uniquePaths.values());
+    }, [validTrips]);
 
     const layers = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
         const showJourneys = !selectedTrip;
+
+        let displayTrips: MergeTrip[];
+        let displayStaticPaths: MergeTrip[];
+
+        if (selectedTrip) {
+            if (selectedTrip.anomalyTypeList?.includes('clone')) {
+                const targetEpc = selectedTrip.epcCode;
+                displayTrips = validTrips.filter(trip => trip.epcCode === targetEpc);
+            } else {
+                displayTrips = [selectedTrip];
+            }
+            displayStaticPaths = displayTrips;
+        } else {
+            displayTrips = validTrips;
+            displayStaticPaths = uniqueStaticPaths;
+        }
+
         return [
             new PathLayer<MergeTrip>({
-                id: 'static-supply-lines',
-                data: staticPathData,
-                widthMinPixels: 5,
+                id: 'path-solid-background-layer',
+                data: displayStaticPaths,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
-                getColor: d => {
-                    if (selectedTrip) {
-                        if (d.anomalyTypeList.length > 0) {
-                            return [255, 0, 0, 255];
-                        }
-                        return [0, 255, 127, 255];
-                    }
-                    return d.anomalyTypeList.length > 0 ? [255, 64, 64, 10] : [0, 255, 127, 10];
-                },
+                getColor: [200, 200, 200, 80],
+                getWidth: 8,
+                widthMinPixels: 8,
+            }),
+            new PathLayer<MergeTrip>({
+                id: 'path-background-layer',
+                data: displayStaticPaths,
+                getPath: d => d.path || [d.from.coord, d.to.coord],
+                getColor: [200, 200, 200, 255],
+                getWidth: 8,
+                widthMinPixels: 8,
+                // @ts-ignore
+                getDashArray: [3, 3],
+                // @ts-ignore
+                dashJustified: true,
+                extensions: [new PathStyleExtension({ dash: true })],
+            }),
+            new TripsLayer<MergeTrip>({
+                id: 'main-trips-layer',
+                data: displayTrips,
+                getPath: d => d.path || [d.from.coord, d.to.coord],
+                getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
+                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 100] : [60, 150, 255, 100],
+                opacity: 1,
+                getWidth: 8,
+                widthMinPixels: 8,
+                rounded: true,
+                trailLength: 300,
+                currentTime,
                 pickable: true,
                 onHover: info => setHoverInfo(info),
                 onClick: handleLayerClick,
-                updateTriggers: {
-                    getColor: [selectedObject],
-                },
             }),
             new IconLayer<[number, number]>({
                 id: 'clone-icon-layer',
@@ -468,18 +520,6 @@ export const SupplyChainMap: React.FC = () => {
                 getPosition: d => d,
                 getColor: d => [255, 64, 64, 255],
             }),
-            new ScatterplotLayer({
-                id: 'pulse-layer',
-                data: pulseData,
-                getPosition: d => d,
-                getRadius: pulseRadius,
-                getFillColor: [255, 99, 132, 255 - (pulseRadius / 1000) * 255],
-                pickable: false,
-                updateTriggers: {
-                    getRadius: [pulseData],
-                    getFillColor: [pulseData],
-                },
-            }),
             ...otherMeshLayers,
             ...factoryLayers,
             new TripsLayer({
@@ -488,31 +528,43 @@ export const SupplyChainMap: React.FC = () => {
                 visible: showJourneys,
                 getPath: d => d.path,
                 getTimestamps: d => d.timestamps,
-                getColor: [255, 64, 64],
-                opacity: 0.8,
-                widthMinPixels: 5,
+                getColor: [0, 123, 255, 100],
+                opacity: 1,
+                getWidth: 8,
+                widthMinPixels: 8,
                 rounded: true,
-                trailLength: 100, 
+                trailLength: 100,
                 currentTime,
             }),
             new TripsLayer<MergeTrip>({
                 id: 'other-trips-layer',
-                data: otherDynamicTrips, 
-                visible: showJourneys, 
+                data: otherDynamicTrips,
+                visible: showJourneys,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => d.anomalyTypeList.length > 0 ? [255, 64, 64] : [0, 255, 127],
-                opacity: 0.8,
-                widthMinPixels: 5,
+                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 100] : [0, 255, 127, 100],
+                opacity: 1,
+                getWidth: 8,
+                widthMinPixels: 8,
                 rounded: true,
                 trailLength: 100,
                 currentTime,
             }),
         ];
     }, [
-        staticPathData, cloneMarkerCoords, otherDynamicTrips, pulseData, wholesalerJourneys,
-        selectedObject, currentTime, anomalyNodes,
-        factoryLayers, otherMeshLayers, handleLayerClick, setHoverInfo 
+        selectedObject,
+        validTrips,
+        uniqueStaticPaths,
+        cloneMarkerCoords,
+        otherDynamicTrips,
+        pulseData,
+        wholesalerJourneys,
+        currentTime,
+        anomalyNodes,
+        factoryLayers,
+        otherMeshLayers,
+        handleLayerClick,
+        setHoverInfo
     ]);
 
     return (
@@ -529,6 +581,26 @@ export const SupplyChainMap: React.FC = () => {
                     display: flex; 
                     align-items: center; 
                     justify-content: center;
+                }
+                .path-marker-label {
+                    min-width: 50px;
+                    padding: 6px 10px;
+                    border-radius: 20px;
+                    color: white;
+                    font-size: 14px;
+                    font-weight: bold;
+                    text-align: center;
+                    transform: translate(-50%, -120%); 
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                    pointer-events: none;
+                }
+                .start-marker {
+                    background-color: #6c757d;
+                    border: 2px solid #fff;
+                }
+                .end-marker {
+                    background-color: #007bff;
+                    border: 2px solid #fff;
                 }
             `}</style>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -584,6 +656,31 @@ export const SupplyChainMap: React.FC = () => {
                                 </div>
                             </Marker>
                         ))}
+
+                        {selectedTrip && (
+                            <>
+                                <Marker
+                                    key="start-marker"
+                                    longitude={selectedTrip.from.coord[0]}
+                                    latitude={selectedTrip.from.coord[1]}
+                                    pitchAlignment="viewport"
+                                >
+                                    <div className="path-marker-label start-marker">
+                                        출발
+                                    </div>
+                                </Marker>
+                                <Marker
+                                    key="end-marker"
+                                    longitude={selectedTrip.to.coord[0]}
+                                    latitude={selectedTrip.to.coord[1]}
+                                    pitchAlignment="viewport"
+                                >
+                                    <div className="path-marker-label end-marker">
+                                        도착
+                                    </div>
+                                </Marker>
+                            </>
+                        )}
                     </ReactMapGL>
                 </DeckGL>
                 <MapLegend
@@ -602,6 +699,8 @@ export const SupplyChainMap: React.FC = () => {
                     onTogglePlay={handleTogglePlay}
                     anomalies={anomalyList}
                     onMarkerClick={(trip) => selectTripAndFocus(trip)}
+                    playbackSpeed={playbackSpeed}
+                    onPlaybackSpeedChange={setPlaybackSpeed}
                 />
             </div>
         </>

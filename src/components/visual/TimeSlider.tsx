@@ -15,6 +15,8 @@ interface TimeSliderProps {
     onTogglePlay: () => void;
     anomalies: AnalyzedTrip[];
     onMarkerClick: (trip: AnalyzedTrip) => void;
+    playbackSpeed: number;
+    onPlaybackSpeedChange: (speed: number) => void;
 }
 
 type TooltipInfo = {
@@ -24,9 +26,9 @@ type TooltipInfo = {
 };
 
 const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, isPlaying, onChange, onTogglePlay, anomalies,
-    onMarkerClick, }) => {
+    onMarkerClick, playbackSpeed, onPlaybackSpeedChange }) => {
     const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
-
+    const speedOptions = [1, 2, 4, 8];
     const duration = maxTime - minTime;
 
     const renderTooltip = () => {
@@ -109,7 +111,31 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                     fill: white;
                     cursor: pointer;
                 }
-                    
+                .speed-controls {
+                    display: flex;
+                    background-color: rgba(20, 20, 20, 0.8);
+                    border-radius: 15px;
+                    padding: 4px;
+                }
+                .speed-button {
+                    background-color: transparent;
+                    border: none;
+                    color: #ccc;
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: bold;
+                    transition: all 0.2s ease;
+                }
+                .speed-button:hover {
+                    color: white;
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+                .speed-button.active {
+                    background-color: #007bff;
+                    color: white;
+                }
             `}</style>
             <div style={{
                 position: 'absolute',
@@ -123,8 +149,8 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 display: 'flex',
                 alignItems: 'center',
                 gap: '20px',
-                background: 'rgba(40, 40, 40)', 
-                backdropFilter: 'blur(10px)',   
+                background: 'rgba(40, 40, 40)',
+                backdropFilter: 'blur(10px)',
                 borderRadius: '25px',
             }}>
                 <button className="play-pause-btn" onClick={onTogglePlay}>
@@ -168,6 +194,17 @@ const TimeSlider: React.FC<TimeSliderProps> = ({ minTime, maxTime, currentTime, 
                 </div>
                 <div style={{ fontSize: '12px', color: '#ccc', textAlign: 'center', minWidth: '130px' }}>
                     <strong style={{ color: 'white' }}>{formatUnixTimestamp(currentTime)}</strong>
+                </div>
+                <div className="speed-controls">
+                    {speedOptions.map(speed => (
+                        <button
+                            key={speed}
+                            className={`speed-button ${playbackSpeed === speed ? 'active' : ''}`}
+                            onClick={() => onPlaybackSpeedChange(speed)}
+                        >
+                            {speed}x
+                        </button>
+                    ))}
                 </div>
             </div>
             {renderTooltip()}
