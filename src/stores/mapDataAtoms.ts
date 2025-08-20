@@ -17,7 +17,21 @@ import type {
 } from '../types/data';
 
 import { MergeTrip, Tab } from '@/components/visual/SupplyChainDashboard';
-// import { getFilterOptions } from '@/types/data';
+
+
+export const formatUnixTimestamp = (timestamp: number | string): string => {
+    if (!timestamp || timestamp === 0) return 'N/A';
+    const date = new Date(Number(timestamp) * 1000);
+    const formatter = new Intl.DateTimeFormat('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+    return formatter.format(date);
+};
 
 export interface MapViewState {
     longitude: number;
@@ -278,7 +292,7 @@ export const selectTripAndFocusAtom = atom(
         set(selectedObjectAtom, trip);
 
         if (currentTab === 'heatmap') {
-            set(activeTabAtom, 'all');
+            set(activeTabAtom, 'anomalies');
         }
 
         if (trip.timestamps && trip.timestamps.length > 0) {

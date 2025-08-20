@@ -350,19 +350,16 @@ export const SupplyChainMap: React.FC = () => {
         }
     }, [selectTripAndFocus]);
 
-    const { staticPathData, cloneMarkerCoords, otherDynamicTrips, pulseData } = useMemo(() => {
+    const { staticPathData, otherDynamicTrips, pulseData } = useMemo(() => {
         const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
 
         let sPathData: MergeTrip[] = [];
-        let cMarkerCoords: [number, number, number][] = [];
         let pData: [number, number][] = [];
-        const ICON_ALTITUDE = 500;
 
         if (selectedTrip) {
             if (selectedTrip.anomalyTypeList.includes('clone')) {
                 const targetEpc = selectedTrip.epcCode;
                 sPathData = validTrips.filter(trip => trip.epcCode === targetEpc);
-                cMarkerCoords = sPathData.map(trip => [...(trip.to.coord as [number, number]), ICON_ALTITUDE]);
             } else {
                 sPathData = [selectedTrip];
             }
@@ -370,7 +367,6 @@ export const SupplyChainMap: React.FC = () => {
 
             return {
                 staticPathData: sPathData,
-                cloneMarkerCoords: cMarkerCoords,
                 otherDynamicTrips: [],
                 pulseData: pData
             };
@@ -382,7 +378,6 @@ export const SupplyChainMap: React.FC = () => {
             );
             return {
                 staticPathData: sPathData,
-                cloneMarkerCoords: [],
                 otherDynamicTrips: dynamic,
                 pulseData: []
             };
@@ -449,21 +444,44 @@ export const SupplyChainMap: React.FC = () => {
         return Array.from(uniquePaths.values());
     }, [validTrips]);
 
+    const journeyMarkers = useMemo(() => {
+        if (!selectedTrip) return null;
+        let journeyTrips: MergeTrip[] = [];
+        if (selectedTrip.anomalyTypeList?.includes('clone')) {
+            journeyTrips = validTrips
+                .filter(t => t.epcCode === selectedTrip.epcCode)
+                .sort((a, b) => a.from.eventTime - b.from.eventTime);
+        } else {
+            journeyTrips = [selectedTrip];
+        }
+        if (journeyTrips.length === 0) return null;
+        const startNode = journeyTrips[0].from;
+        const endNode = journeyTrips[journeyTrips.length - 1].to;
+        return {
+            start: { coord: startNode.coord },
+            end: { coord: endNode.coord }
+        };
+    }, [selectedTrip, validTrips]);
+
+    const cloneDestinationMarkers = useMemo(() => {
+        if (!selectedTrip || !selectedTrip.anomalyTypeList?.includes('clone')) {
+            return [];
+        }
+        return validTrips.filter(t =>
+            t.epcCode === selectedTrip.epcCode &&
+            t.roadId !== selectedTrip.roadId
+        );
+    }, [selectedTrip, validTrips]);
+
     const layers = useMemo(() => {
-        const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
         const showJourneys = !selectedTrip;
 
-        let displayTrips: MergeTrip[];
-        let displayStaticPaths: MergeTrip[];
+        let displayTrips: MergeTrip[] = [];
+        let displayStaticPaths: MergeTrip[] = [];
 
         if (selectedTrip) {
-            if (selectedTrip.anomalyTypeList?.includes('clone')) {
-                const targetEpc = selectedTrip.epcCode;
-                displayTrips = validTrips.filter(trip => trip.epcCode === targetEpc);
-            } else {
-                displayTrips = [selectedTrip];
-            }
-            displayStaticPaths = displayTrips;
+            displayTrips = [selectedTrip];
+            displayStaticPaths = [selectedTrip];
         } else {
             displayTrips = validTrips;
             displayStaticPaths = uniqueStaticPaths;
@@ -496,7 +514,7 @@ export const SupplyChainMap: React.FC = () => {
                 data: displayTrips,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 100] : [60, 150, 255, 100],
+                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 120] : [60, 150, 255, 120],
                 opacity: 1,
                 getWidth: 8,
                 widthMinPixels: 8,
@@ -507,19 +525,6 @@ export const SupplyChainMap: React.FC = () => {
                 onHover: info => setHoverInfo(info),
                 onClick: handleLayerClick,
             }),
-            new IconLayer<[number, number]>({
-                id: 'clone-icon-layer',
-                data: cloneMarkerCoords,
-                iconAtlas: '/icons/clone-alert.png',
-                iconMapping: {
-                    marker: { x: 0, y: 0, width: 50, height: 50, mask: false }
-                },
-                getIcon: d => 'marker',
-                sizeUnits: 'pixels',
-                getSize: 35,
-                getPosition: d => d,
-                getColor: d => [255, 64, 64, 255],
-            }),
             ...otherMeshLayers,
             ...factoryLayers,
             new TripsLayer({
@@ -528,7 +533,7 @@ export const SupplyChainMap: React.FC = () => {
                 visible: showJourneys,
                 getPath: d => d.path,
                 getTimestamps: d => d.timestamps,
-                getColor: [0, 123, 255, 100],
+                getColor: [0, 123, 255, 120],
                 opacity: 1,
                 getWidth: 8,
                 widthMinPixels: 8,
@@ -542,7 +547,7 @@ export const SupplyChainMap: React.FC = () => {
                 visible: showJourneys,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 100] : [0, 255, 127, 100],
+                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 120] : [0, 255, 127, 120],
                 opacity: 1,
                 getWidth: 8,
                 widthMinPixels: 8,
@@ -552,10 +557,9 @@ export const SupplyChainMap: React.FC = () => {
             }),
         ];
     }, [
-        selectedObject,
+        selectedTrip,
         validTrips,
         uniqueStaticPaths,
-        cloneMarkerCoords,
         otherDynamicTrips,
         pulseData,
         wholesalerJourneys,
@@ -594,6 +598,7 @@ export const SupplyChainMap: React.FC = () => {
                     box-shadow: 0 2px 8px rgba(0,0,0,0.5);
                     pointer-events: none;
                 }
+                .clone-marker { background-color: #dc3545; border: 2px solid #fff; }
                 .start-marker {
                     background-color: #6c757d;
                     border: 2px solid #fff;
@@ -613,7 +618,6 @@ export const SupplyChainMap: React.FC = () => {
                     layers={layers} viewState={viewState}
                     onClick={info => {
                         if (!info.layer && !info.object) {
-                            console.log(" -> 조건 만족! 선택 해제 실행.");
                             selectTripAndFocus(null);
                         }
                     }}
@@ -645,7 +649,6 @@ export const SupplyChainMap: React.FC = () => {
                             <Marker key={`marker-${node.hubType}`} longitude={node.coord[0]} latitude={node.coord[1]} pitchAlignment="viewport" rotationAlignment="map" altitude={getIconAltitude(node)}
                                 onClick={(e) => {
                                     e.originalEvent.stopPropagation();
-                                    console.log("🖱️ Marker 클릭됨. Node로 선택 설정:", node);
                                     setSelectedObject(node);
                                 }}
                             >
@@ -656,13 +659,12 @@ export const SupplyChainMap: React.FC = () => {
                                 </div>
                             </Marker>
                         ))}
-
-                        {selectedTrip && (
+                        {journeyMarkers && (
                             <>
                                 <Marker
-                                    key="start-marker"
-                                    longitude={selectedTrip.from.coord[0]}
-                                    latitude={selectedTrip.from.coord[1]}
+                                    key="journey-start-marker"
+                                    longitude={journeyMarkers.start.coord[0]}
+                                    latitude={journeyMarkers.start.coord[1]}
                                     pitchAlignment="viewport"
                                 >
                                     <div className="path-marker-label start-marker">
@@ -670,9 +672,9 @@ export const SupplyChainMap: React.FC = () => {
                                     </div>
                                 </Marker>
                                 <Marker
-                                    key="end-marker"
-                                    longitude={selectedTrip.to.coord[0]}
-                                    latitude={selectedTrip.to.coord[1]}
+                                    key="journey-end-marker"
+                                    longitude={journeyMarkers.end.coord[0]}
+                                    latitude={journeyMarkers.end.coord[1]}
                                     pitchAlignment="viewport"
                                 >
                                     <div className="path-marker-label end-marker">
@@ -681,6 +683,18 @@ export const SupplyChainMap: React.FC = () => {
                                 </Marker>
                             </>
                         )}
+                        {cloneDestinationMarkers.length > 0 && cloneDestinationMarkers.map((trip, index) => (
+                            <Marker
+                                key={`clone-dest-marker-${trip.roadId}-${index}`}
+                                longitude={trip.to.coord[0]}
+                                latitude={trip.to.coord[1]}
+                                pitchAlignment="viewport"
+                            >
+                                <div className="path-marker-label clone-marker">
+                                    복제
+                                </div>
+                            </Marker>
+                        ))}
                     </ReactMapGL>
                 </DeckGL>
                 <MapLegend

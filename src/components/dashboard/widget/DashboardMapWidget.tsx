@@ -65,7 +65,7 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
                         exit="exit"
                     >
                         <SupplyChainMapWidget
-                            onWidgetClick={() => onWidgetClick('all')}
+                            onWidgetClick={() => onWidgetClick('anomalies')}
                         />
                         <button
                             onClick={handleReplayClick}

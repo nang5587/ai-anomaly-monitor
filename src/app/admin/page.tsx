@@ -312,7 +312,7 @@ export default function AdminDashboard() {
                                     <button
                                         onClick={handleLoadMore}
                                         disabled={isFetchingMore}
-                                        className="bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155,1)] text-white font-bold py-2 px-6 rounded-full transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                        className="bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155,1)] text-white font-bold py-2 px-6 rounded-xl transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
                                     >
                                         {isFetchingMore ? '로딩 중...' : '더 보기'}
                                     </button>
