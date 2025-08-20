@@ -17,7 +17,7 @@ import type {
 } from '../types/data';
 
 import { MergeTrip, Tab } from '@/components/visual/SupplyChainDashboard';
-import { fetchRouteGeometry } from '@/services/mapboxService';
+
 
 export const formatUnixTimestamp = (timestamp: number | string): string => {
     if (!timestamp || timestamp === 0) return 'N/A';
@@ -88,7 +88,7 @@ const INITIAL_VIEW_STATE: MapViewState = {
     transitionDuration: 0
 };
 export const mapViewStateAtom = atom<MapViewState>(INITIAL_VIEW_STATE);
-export const routeGeometriesAtom = atom<RouteGeometryMap>({});
+export const routeGeometriesAtom = atom<RouteGeometryMap | null>(null);
 export const mergeAndGenerateTimestamps = (tripsFromApi: AnalyzedTrip[], geometries: RouteGeometryMap | null): MergeTrip[] => {
     if (!tripsFromApi) return [];
 
@@ -123,64 +123,45 @@ export const mergeAndGenerateTimestamps = (tripsFromApi: AnalyzedTrip[], geometr
     });
 };
 
-export const fetchGeometriesAndMergeTrips = async (
-    tripsFromApi: AnalyzedTrip[],
-    cacheGet: <Value>(atom: import('jotai').Atom<Value>) => Value,
-    cacheSet: <Value, Result>(atom: import('jotai').WritableAtom<Value, [any], Result>, ...args: [any]) => Result
-): Promise<MergeTrip[]> => {
-    if (!tripsFromApi || tripsFromApi.length === 0) return [];
-
-    const currentCache = cacheGet(routeGeometriesAtom);
-    const tripsToFetch = tripsFromApi.filter(trip => !currentCache[trip.roadId]);
-
-    if (tripsToFetch.length > 0) {
-        const geometryPromises = tripsToFetch.map(async (trip) => {
-            if (!trip.from?.coord || !trip.to?.coord) {
-                return { roadId: trip.roadId, path: null };
-            }
-            const path = await fetchRouteGeometry(trip.from.coord, trip.to.coord);
-            return { roadId: trip.roadId, path };
-        });
-        const newGeometries = await Promise.all(geometryPromises);
-        const updatedCache = { ...currentCache };
-        newGeometries.forEach(geom => {
-            if (geom.path) {
-                updatedCache[geom.roadId] = { path: geom.path };
-            }
-        });
-        cacheSet(routeGeometriesAtom, updatedCache);
+export const loadRouteGeometriesAtom = atom(null, async (get, set) => {
+    if (get(routeGeometriesAtom)) return;
+    try {
+        const response = await fetch('/static/all-routes-geometry.json');
+        if (!response.ok) throw new Error('Failed to fetch route geometries');
+        const data = await response.json();
+        set(routeGeometriesAtom, data);
+        console.log("상세 경로 데이터 로딩 성공!");
+    } catch (error) {
+        console.error("상세 경로 데이터 로딩 실패:", error);
     }
+});
 
-    const finalCache = cacheGet(routeGeometriesAtom);
-    return tripsFromApi.map(trip => {
-        const geometry = finalCache[trip.roadId];
-        const finalPath = geometry?.path || (trip.from?.coord && trip.to?.coord ? [trip.from.coord, trip.to.coord] : []);
-        const startTime = trip.from?.eventTime;
-        const endTime = trip.to?.eventTime;
-        let finalTimestamps: number[] = [];
-        if (startTime != null && endTime != null && finalPath.length > 1) {
-            const duration = endTime - startTime;
-            const totalSegments = finalPath.length - 1;
-            finalTimestamps = finalPath.map((_, index) => startTime + (duration * (index / totalSegments)));
-        }
-
-        return {
-            ...trip,
-            path: finalPath,
-            timestamps: finalTimestamps,
-        };
-    });
-};
+// export const loadInitialDataAtom = atom(null, async (get, set) => {
+//     try {
+//         const [nodesData, filterOptionsData] = await Promise.all([
+//             getNodes(),
+//             getFilterOptions()
+//         ]);
+//         set(nodesAtom, nodesData);
+//         set(filterOptionsAtom, filterOptionsData);
+//     } catch (error) {
+//         console.error("초기 데이터(노드, 필터) 로딩 실패:", error);
+//     }
+// });
 
 export const loadInitialDataAtom = atom(null, async (get, set) => {
     const fileId = get(selectedFileIdAtom);
-    if (!fileId) return;
+    if (!fileId) {
+        console.warn("loadInitialDataAtom: fileId가 설정되지 않아 데이터 로딩을 중단합니다.");
+        return;
+    }
 
     set(isLoadingAtom, true);
     try {
         await Promise.all([
+            set(loadRouteGeometriesAtom),
             getNodes().then(data => set(nodesAtom, data)),
-            getFilterOptions({ fileId }).then(data => set(filterOptionsAtom, data)),
+            getFilterOptions({ fileId: fileId }).then(data => set(filterOptionsAtom, data)),
         ]);
     } catch (error) {
         console.error("초기 공통 데이터 로딩 실패:", error);
@@ -190,21 +171,29 @@ export const loadInitialDataAtom = atom(null, async (get, set) => {
 });
 
 export const loadTripsDataAtom = atom(null, async (get, set) => {
+    console.groupCollapsed("🚨 범인 발견! `loadTripsDataAtom` 호출됨");
+    console.log("이 액션이 호출되어 Trip 데이터를 다시 불러오고 선택을 초기화했습니다.");
+    console.log("아래 'console.trace'를 펼쳐보면 어떤 파일과 함수가 이 액션을 호출했는지 알 수 있습니다.");
+    console.trace();
+    console.groupEnd();
     const fileId = get(selectedFileIdAtom);
     if (!fileId) {
         set(tripsAtom, []);
         return;
     }
     set(isLoadingAtom, true);
-
+    if (!get(routeGeometriesAtom)) {
+        await set(loadRouteGeometriesAtom);
+    }
+    const geometries = get(routeGeometriesAtom);
     const currentTab = get(activeTabAtom);
     const currentFilters = get(appliedFiltersAtom);
     const fetchFunction = currentTab === 'anomalies' ? getAnomalies : getTrips;
-    const params = { ...currentFilters, fileId, limit: 50 };
+    const params = { ...currentFilters, fileId, limit: 50};
 
     try {
         const response = await fetchFunction(params);
-        const mergedTrips = await fetchGeometriesAndMergeTrips(response.data, get, set);
+        const mergedTrips = mergeAndGenerateTimestamps(response.data, geometries);
         set(tripsAtom, mergedTrips);
         set(nextCursorAtom, response.nextCursor);
     } catch (error) {
@@ -218,10 +207,15 @@ export const loadTripsDataAtom = atom(null, async (get, set) => {
 export const loadMoreTripsAtom = atom(null, async (get, set) => {
     const fileId = get(selectedFileIdAtom);
     const nextCursor = get(nextCursorAtom);
-    if (!fileId || !nextCursor || get(isFetchingMoreAtom)) return;
+
+    if (fileId === null || !nextCursor || get(isFetchingMoreAtom)) return;
+
+    const isFetching = get(isFetchingMoreAtom);
+    if (isFetching || !nextCursor) return;
 
     set(isFetchingMoreAtom, true);
 
+    const geometries = get(routeGeometriesAtom);
     const currentTab = get(activeTabAtom);
     const currentFilters = get(appliedFiltersAtom);
     const fetchFunction = currentTab === 'anomalies' ? getAnomalies : getTrips;
@@ -233,7 +227,8 @@ export const loadMoreTripsAtom = atom(null, async (get, set) => {
             set(nextCursorAtom, null);
             return;
         }
-        const newMergedTrips = await fetchGeometriesAndMergeTrips(response.data, get, set);
+
+        const newMergedTrips = mergeAndGenerateTimestamps(response.data, geometries);
 
         set(tripsAtom, prevTrips => [...prevTrips, ...newMergedTrips]);
         set(nextCursorAtom, response.nextCursor);
@@ -256,7 +251,7 @@ export const flyToLocationAtom = atom(
             zoom: location.zoom ?? 14,
             pitch: location.pitch ?? 50,
             bearing: location.bearing ?? 0,
-            transitionDuration: 2000,
+            transitionDuration: 2000, 
             transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
         });
     }
@@ -276,7 +271,7 @@ export const epcDupListAtom = atom<MergeTrip[]>((get) => {
 export const anomalyFilterAtom = atom<AnomalyType | null>(null);
 
 export const resetAnomalyFilterAtom = atom(
-    null,
+    null, 
     (get, set) => {
         set(anomalyFilterAtom, null);
     }
@@ -305,7 +300,7 @@ export const selectTripAndFocusAtom = atom(
             const endTime = trip.timestamps[trip.timestamps.length - 1];
             set(timeRangeAtom, [startTime, endTime]);
         }
-
+        
         const allCoords = trip.path || [trip.from.coord, trip.to.coord];
         if (allCoords && allCoords.length > 0) {
             const bounds: [[number, number], [number, number]] = allCoords.reduce(
@@ -323,7 +318,7 @@ export const selectTripAndFocusAtom = atom(
             });
 
             const { longitude, latitude, zoom } = viewport.fitBounds(bounds, {
-                padding: 200
+                padding: 200 
             });
 
             set(mapViewStateAtom, {
@@ -364,7 +359,7 @@ export const selectTripAndFocusAtom = atom(
 );
 
 export const visibleTripsAtom = atom((get) => {
-    const allTrips = get(tripsAtom);
+    const allTrips = get(tripsAtom); 
     const selected = get(selectedObjectAtom);
     if (!selected || 'roadId' in selected) {
         return allTrips;
@@ -375,7 +370,7 @@ export const visibleTripsAtom = atom((get) => {
             trip.from.scanLocation === nodeLocation || trip.to.scanLocation === nodeLocation
         );
     }
-    return allTrips;
+    return allTrips; 
 });
 
 let prevSelectedObject: any = undefined;

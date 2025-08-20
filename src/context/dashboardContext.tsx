@@ -11,7 +11,7 @@ import {
     useCallback,
     ReactNode
 } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai';
 import {
     KpiSummary,
     AnalyzedTrip,
@@ -32,15 +32,15 @@ import {
     getAnomalyCountsByProduct
 } from '@/services/dataService';
 
-import { 
-    getCoverReportData, 
-    getFiles_client 
+import {
+    getCoverReportData,
+    getFiles_client
 } from '@/services/apiService';
 
 import {
     mergeAndGenerateTimestamps,
     routeGeometriesAtom,
-    loadRouteGeometriesAtom,
+    fetchGeometriesAndMergeTrips,
     selectedFileIdAtom,
     selectedFactoryNameAtom,
 } from '@/stores/mapDataAtoms';
@@ -90,6 +90,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const store = useStore();
 
     const [coverData, setCoverData] = useState<CoverReportData | null>(null);
     const [kpiData, setKpiData] = useState<KpiSummary | null>(null);
@@ -109,8 +110,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     const [selectedFileId, setSelectedFileId] = useAtom(selectedFileIdAtom);
     const [selectedFactoryName, setSelectedFactoryName] = useAtom(selectedFactoryNameAtom);
-    const routeGeometries = useAtomValue(routeGeometriesAtom);
-    const loadGeometries = useSetAtom(loadRouteGeometriesAtom);
 
     const viewProps = useMemo(() => {
         return { factoryName: selectedFactoryName };
@@ -140,12 +139,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             maxTime: Math.max(...validTimestamps),
         };
     }, [allTripsForMap]);
-
-    useEffect(() => {
-        if (!routeGeometries) {
-            loadGeometries();
-        }
-    }, [routeGeometries, loadGeometries]);
 
     useEffect(() => {
         if (selectedFileId && uploadHistory.length > 0) {
@@ -196,7 +189,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, [user, isAuthLoading, searchParams, selectedFileId, setSelectedFileId, router]);
 
     useEffect(() => {
-        if (!user || !routeGeometries) {
+        if (!user) {
             return;
         }
 
@@ -206,24 +199,35 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 const params = { fileId: selectedFileId };
 
                 try {
+                    const jotaiGet = store.get;
+                    const jotaiSet = store.set;
+
                     const coverRes = await getCoverReportData({ fileId: params.fileId });
                     const kpiRes = await getKpiSummary(params);
                     const inventoryRes = await getInventoryDistribution(params);
                     const nodesRes = await getNodes();
                     const productAnomalyRes = await getAnomalyCountsByProduct(params);
+
                     const [allAnomaliesRes, anomaliesRes, allTripsRes] = await Promise.all([
                         getAllAnomalies(params),
                         getAnomalies({ ...params, limit: 50 }),
                         getTrips({ ...params, limit: 50 }),
                     ]);
+
+                    const [mergedChartData, mergedAnomalyTrips, mergedAllTrips] = await Promise.all([
+                        fetchGeometriesAndMergeTrips(allAnomaliesRes, jotaiGet, jotaiSet),
+                        fetchGeometriesAndMergeTrips(anomaliesRes.data, jotaiGet, jotaiSet),
+                        fetchGeometriesAndMergeTrips(allTripsRes.data, jotaiGet, jotaiSet)
+                    ]);
+
                     setCoverData(coverRes);
                     setKpiData(kpiRes);
                     setInventoryData(inventoryRes.inventoryDistribution);
                     setNodes(nodesRes);
-                    setChartDataSource(mergeAndGenerateTimestamps(allAnomaliesRes, routeGeometries));
-                    setAnomalyTrips(mergeAndGenerateTimestamps(anomaliesRes.data, routeGeometries));
+                    setChartDataSource(mergedChartData);
+                    setAnomalyTrips(mergedAnomalyTrips);
                     setNextCursor(anomaliesRes.nextCursor);
-                    setAllTripsForMap(mergeAndGenerateTimestamps(allTripsRes.data, routeGeometries));
+                    setAllTripsForMap(mergedAllTrips);
                     setProductAnomalyData(productAnomalyRes);
                 } catch (error) {
                     setChartDataSource([]);
@@ -254,7 +258,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             setNodes([]);
             setNextCursor(null);
         }
-    }, [user, selectedFileId, routeGeometries]);
+    }, [user, selectedFileId, store]);
 
     const { anomalyChartData, stageChartData, eventTimelineData } = useMemo(() => {
         if (isLoading || !nodes.length || !chartDataSource.length) {
@@ -329,7 +333,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         try {
             const response = await getAnomalies(params);
             if (response.data && response.data.length > 0) {
-                const newMergedTrips = mergeAndGenerateTimestamps(response.data, routeGeometries);
+                const newMergedTrips = await fetchGeometriesAndMergeTrips(response.data, store.get, store.set);
                 setAnomalyTrips(prevTrips => [...prevTrips, ...newMergedTrips]);
                 setNextCursor(response.nextCursor);
             } else {
@@ -340,7 +344,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setIsFetchingMore(false);
         }
-    }, [nextCursor, isFetchingMore, selectedFileId, routeGeometries]);
+    }, [nextCursor, isFetchingMore, selectedFileId, store]);
 
     const clearFilters = useCallback(() => {
         setSelectedFileId(null);
