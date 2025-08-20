@@ -391,3 +391,11 @@ export const spySelectedObjectAtom = atom(
 );
 
 export const replayTriggerAtom = atom(0);
+
+export const selectTripAndSwitchToFlowmapAtom = atom(
+    null,
+    (_get, set, trip: MergeTrip) => {
+        set(selectTripAndFocusAtom, trip);
+        set(activeTabAtom, 'anomalies');
+    }
+);

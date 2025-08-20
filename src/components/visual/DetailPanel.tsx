@@ -101,8 +101,6 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                 }
             }
         }
-
-        // 7개씩 데이터를 나누어 Z자 레이아웃을 구성합니다.
         const CHUNK_SIZE = 7;
         const historyChunks = [];
         for (let i = 0; i < fullHistory.length; i += CHUNK_SIZE) {

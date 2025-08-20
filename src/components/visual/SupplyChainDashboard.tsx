@@ -18,10 +18,13 @@ import {
     nextCursorAtom,
     loadInitialDataAtom,
     loadTripsDataAtom,
+    loadAllAnomaliesAtom,
     loadMoreTripsAtom,
     anomalyFilterAtom,
     resetAnomalyFilterAtom,
     selectTripAndFocusAtom,
+    tripsForSelectedNodeAtom,
+    selectTripAndSwitchToFlowmapAtom,
 } from '@/stores/mapDataAtoms';
 
 import type { LocationNode, AnalyzedTrip } from '../../types/data';
@@ -31,6 +34,7 @@ import { HeatmapView } from './HeatmapView';
 
 import AnomalyList from './AnomalyList';
 import { DetailPanel } from './DetailPanel';
+import { NodeTripListPanel } from './NodeTripListPanel';
 import FilterPanel from './FilterPanel';
 import AnomalyFilterTabs from './AnomalyFilterTabs';
 
@@ -65,12 +69,14 @@ export const SupplyChainDashboard: React.FC = () => {
     const setSelectedFileId = useSetAtom(selectedFileIdAtom);
     const loadInitialData = useSetAtom(loadInitialDataAtom);
     const loadTrips = useSetAtom(loadTripsDataAtom);
+    const loadAllAnomalies = useSetAtom(loadAllAnomaliesAtom);
     const loadMore = useSetAtom(loadMoreTripsAtom);
     const resetAnomalyFilter = useSetAtom(resetAnomalyFilterAtom);
     const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const isTripSelected = useMemo(() => selectedObject && 'roadId' in selectedObject, [selectedObject]);
+    const isNodeSelected = useMemo(() => selectedObject && 'scanLocation' in selectedObject && !('roadId' in selectedObject), [selectedObject]);
 
     useEffect(() => {
         const fileIdFromUrl = searchParams.get('fileId');
@@ -80,6 +86,7 @@ export const SupplyChainDashboard: React.FC = () => {
             setSelectedFileId(fileId);
             loadInitialData();
             loadTrips();
+            loadAllAnomalies();
         } else {
             console.warn("URL에 fileId가 없어 초기 데이터를 로드할 수 없습니다.");
         }
@@ -91,10 +98,11 @@ export const SupplyChainDashboard: React.FC = () => {
 
     useEffect(() => {
         if (activeTab === 'heatmap') {
+            setSelectedObject(null);
             return;
         }
         loadTrips();
-    }, [activeTab, appliedFilters, loadTrips]);
+    }, [activeTab, appliedFilters]);
 
     const filteredTrips = useMemo(() => {
         if (!selectedAnomalyFilter) {
@@ -115,13 +123,11 @@ export const SupplyChainDashboard: React.FC = () => {
             position: 'relative',
             width: '100%',
             height: '100%',
-            overflow: 'hidden', // 추가: 자식 요소가 넘치지 않도록
+            overflow: 'hidden',
         }}>
-            {/* ▼▼▼▼▼ [핵심 수정 1] 지도와 디테일 패널을 감싸는 컨테이너 추가 ▼▼▼▼▼ */}
             <div
                 className={`absolute top-0 left-0 w-full h-full bg-[#1A1A1A] transition-all duration-500 ease-in-out overflow-y-auto ${isTripSelected ? 'z-20' : 'z-0'}`}
             >
-                {/* 지도 영역 */}
                 <div className={`w-full transition-all duration-500 ease-in-out flex-shrink-0 ${isTripSelected ? 'h-2/3' : 'h-full'}`}>
                     {activeTab === 'heatmap' ? (
                         <Suspense fallback={<div>...</div>}>
@@ -140,6 +146,7 @@ export const SupplyChainDashboard: React.FC = () => {
                             onClose={() => selectTripAndFocus(null)}
                         />
                     )}
+                    {activeTab === 'heatmap' && isNodeSelected && <NodeTripListPanel />}
                 </div>
             </div>
 
@@ -147,18 +154,16 @@ export const SupplyChainDashboard: React.FC = () => {
                 className={`absolute top-0 left-0 h-full transition-opacity duration-500 ease-in-out ${isTripSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 {(activeTab === 'anomalies') && (
-                <div style={{
-                    position: 'absolute',
-                    top: '20px',
-                    left: 'calc((100vw) / 2)', 
-                    transform: 'translateX(-50%)',
-                    zIndex: 10,
-                }}>
-                    <AnomalyFilterTabs disabled={isLoading} />
-                </div>
-            )}
-
-                {/* 필터 패널 */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '20px',
+                        left: 'calc((100vw) / 2)',
+                        transform: 'translateX(-50%)',
+                        zIndex: 10,
+                    }}>
+                        <AnomalyFilterTabs disabled={isLoading} />
+                    </div>
+                )}
                 <div style={{
                     position: 'absolute', top: '20px', left: '30px', width: '350px',
                     height: 'calc(100vh - 200px)', zIndex: 4,
@@ -173,18 +178,16 @@ export const SupplyChainDashboard: React.FC = () => {
                     />
                 </div>
 
-                {/* 좌측 사이드바 */}
                 <div style={{
                     position: 'absolute', top: '0px', left: '20px', zIndex: 3,
                     display: 'flex', flexDirection: 'column', gap: '15px',
                 }}>
                     <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px]'>
                         <div className='flex whitespace-nowrap'>
-                            {/* 탭 버튼들: 'all' 탭이 없으므로 'anomalies'로 대체합니다. */}
                             <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 흐름 분석</button>
                             <button style={tabButtonStyle(activeTab === 'heatmap')} onClick={() => setActiveTab('heatmap')}>이상 발생 밀집도</button>
                         </div>
-                        {activeTab === 'anomalies' && ( // 'anomalies' 탭일 때 필터 버튼 표시
+                        {activeTab === 'anomalies' && (
                             <button
                                 onClick={() => setShowFilterPanel(prev => !prev)}
                                 className="px-4 cursor-pointer"
@@ -194,9 +197,9 @@ export const SupplyChainDashboard: React.FC = () => {
                         )}
                     </div>
 
-                    {activeTab === 'anomalies' && ( // 'anomalies' 탭일 때만 리스트 표시
+                    {activeTab === 'anomalies' && ( 
                         <div style={{
-                            width: '340px', height: 'calc(100vh - 240px)', // 높이값 조정
+                            width: '340px', height: 'calc(100vh - 240px)', 
                             minHeight: 0, background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.4)', borderRadius: '25px',
                             display: 'flex', flexDirection: 'column',
@@ -221,7 +224,6 @@ export const SupplyChainDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* 로딩 인디케이터는 최상위에 유지 */}
             {isLoading && !isFetchingMore && (
                 <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
                     <p>경로 목록을 불러오는 중입니다...</p>

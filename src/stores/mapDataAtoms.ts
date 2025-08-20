@@ -52,22 +52,22 @@ type RouteGeometryMap = Record<string, RouteGeometry>;
 export const selectedFileIdAtom = atom<number | null>(null);
 export const selectedFactoryNameAtom = atom<string | null>(null);
 export const timeRangeAtom = atom<[number, number] | null>(null);
-export const allAnomalyTripsAtom = atom(async (get) => {
-    const fileId = get(selectedFileIdAtom);
-    const geometries = get(routeGeometriesAtom);
+// export const allAnomalyTripsAtom = atom(async (get) => {
+//     const fileId = get(selectedFileIdAtom);
+//     const geometries = get(routeGeometriesAtom);
 
-    if (!fileId || !geometries) {
-        return [];
-    }
+//     if (!fileId || !geometries) {
+//         return [];
+//     }
 
-    try {
-        const anomaliesData = await getAllAnomalies({ fileId });
-        return mergeAndGenerateTimestamps(anomaliesData, geometries);
-    } catch (error) {
-        console.error(`[allAnomalyTripsAtom] 데이터 로딩 실패:`, error);
-        return [];
-    }
-});
+//     try {
+//         const anomaliesData = await getAllAnomalies({ fileId });
+//         return mergeAndGenerateTimestamps(anomaliesData, geometries);
+//     } catch (error) {
+//         console.error(`[allAnomalyTripsAtom] 데이터 로딩 실패:`, error);
+//         return [];
+//     }
+// });
 
 export const activeTabAtom = atom<Tab>('heatmap');
 export const appliedFiltersAtom = atom<Record<string, any>>({});
@@ -396,3 +396,44 @@ export const spySelectedObjectAtom = atom(
 );
 
 export const replayTriggerAtom = atom(0);
+
+export const allAnomalyTripsAtom = atom<MergeTrip[]>([]);
+
+export const loadAllAnomaliesAtom = atom(null, async (get, set) => {
+    const fileId = get(selectedFileIdAtom);
+    if (!fileId) {
+        set(allAnomalyTripsAtom, []);
+        return;
+    }
+
+    try {
+        const allAnomaliesData = await getAllAnomalies({ fileId });
+        const mergedTrips = await fetchGeometriesAndMergeTrips(allAnomaliesData, get, set);
+        set(allAnomalyTripsAtom, mergedTrips);
+    } catch (error) {
+        console.error("모든 이상 경로 데이터 로딩 실패:", error);
+        set(allAnomalyTripsAtom, []);
+    }
+});
+
+
+export const tripsForSelectedNodeAtom = atom((get) => {
+    const allTrips = get(allAnomalyTripsAtom);
+    const selected = get(selectedObjectAtom);
+
+    if (selected && 'coord' in selected && !('roadId' in selected)) {
+        const nodeLocation = (selected as LocationNode).scanLocation;
+        return allTrips.filter(trip =>
+            trip.from.scanLocation === nodeLocation || trip.to.scanLocation === nodeLocation
+        );
+    }
+    return [];
+});
+
+export const selectTripAndSwitchToFlowmapAtom = atom(
+    null,
+    (_get, set, trip: MergeTrip) => {
+        set(selectTripAndFocusAtom, trip);
+        set(activeTabAtom, 'anomalies');
+    }
+);
