@@ -40,7 +40,6 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
                 flex: 1,
                 padding: '10px 15px',
             }}
-                className="hide-scrollbar"
             >
                 {anomalies.map((trip, index) => {
                     const hasAnomalies = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
