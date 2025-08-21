@@ -1,5 +1,6 @@
 'use client';
 import jwtDecode from 'jwt-decode';
+import { getMyProfile } from '@/api/userApi';
 
 interface JwtPayload {
   userId: string;
@@ -19,7 +20,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
-  user: { userId: string; role: string; locationId?: number; } | null;
+  user: User | null;
   isLoading: boolean;
   login: (token: string, rememberMe: boolean) => void;
   logout: () => void;
@@ -29,26 +30,46 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ userId: string; role: string; locationId?: number; } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  const login = useCallback((token: string, rememberMe: boolean) => {
-    const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
-    const storage = rememberMe ? localStorage : sessionStorage;
-    storage.setItem('accessToken', token);
-    const locationId = location_id;
-    const newUser: User = { userId, role, locationId };
-    setUser(newUser);
-    setIsLoading(false);
-  }, []);
-
+  
   const logout = useCallback(() => {
     localStorage.clear();
     sessionStorage.clear();
     setUser(null);
     router.push('/login');
   }, [router]);
+  
+  const login = useCallback(async (token: string, rememberMe: boolean) => {
+    try {
+      setIsLoading(true);
+      const { userId, role, location_id } = jwtDecode<JwtPayload>(token);
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('accessToken', token);
+
+      const profile = await getMyProfile(); 
+
+      const newUser: User = {
+        userId,
+        role,
+        locationId: location_id,
+        userName: profile.userName, 
+        email: profile.email,       
+      };
+
+      if (profile.userName) storage.setItem('userName', profile.userName);
+      if (profile.email) storage.setItem('email', profile.email);
+
+      setUser(newUser);
+    } catch (error) {
+      console.error("Login process failed:", error);
+      logout();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [logout]);
+
 
   useEffect(() => {
     const storage = localStorage.getItem('accessToken') ? localStorage : (sessionStorage.getItem('accessToken') ? sessionStorage : null);

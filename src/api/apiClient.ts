@@ -62,20 +62,70 @@ apiClient.interceptors.response.use(
     }
 );
 
-// export async function getFiles_client(): Promise<FileItem[]> {
-//     try {
-//         const response = await apiClient.get<FileItem[]>('/manager/upload/filelist');
-//         // 백엔드 응답이 { data: [...] } 형태일 경우 response.data.data를,
-//         // [...] 형태일 경우 response.data를 반환해야 합니다.
-//         // API 명세에 따라 조정이 필요할 수 있습니다. 여기서는 배열을 직접 반환한다고 가정합니다.
-//         return response.data || [];
-//     } catch (error) {
-//         console.error("파일 목록 불러오기 실패 (클라이언트):", error);
-//         // 에러를 다시 던져서 호출한 쪽(useEffect)에서 catch 할 수 있도록 함
-//         throw error;
-//     }
-// }
-export async function getFiles_client(): Promise<FileItem[]> {
+const isMock = process.env.NEXT_PUBLIC_MOCK_API === 'true';
+
+// --- Mock 데이터 정의 ---
+const mockFiles: FileItem[] = [
+    { fileId: 1, fileName: '인천공장_물류데이터_MOCK.csv', userId: 'nang5587', fileSize: 125456, createdAt: new Date('2025-08-21T10:30:00Z').toISOString(), locationId: 2 },
+    { fileId: 2, fileName: '인천센터_입출고_기록_MOCK.csv', userId: 'mockUser', fileSize: 783412, createdAt: new Date('2025-08-20T15:00:00Z').toISOString(), locationId: 2 },
+    { fileId: 3, fileName: '인천_재고현황_snapshot_MOCK.csv', userId: 'mockUser', fileSize: 426678, createdAt: new Date('2025-08-19T09:00:00Z').toISOString(), locationId: 2 },
+    { fileId: 4, fileName: '인천_센서데이터_로그_MOCK.csv', userId: 'mockUser', fileSize: 987454, createdAt: new Date('2025-08-18T18:45:00Z').toISOString(), locationId: 2 },
+];
+
+const mockCoverReportDatabase: Record<number, CoverReportData> = {
+    1: { fileName: "인천공장_물류데이터_MOCK.csv", userName: "강나현", locationId: 2, createdAt: "2025-08-21T10:30:00Z", period: ["2025-08-14T00:00:00Z", "2025-08-21T00:00:00Z"] },
+    2: { fileName: "인천센터_입출고_기록_MOCK.csv", userName: "강나현", locationId: 2, createdAt: "2025-08-20T15:00:00Z", period: ["2025-08-13T00:00:00Z", "2025-08-20T00:00:00Z"] },
+};
+
+
+const mockGetFiles_client = (): Promise<FileItem[]> => new Promise(resolve => {
+    console.log('%c[MOCK API] getFiles_client', 'color: #10B981');
+    setTimeout(() => resolve(mockFiles), 500);
+});
+
+const mockMarkFileAsDeleted = (fileId: number): Promise<any> => new Promise(resolve => {
+    console.log(`%c[MOCK API] markFileAsDeleted for fileId: ${fileId}`, 'color: #EF4444');
+    setTimeout(() => resolve({ success: true, message: `File ${fileId} marked as deleted (Mock)` }), 300);
+});
+
+const mockGetCoverReportData = (params: { fileId: number }): Promise<CoverReportData> => new Promise((resolve, reject) => {
+    console.log(`%c[MOCK API] getCoverReportData for fileId: ${params.fileId}`, 'color: #10B981');
+    const data = mockCoverReportDatabase[params.fileId];
+    setTimeout(() => {
+        if (data) {
+            resolve(data);
+        } else {
+            reject(new Error(`[Mock Error] fileId ${params.fileId}에 대한 커버 데이터를 찾을 수 없습니다.`));
+        }
+    }, 400);
+});
+
+const mockCheckUserId_client = (userId: string): Promise<any> => new Promise((resolve, reject) => {
+    console.log(`%c[MOCK API] checkUserId_client for userId: ${userId}`, 'color: #F59E0B');
+    setTimeout(() => {
+        if (userId.toLowerCase() === 'taken' || userId.toLowerCase() === 'admin') {
+            reject({ message: '이미 사용 중인 아이디입니다. (Mock Error)' });
+        } else {
+            resolve({ available: true, message: '사용 가능한 아이디입니다. (Mock)' });
+        }
+    }, 600);
+});
+
+const mockJoinUser_client = (formData: JoinFormData): Promise<any> => new Promise(resolve => {
+    console.log('%c[MOCK API] joinUser_client with data:', 'color: #10B981', formData);
+    setTimeout(() => {
+        resolve({ success: true, message: `${formData.userName}님의 회원가입을 환영합니다! (Mock)` });
+    }, 1000);
+});
+
+const mockFileResend_client = (fileId: number): Promise<any> => new Promise(resolve => {
+    console.log(`%c[MOCK API] fileResend_client for fileId: ${fileId}`, 'color: #3B82F6');
+    setTimeout(() => {
+        resolve({ success: true, message: `File ${fileId} 재전송 요청 완료 (Mock)` });
+    }, 800);
+});
+
+const realGetFiles_client = async (): Promise<FileItem[]> => {
     try {
         const response = await apiClient.get<any>('/manager/upload/filelist');
         const data = response.data;
@@ -102,57 +152,18 @@ export async function getFiles_client(): Promise<FileItem[]> {
     }
 }
 
-export const markFileAsDeleted = (fileId: number) => {
+const realMarkFileAsDeleted = (fileId: number) => {
     return apiClient.patch(`/upload/del/${fileId}`);
 };
 
-// const DUMMY_COVER_DB: Record<number, CoverReportData> = {
-//     1: {
-//         fileName: "수원-물류센터.csv",
-//         userName: "이수원",
-//         locationId: 1,
-//         createdAt: "2025-07-28T11:00:00Z",
-//         period: ["2025-07-21T00:00:00Z", "2025-07-28T00:00:00Z"]
-//     }
-// };
-
-export async function getCoverReportData(params: { fileId: number }): Promise<CoverReportData> {
+const realGetCoverReportData = async (params: { fileId: number }): Promise<CoverReportData> => {
     const { fileId } = params;
+    if (!fileId) throw new Error('getCoverReportData: 유효하지 않은 fileId입니다.');
+    const response = await apiClient.get<CoverReportData>(`/manager/report/cover/${fileId}`);
+    return response.data;
+};
 
-    if (!fileId || typeof fileId !== 'number') {
-        throw new Error('getCoverReportData: 유효하지 않은 fileId입니다.');
-    }
-
-    // --- 🚀 실제 API 연동 시 이 블록의 주석을 해제하세요 ---
-    try {
-        const response = await apiClient.get<CoverReportData>(`/manager/report/cover/${fileId}`);
-        if (!response.data) {
-            throw new Error(`fileId ${fileId}에 대한 커버 데이터를 찾을 수 없습니다.`);
-        }
-        return response.data;
-    } catch (error) {
-        console.error(`커버 데이터(fileId: ${fileId}) 불러오기 실패:`, error);
-        throw error;
-    }
-
-    // --- 🚀 더미 데이터 반환 로직 (개발 및 테스트용) ---
-    // console.log(`[더미 데이터] 커버 데이터 요청: fileId ${fileId}`);
-
-    // // 실제 API 호출처럼 약간의 딜레이를 시뮬레이션합니다.
-    // await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
-
-    // const data = DUMMY_COVER_DB[fileId];
-
-    // if (data) {
-    //     // 성공적으로 데이터를 찾으면 반환합니다.
-    //     return Promise.resolve(data);
-    // } else {
-    //     // 해당하는 데이터가 없으면 에러를 발생시켜 실패 상황을 시뮬레이션합니다.
-    //     return Promise.reject(new Error(`[더미 데이터] fileId ${fileId}에 대한 커버 데이터를 찾을 수 없습니다.`));
-    // }
-}
-
-export const checkUserId_client = async (userId: string) => {
+const realCheckUserId_client = async (userId: string) => {
     try {
         const response = await apiClient.post('/public/join/idsearch', { userId });
         return response.data;
@@ -164,7 +175,7 @@ export const checkUserId_client = async (userId: string) => {
     }
 };
 
-export const joinUser_client = async (formData: JoinFormData) => {
+const realJoinUser_client = async (formData: JoinFormData) => {
     try {
         const response = await apiClient.post('/public/join', formData);
         return response.data;
@@ -176,7 +187,7 @@ export const joinUser_client = async (formData: JoinFormData) => {
     }
 };
 
-export const fileResend_client = async (fileId: number) => {
+const realFileResend_client = async (fileId: number) => {
     if (!fileId || typeof fileId !== 'number' || fileId <= 0) {
         return Promise.reject(new Error("유효하지 않은 파일 ID입니다."));
     }
@@ -190,5 +201,12 @@ export const fileResend_client = async (fileId: number) => {
         return Promise.reject(error);
     }
 };
+
+export const getFiles_client = isMock ? mockGetFiles_client : realGetFiles_client;
+export const markFileAsDeleted = isMock ? mockMarkFileAsDeleted : realMarkFileAsDeleted;
+export const getCoverReportData = isMock ? mockGetCoverReportData : realGetCoverReportData;
+export const checkUserId_client = isMock ? mockCheckUserId_client : realCheckUserId_client;
+export const joinUser_client = isMock ? mockJoinUser_client : realJoinUser_client;
+export const fileResend_client = isMock ? mockFileResend_client : realFileResend_client;
 
 export default apiClient;

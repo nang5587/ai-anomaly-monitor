@@ -110,11 +110,11 @@ export default function LoginPage() {
 
               <LoginButton />
 
-              {state.message && (
+              {/* {state.message && (
                 <p className={`text-xl text-center ${state.success ? 'text-green-400' : 'text-red-400'}`}>
                   {state.message}
                 </p>
-              )}
+              )} */}
             </form>
 
             <p className="font-noto-400 text-xl text-center text-gray-500 mt-8">
