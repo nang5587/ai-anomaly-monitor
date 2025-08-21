@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { Filter } from 'lucide-react';
+import { Workflow, BarChart4 } from 'lucide-react';
 
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
@@ -32,23 +32,23 @@ import type { LocationNode, AnalyzedTrip } from '../../types/data';
 import { SupplyChainMap } from './SupplyChainMap';
 import { HeatmapView } from './HeatmapView';
 
-import AnomalyList from './AnomalyList';
 import { DetailPanel } from './DetailPanel';
 import { NodeTripListPanel } from './NodeTripListPanel';
 import FilterPanel from './FilterPanel';
 import AnomalyFilterTabs from './AnomalyFilterTabs';
+import { FullScreenAnomalyList } from './FullScreenAnomalyList';
 
 export type Tab = 'anomalies' | 'heatmap';
 export type MergeTrip = AnalyzedTrip & { path?: [number, number][]; timestamps?: number[] };
 
 const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '10px 20px',
+    padding: '10px 50px',
     fontSize: '16px',
-    fontWeight: isActive ? 'bold' : 'normal',
+    fontWeight: 'normal',
     color: isActive ? '#FFFFFF' : '#AAAAAA',
     backgroundColor: 'transparent',
     border: 'none',
-    borderTop: isActive ? '2px solid #3399FF' : '2px solid transparent',
+    borderTop: isActive ? '2px solid #8ec5ff' : '2px solid transparent',
     cursor: 'pointer',
     transition: 'all 0.2s ease-in-out',
 });
@@ -77,6 +77,10 @@ export const SupplyChainDashboard: React.FC = () => {
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const isTripSelected = useMemo(() => selectedObject && 'roadId' in selectedObject, [selectedObject]);
     const isNodeSelected = useMemo(() => selectedObject && 'scanLocation' in selectedObject && !('roadId' in selectedObject), [selectedObject]);
+
+    const isObjectSelected = useMemo(() => selectedObject !== null, [selectedObject]);
+    const selectedTrip = useMemo(() => (selectedObject && 'roadId' in selectedObject) ? selectedObject : null, [selectedObject]);
+    const selectedNode = useMemo(() => (selectedObject && 'scanLocation' in selectedObject && !('roadId' in selectedObject)) ? selectedObject : null, [selectedObject]);
 
     useEffect(() => {
         const fileIdFromUrl = searchParams.get('fileId');
@@ -124,111 +128,64 @@ export const SupplyChainDashboard: React.FC = () => {
             width: '100%',
             height: '100%',
             overflow: 'hidden',
+            backgroundColor: '#1A1A1A'
         }}>
-            <div
-                className={`absolute top-0 left-0 w-full h-full bg-[#1A1A1A] transition-all duration-500 ease-in-out overflow-y-auto ${isTripSelected ? 'z-20' : 'z-0'}`}
+            <header
+                className="absolute top-0 left-0 w-full z-30 pointer-events-none"
             >
-                <div className={`w-full transition-all duration-500 ease-in-out flex-shrink-0 ${isTripSelected ? 'h-2/3' : 'h-full'}`}>
+                <div className="w-fit mx-auto bg-black/60 backdrop-blur-sm rounded-lg flex pointer-events-auto">
+                    <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')} className="flex items-center gap-2"><Workflow size={16} />이상 흐름 분석</button>
+                    <button style={tabButtonStyle(activeTab === 'heatmap')} onClick={() => setActiveTab('heatmap')} className="flex items-center gap-2"><BarChart4 size={16} />이상 발생 밀집도</button>
+                </div>
+            </header>
+            <div
+                className={`absolute inset-0 transition-opacity duration-300 bg-[rgba(40,40,40)]
+            ${isObjectSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            >
+                {activeTab === 'anomalies' ? (
+                    <FullScreenAnomalyList />
+                ) : (
+                    <div className="w-full h-full">
+                        <Suspense fallback={
+                            <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white">
+                                <p>히트맵 데이터를 불러오는 중입니다...</p>
+                            </div>
+                        }>
+                            <HeatmapView />
+                        </Suspense>
+                    </div>
+                )}
+            </div>
+            <div
+                className={`absolute inset-0 w-full h-full flex flex-col transition-opacity duration-300 overflow-y-auto
+            ${isObjectSelected ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            >
+                <div className="h-2/3">
                     {activeTab === 'heatmap' ? (
-                        <Suspense fallback={<div>...</div>}>
+                        <Suspense fallback={
+                            <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white">
+                                <p>히트맵 데이터를 불러오는 중입니다...</p>
+                            </div>
+                        }>
                             <HeatmapView />
                         </Suspense>
                     ) : (
                         <SupplyChainMap />
                     )}
                 </div>
-                <div
-                    className={`w-full bg-[#1A1A1A] border-t border-white/20 transition-all duration-500 ease-in-out ${isTripSelected ? 'h-1/3 p-6' : 'h-0'}`}
-                >
-                    {isTripSelected && (
+
+                <div className="h-1/3 bg-[#1A1A1A] border-t border-white/20">
+                    {selectedTrip && (
                         <DetailPanel
-                            selectedTrip={selectedObject as MergeTrip}
-                            onClose={() => selectTripAndFocus(null)}
+                            selectedTrip={selectedTrip}
+                            onClose={() => setSelectedObject(null)}
                         />
                     )}
-                    {activeTab === 'heatmap' && isNodeSelected && <NodeTripListPanel />}
-                </div>
-            </div>
-
-            <div
-                className={`absolute top-0 left-0 h-full transition-opacity duration-500 ease-in-out ${isTripSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            >
-                {(activeTab === 'anomalies') && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '20px',
-                        left: 'calc((100vw) / 2)',
-                        transform: 'translateX(-50%)',
-                        zIndex: 10,
-                    }}>
-                        <AnomalyFilterTabs disabled={isLoading} />
-                    </div>
-                )}
-                <div style={{
-                    position: 'absolute', top: '20px', left: '30px', width: '350px',
-                    height: 'calc(100vh - 200px)', zIndex: 4,
-                    transform: showFilterPanel ? 'translateX(-6%)' : 'translateX(-120%)',
-                    transition: 'transform 0.3s ease-in-out',
-                }}>
-                    <FilterPanel
-                        options={filterOptions}
-                        onApplyFilters={handleApplyFilters}
-                        isFiltering={isLoading}
-                        onClose={() => setShowFilterPanel(false)}
-                    />
-                </div>
-
-                <div style={{
-                    position: 'absolute', top: '0px', left: '20px', zIndex: 3,
-                    display: 'flex', flexDirection: 'column', gap: '15px',
-                }}>
-                    <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className='bg-[#000000] rounded-b-[25px]'>
-                        <div className='flex whitespace-nowrap'>
-                            <button style={tabButtonStyle(activeTab === 'anomalies')} onClick={() => setActiveTab('anomalies')}>이상 흐름 분석</button>
-                            <button style={tabButtonStyle(activeTab === 'heatmap')} onClick={() => setActiveTab('heatmap')}>이상 발생 밀집도</button>
-                        </div>
-                        {activeTab === 'anomalies' && (
-                            <button
-                                onClick={() => setShowFilterPanel(prev => !prev)}
-                                className="px-4 cursor-pointer"
-                            >
-                                <Filter className="w-5 h-5 text-white" />
-                            </button>
-                        )}
-                    </div>
-
-                    {activeTab === 'anomalies' && ( 
-                        <div style={{
-                            width: '340px', height: 'calc(100vh - 240px)', 
-                            minHeight: 0, background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.4)', borderRadius: '25px',
-                            display: 'flex', flexDirection: 'column',
-                        }}>
-                            <div style={{ flex: 1, minHeight: 0 }}>
-                                <AnomalyList
-                                    anomalies={filteredTrips}
-                                    onCaseClick={(trip) => selectTripAndFocus(trip)}
-                                    selectedObjectId={selectedObject && 'roadId' in selectedObject ? selectedObject.roadId : null}
-                                />
-                            </div>
-                            <div className="bg-[rgba(40,40,40)] rounded-b-lg flex-shrink-0 p-4 text-center text-sm font-noto-400 text-white">
-                                <p className="mb-2">현재 {filteredTrips.length}개의 이상 징후 표시 중</p>
-                                {nextCursor && (
-                                    <button onClick={() => loadMore()} disabled={isFetchingMore} className="w-full bg-gray-600 hover:bg-gray-500 rounded-lg p-2 disabled:bg-gray-800 transition-colors">
-                                        {isFetchingMore ? '로딩 중...' : '더 보기'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                    {selectedNode && activeTab === 'heatmap' && (
+                        <NodeTripListPanel />
                     )}
                 </div>
             </div>
-
-            {isLoading && !isFetchingMore && (
-                <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white absolute z-50">
-                    <p>경로 목록을 불러오는 중입니다...</p>
-                </div>
-            )}
         </div>
     );
-};
+}

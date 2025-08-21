@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { MergeTrip } from './SupplyChainDashboard';
 import { fetchEpcHistory, type EventHistory } from '@/services/historyService';
 import { fetchComments, postComment, type EpcComment } from '@/services/commentService';
+import { useSetAtom } from 'jotai';
+import { selectTripAndFocusAtom } from '@/stores/mapDataAtoms';
 import {
-    X, PackagePlus, PackageMinus, Factory, ShoppingCart, Box, MessageSquare, Send
+    X, PackagePlus, PackageMinus, Factory, ShoppingCart, Box, MessageSquare, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,6 +31,67 @@ const EventIcon: React.FC<{ type: string }> = ({ type }) => {
         return <ShoppingCart className={iconClass} />;
     }
     return <Box className={iconClass} />;
+};
+
+const CloneHistoryTable: React.FC<{
+    history: EventHistory[],
+    selectedTrip: MergeTrip
+}> = ({ history, selectedTrip }) => {
+
+    const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
+
+    // EventHistory[]를 MergeTrip[]으로 변환 (좌표 등 필요 정보 추가)
+    const historyAsTrips = useMemo(() => {
+        if (history.length < 2) return [];
+        const trips: MergeTrip[] = [];
+        for (let i = 0; i < history.length - 1; i++) {
+            const from = history[i];
+            const to = history[i + 1];
+            trips.push({
+                roadId: from.eventId * 10000 + to.eventId,
+                from: { scanLocation: from.scanLocation, eventTime: new Date(from.eventTime).getTime() / 1000, businessStep: from.businessStep, coord: [0, 0] },
+                to: { scanLocation: to.scanLocation, eventTime: new Date(to.eventTime).getTime() / 1000, businessStep: to.businessStep, coord: [0, 0] },
+                epcCode: from.epcCode,
+                productName: "Product",
+                epcLot: "Lot",
+                eventType: to.eventType,
+                anomalyTypeList: to.anomalyTypeList as any,
+            });
+        }
+        return trips;
+    }, [history]);
+
+    const otherCloneTrips = historyAsTrips.filter(t => t.roadId !== selectedTrip.roadId);
+
+    if (otherCloneTrips.length === 0) return null;
+
+    return (
+        <div className="mt-8">
+            <h4 className="text-lg font-noto-400 mb-4 text-white flex items-center gap-2">
+                관련 복제 이력
+            </h4>
+            <div className="rounded-lg border border-white/20 overflow-hidden">
+                <table className="w-full text-left text-sm text-gray-300">
+                    <thead className="bg-[#2A2A2A] text-gray-400 text-xs uppercase">
+                        <tr>
+                            <th className="px-4 py-2 font-medium">출발지</th>
+                            <th className="px-4 py-2 font-medium">도착지</th>
+                            <th className="px-4 py-2 font-medium">발생 시간</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10 bg-[#1E1E1E]">
+                        {otherCloneTrips.map(trip => (
+                            <tr key={trip.roadId} onClick={() => selectTripAndFocus(trip)} className="hover:bg-white/10 cursor-pointer transition-colors">
+                                <td className="px-4 py-3">{trip.from.scanLocation}</td>
+                                <td className="px-4 py-3">{trip.to.scanLocation}</td>
+                                <td className="px-4 py-3 whitespace-nowrap">{new Date(trip.to.eventTime * 1000).toLocaleString('ko-KR')}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
 };
 
 export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose }) => {
@@ -109,7 +172,6 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
 
         return (
             <div className="flex flex-col h-full">
-                {/* 상단 정보 */}
                 <div className="flex-shrink-0 mb-6">
                     <h3 className="text-4xl font-lato font-bold mb-10 text-white tracking-wider">{selectedTrip.epcCode}</h3>
                     <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-base font-noto-400">
@@ -130,7 +192,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
 
                 <div className="overflow-x-auto pb-8 mb-8">
                     <h4 className="text-lg font-noto-400 mb-10 text-white">운송 프로세스</h4>
-                    <div className="flex flex-col gap-16 min-w-[1024px]"> {/* 행 간격을 늘려 연결선이 잘 보이도록 함 */}
+                    <div className="flex flex-col gap-16 min-w-[1024px]">
                         {historyChunks.map((chunk, rowIndex) => {
                             const isReversed = rowIndex % 2 !== 0;
                             const isLastRow = rowIndex === historyChunks.length - 1;
@@ -192,10 +254,12 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                             );
                         })}
                     </div>
+                    {selectedTrip.anomalyTypeList.includes('clone') && (
+                        <CloneHistoryTable history={fullHistory} selectedTrip={selectedTrip} />
+                    )}
                 </div>
 
-                {/* 하단 분석 및 의견 */}
-                <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0 border-t border-white/20 pt-8 font-noto-400">
+                <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0 border-t border-white/20 pt-8 font-noto-400 mb-20">
                     <div>
                         <h4 className="text-lg mb-4 text-white">이상 현상 분석</h4>
                         <div className="p-4 bg-[#2A2A2A] rounded-lg text-base space-y-2">
@@ -210,7 +274,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                                 value={userComment}
                                 onChange={(e) => setUserComment(e.target.value)}
                                 placeholder="이 이상 현상에 대한 분석 결과나 조치 내용을 입력하세요... (예: 확인 결과 실제 도난 아님, 단순 스캔 오류로 판명)"
-                                className="w-full h-24 p-3 bg-[#2A2A2A] border border-white/20 rounded-lg text-white placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[rgba(111,131,175)] focus:border-[rgba(111,131,175)]"
+                                className="w-full h-24 p-3 bg-[#2A2A2A] border border-white/20 rounded-lg text-white placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
                                 rows={4}
                             />
                             <button

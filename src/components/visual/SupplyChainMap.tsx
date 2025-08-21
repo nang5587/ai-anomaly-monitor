@@ -5,13 +5,12 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
     nodesAtom,
     visibleTripsAtom,
+    epcFullTripHistoryAtom,
     selectedObjectAtom,
     mapViewStateAtom,
     timeRangeAtom,
     epcDupTargetAtom,
-    anomalyFilterAtom,
     selectTripAndFocusAtom,
-    spySelectedObjectAtom,
     type MapViewState
 } from '@/stores/mapDataAtoms';
 
@@ -66,10 +65,8 @@ const material = {
 };
 
 export const SupplyChainMap: React.FC = () => {
-    useAtomValue(spySelectedObjectAtom);
     const nodes = useAtomValue(nodesAtom);
-    const trips = useAtomValue(visibleTripsAtom,);
-    const anomalyFilter = useAtomValue(anomalyFilterAtom);
+    const tripsToDisplay = useAtomValue(epcFullTripHistoryAtom);
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [viewState, setViewState] = useAtom(mapViewStateAtom);
     const timeRange = useAtomValue(timeRangeAtom);
@@ -87,42 +84,15 @@ export const SupplyChainMap: React.FC = () => {
 
     const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
-    const validTrips = useMemo(() => {
-        if (!trips) return [];
-        let filtered = trips.filter(trip => trip && trip.from?.coord && trip.to?.coord);
-        if (anomalyFilter) {
-            filtered = filtered.filter(trip =>
-                trip.anomalyTypeList?.includes(anomalyFilter)
-            );
-        }
-
-        return filtered;
-    }, [trips, anomalyFilter]);
-
-    const globalTimeRange = useMemo(() => {
-        if (!validTrips || validTrips.length === 0) {
-            return { minTime: 0, maxTime: 1 };
-        }
-        const startTimes = validTrips.map(t => t.from.eventTime);
-        const endTimes = validTrips.map(t => t.to.eventTime);
-        return { minTime: Math.min(...startTimes), maxTime: Math.max(...endTimes) };
-    }, [validTrips]);
-
     const activeTimeRange = useMemo(() => {
-        if (timeRange) {
-            return { minTime: timeRange[0], maxTime: timeRange[1] };
+        if (timeRange) return { minTime: timeRange[0], maxTime: timeRange[1] };
+        if (tripsToDisplay && tripsToDisplay.length > 0) {
+            const startTimes = tripsToDisplay.map(t => t.from.eventTime);
+            const endTimes = tripsToDisplay.map(t => t.to.eventTime);
+            return { minTime: Math.min(...startTimes), maxTime: Math.max(...endTimes) };
         }
-
-        if (epcDupTarget) {
-            const dupTrips = validTrips.filter(t => t.epcCode === epcDupTarget);
-            if (dupTrips.length > 0) {
-                const startTimes = dupTrips.map(t => t.from.eventTime);
-                const endTimes = dupTrips.map(t => t.to.eventTime);
-                return { minTime: Math.min(...startTimes), maxTime: Math.max(...endTimes) };
-            }
-        }
-        return globalTimeRange;
-    }, [timeRange, epcDupTarget, validTrips, globalTimeRange]);
+        return { minTime: 0, maxTime: 1 };
+    }, [timeRange, tripsToDisplay]);
 
     const dynamicAnimationSpeed = useMemo(() => {
         const totalDuration = activeTimeRange.maxTime - activeTimeRange.minTime;
@@ -134,14 +104,10 @@ export const SupplyChainMap: React.FC = () => {
     }, [activeTimeRange]);
 
     useEffect(() => {
-        if (timeRange) {
-            setCurrentTime(timeRange[0]);
-            setIsPlaying(true);
-        } else {
-            setCurrentTime(globalTimeRange.minTime);
-            setIsPlaying(true);
-        }
-    }, [timeRange, globalTimeRange.minTime]);
+        const startTime = timeRange ? timeRange[0] : activeTimeRange.minTime;
+        setCurrentTime(startTime);
+        setIsPlaying(true);
+    }, [timeRange, activeTimeRange.minTime]);
 
     useEffect(() => {
         if (!selectedObject) {
@@ -264,7 +230,7 @@ export const SupplyChainMap: React.FC = () => {
         }
     };
 
-    const anomalyList = useMemo(() => validTrips.filter(t => t.anomalyTypeList && t.anomalyTypeList.length > 0), [validTrips]);
+    const anomalyList = useMemo(() => tripsToDisplay.filter(t => t.anomalyTypeList && t.anomalyTypeList.length > 0), [tripsToDisplay]);
 
     const handleTogglePlay = () => {
         if (!isPlaying && currentTime >= activeTimeRange.maxTime) {
@@ -275,243 +241,55 @@ export const SupplyChainMap: React.FC = () => {
         }
     };
 
-    const factoryNodes = useMemo(() => {
-        if (!nodes) return [];
-        return nodes.filter(node => node.businessStep === 'Factory');
-    }, [nodes]);
-    const otherNodes = useMemo(() => {
-        if (!nodes) return [];
-        return nodes.filter(node => node.businessStep !== 'Factory');
-    }, [nodes]);
-
-    const otherMeshLayers = useMemo(() => {
-        return Object.keys(OTHER_MODEL_MAPPING).map(type => {
-            const filteredNodes = otherNodes.filter(node => node.businessStep === type);
-            if (filteredNodes.length === 0) return null;
-            return new SimpleMeshLayer<LocationNode>({
-                id: `mesh-layer-${type}`,
-                data: filteredNodes,
-                mesh: OTHER_MODEL_MAPPING[type],
-                getPosition: d => d.coord,
-                getColor: d => getNodeColor(d.businessStep),
-                getOrientation: [-90, 0, 0],
-                sizeScale: 50,
-                getTranslation: [0, 0, 50],
-                pickable: true,
-                onHover: info => setHoverInfo(info),
-                onClick: info => {
-                    setSelectedObject(info.object as LocationNode)
-                    return true;
-                },
-                material
-            });
-        }).filter(Boolean);
-    }, [otherNodes, setHoverInfo, setSelectedObject]);
-
-    const factoryLayers = useMemo(() => [
-        new SimpleMeshLayer<LocationNode>({
-            id: 'factory-building-layer',
-            data: factoryNodes,
-            mesh: parsedFactoryBuildingModel,
-            getPosition: d => d.coord,
-            getColor: d => getNodeColor(d.businessStep),
-            getOrientation: [-90, 180, 0],
-            sizeScale: 50,
-            getTranslation: [0, 0, 50],
-            pickable: true,
-            onHover: info => setHoverInfo(info),
-            onClick: info => {
-                setSelectedObject(info.object as LocationNode)
-                return true;
-            },
-            material
-        }),
-    ], [factoryNodes, setHoverInfo, setSelectedObject]);
-
-    const anomalyNodeIds = useMemo(() => {
-        const ids = new Set<string>();
-        validTrips.forEach(trip => {
-            if (trip.anomalyTypeList && trip.anomalyTypeList.length > 0) {
-                ids.add(trip.from.scanLocation);
-                ids.add(trip.to.scanLocation);
-            }
-        });
-        return Array.from(ids);
-    }, [validTrips]);
-
-    const anomalyNodes = useMemo(() => {
-        if (!nodes) return [];
-        return nodes.filter(node => anomalyNodeIds.includes(node.scanLocation));
-    }, [nodes, anomalyNodeIds]);
-
     const handleLayerClick = useCallback((info: PickingInfo) => {
         if (info.object) {
             selectTripAndFocus(info.object as MergeTrip);
         }
     }, [selectTripAndFocus]);
 
-    const { staticPathData, otherDynamicTrips, pulseData } = useMemo(() => {
-        const selectedTrip = (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null;
 
-        let sPathData: MergeTrip[] = [];
-        let pData: [number, number][] = [];
-
-        if (selectedTrip) {
-            if (selectedTrip.anomalyTypeList.includes('clone')) {
-                const targetEpc = selectedTrip.epcCode;
-                sPathData = validTrips.filter(trip => trip.epcCode === targetEpc);
-            } else {
-                sPathData = [selectedTrip];
-            }
-            pData = [selectedTrip?.to.coord as [number, number]];
-
-            return {
-                staticPathData: sPathData,
-                otherDynamicTrips: [],
-                pulseData: pData
-            };
-
-        } else {
-            sPathData = validTrips;
-            const dynamic = validTrips.filter(trip =>
-                !(trip.from.businessStep === 'Wholesaler' && trip.to.businessStep === 'Reseller')
-            );
-            return {
-                staticPathData: sPathData,
-                otherDynamicTrips: dynamic,
-                pulseData: []
-            };
-        }
-    }, [selectedObject, validTrips]);
-
-    const wholesalerJourneys = useMemo(() => {
-        if (!trips || trips.length === 0 || !nodes || nodes.length === 0) {
-            return [];
-        }
-        const deliveryTrips = trips.filter(trip =>
-            trip.from.businessStep === 'Wholesaler' &&
-            trip.to.businessStep === 'Reseller'
-        );
-        const tripsByWholesaler = deliveryTrips.reduce((acc, trip) => {
-            const key = trip.from.scanLocation;
-            if (!acc[key]) {
-                acc[key] = [];
-            }
-            acc[key].push(trip);
-            return acc;
-        }, {} as Record<string, AnalyzedTrip[]>);
-
-        const processedJourneys = Object.values(tripsByWholesaler).map(wholesalerTrips => {
-            const sortedTrips = wholesalerTrips.sort((a, b) => a.to.eventTime - b.to.eventTime);
-
-            const path: [number, number][] = [];
-            const timestamps: number[] = [];
-
-            if (sortedTrips.length > 0) {
-                const startingPoint = sortedTrips[0].from;
-                path.push(startingPoint.coord as [number, number]);
-                timestamps.push(startingPoint.eventTime);
-                sortedTrips.forEach(trip => {
-                    path.push(trip.to.coord as [number, number]);
-                    timestamps.push(trip.to.eventTime);
-                });
-            }
-            return {
-                journeyId: sortedTrips[0] ? `journey-${sortedTrips[0].from.scanLocation}` : 'unknown',
-                path: path,
-                timestamps: timestamps,
-                trips: sortedTrips,
-            };
-        });
-        return processedJourneys;
-    }, [trips, nodes]);
-
-    const selectedTrip = useMemo(() => {
-        if (selectedObject && 'roadId' in selectedObject) {
-            return selectedObject as MergeTrip;
-        }
-        return null;
-    }, [selectedObject]);
-
-    const uniqueStaticPaths = useMemo(() => {
-        const uniquePaths = new Map<string, MergeTrip>();
-        validTrips.forEach(trip => {
-            const pathKey = `${trip.from.scanLocation}-${trip.to.scanLocation}`;
-            if (!uniquePaths.has(pathKey)) {
-                uniquePaths.set(pathKey, trip);
-            }
-        });
-        return Array.from(uniquePaths.values());
-    }, [validTrips]);
+    const selectedTrip = useMemo(() => (selectedObject && 'roadId' in selectedObject) ? selectedObject as MergeTrip : null, [selectedObject]);
 
     const journeyMarkers = useMemo(() => {
-        if (!selectedTrip) return null;
-        let journeyTrips: MergeTrip[] = [];
-        if (selectedTrip.anomalyTypeList?.includes('clone')) {
-            journeyTrips = validTrips
-                .filter(t => t.epcCode === selectedTrip.epcCode)
-                .sort((a, b) => a.from.eventTime - b.from.eventTime);
-        } else {
-            journeyTrips = [selectedTrip];
-        }
-        if (journeyTrips.length === 0) return null;
-        const startNode = journeyTrips[0].from;
-        const endNode = journeyTrips[journeyTrips.length - 1].to;
-        return {
-            start: { coord: startNode.coord },
-            end: { coord: endNode.coord }
-        };
-    }, [selectedTrip, validTrips]);
+        if (!selectedTrip || tripsToDisplay.length === 0) return null;
+        const startNode = tripsToDisplay[0].from;
+        const endNode = tripsToDisplay[tripsToDisplay.length - 1].to;
+        return { start: { coord: startNode.coord }, end: { coord: endNode.coord } };
+    }, [selectedTrip, tripsToDisplay]);
 
     const cloneDestinationMarkers = useMemo(() => {
-        if (!selectedTrip || !selectedTrip.anomalyTypeList?.includes('clone')) {
-            return [];
-        }
-        return validTrips.filter(t =>
-            t.epcCode === selectedTrip.epcCode &&
-            t.roadId !== selectedTrip.roadId
-        );
-    }, [selectedTrip, validTrips]);
+        if (!selectedTrip || !selectedTrip.anomalyTypeList?.includes('clone')) return [];
+        return tripsToDisplay.filter(t => t.roadId !== selectedTrip.roadId);
+    }, [selectedTrip, tripsToDisplay]);
 
     const layers = useMemo(() => {
-        const showJourneys = !selectedTrip;
-
-        let displayTrips: MergeTrip[] = [];
-        let displayStaticPaths: MergeTrip[] = [];
-
-        if (selectedTrip) {
-            displayTrips = [selectedTrip];
-            displayStaticPaths = [selectedTrip];
-        } else {
-            displayTrips = validTrips;
-            displayStaticPaths = uniqueStaticPaths;
-        }
-
         return [
             new PathLayer<MergeTrip>({
                 id: 'path-solid-background-layer',
-                data: displayStaticPaths,
+                data: tripsToDisplay,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getColor: [200, 200, 200, 80],
                 getWidth: 8,
                 widthMinPixels: 8,
+                getPolygonOffset: ({ layerIndex }) => [0, -layerIndex * 100 - 20]
             }),
-            new PathLayer<MergeTrip>({
-                id: 'path-background-layer',
-                data: displayStaticPaths,
-                getPath: d => d.path || [d.from.coord, d.to.coord],
-                getColor: [200, 200, 200, 255],
-                getWidth: 8,
-                widthMinPixels: 8,
-                // @ts-ignore
-                getDashArray: [3, 3],
-                // @ts-ignore
-                dashJustified: true,
-                extensions: [new PathStyleExtension({ dash: true })],
-            }),
+            // new PathLayer<MergeTrip>({
+            //     id: 'path-dashed-foreground-layer',
+            //     data: tripsToDisplay,
+            //     getPath: d => d.path || [d.from.coord, d.to.coord],
+            //     getColor: [200, 200, 200, 255],
+            //     getWidth: 8,
+            //     widthMinPixels: 8,
+            //     // @ts-ignore
+            //     getDashArray: [3, 3],
+            //     // @ts-ignore
+            //     dashJustified: true,
+            //     extensions: [new PathStyleExtension({ dash: true })],
+            //     getPolygonOffset: ({ layerIndex }) => [0, -layerIndex * 100 - 10]
+            // }),
             new TripsLayer<MergeTrip>({
                 id: 'main-trips-layer',
-                data: displayTrips,
+                data: tripsToDisplay,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
                 getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 120] : [60, 150, 255, 120],
@@ -519,54 +297,17 @@ export const SupplyChainMap: React.FC = () => {
                 getWidth: 8,
                 widthMinPixels: 8,
                 rounded: true,
-                trailLength: 300,
+                trailLength: 10000,
                 currentTime,
                 pickable: true,
                 onHover: info => setHoverInfo(info),
                 onClick: handleLayerClick,
-            }),
-            ...otherMeshLayers,
-            ...factoryLayers,
-            new TripsLayer({
-                id: 'wholesaler-journeys-layer',
-                data: wholesalerJourneys,
-                visible: showJourneys,
-                getPath: d => d.path,
-                getTimestamps: d => d.timestamps,
-                getColor: [0, 123, 255, 120],
-                opacity: 1,
-                getWidth: 8,
-                widthMinPixels: 8,
-                rounded: true,
-                trailLength: 100,
-                currentTime,
-            }),
-            new TripsLayer<MergeTrip>({
-                id: 'other-trips-layer',
-                data: otherDynamicTrips,
-                visible: showJourneys,
-                getPath: d => d.path || [d.from.coord, d.to.coord],
-                getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 120] : [0, 255, 127, 120],
-                opacity: 1,
-                getWidth: 8,
-                widthMinPixels: 8,
-                rounded: true,
-                trailLength: 100,
-                currentTime,
+                getPolygonOffset: ({ layerIndex }) => [0, -layerIndex * 100]
             }),
         ];
     }, [
         selectedTrip,
-        validTrips,
-        uniqueStaticPaths,
-        otherDynamicTrips,
-        pulseData,
-        wholesalerJourneys,
         currentTime,
-        anomalyNodes,
-        factoryLayers,
-        otherMeshLayers,
         handleLayerClick,
         setHoverInfo
     ]);

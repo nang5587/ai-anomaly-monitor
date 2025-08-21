@@ -20,7 +20,7 @@ const MapLegend: React.FC<MapLegendProps> = ({ onHover, onToggleVisibility, visi
             background: 'linear-gradient(145deg, #2A2A2A, #1E1E1E)',
             boxShadow: '0 0 0 1px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(6px)',
-            borderRadius: '25px',
+            borderRadius: '10px',
             padding: '20px',
             color: '#E0E0E0',
             fontFamily: 'Inter, sans-serif',

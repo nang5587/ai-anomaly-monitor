@@ -3,7 +3,6 @@ import { FlyToInterpolator, WebMercatorViewport } from 'deck.gl';
 import {
     getNodes,
     getAnomalies,
-    getTrips,
     getAllAnomalies,
     getFilterOptions,
 } from '@/services/dataService';
@@ -18,6 +17,7 @@ import type {
 
 import { MergeTrip, Tab } from '@/components/visual/SupplyChainDashboard';
 import { fetchRouteGeometry } from '@/services/mapboxService';
+import { fetchEpcHistory, type EventHistory } from '@/services/historyService';
 
 export const formatUnixTimestamp = (timestamp: number | string): string => {
     if (!timestamp || timestamp === 0) return 'N/A';
@@ -172,18 +172,101 @@ export const fetchGeometriesAndMergeTrips = async (
     });
 };
 
+const fullEpcEventHistoryAtom = atom<EventHistory[]>([]);
+export const epcFullJourneyDataAtom = atom((get) => {
+    const historyAsTrips = get(epcHistoryAsTripsAtom);
+    if (historyAsTrips.length === 0) return null;
+    const fullPath = historyAsTrips.flatMap(trip => trip.path || []);
+    const fullTimestamps = historyAsTrips.flatMap(trip => trip.timestamps || []);
+    return {
+        path: fullPath,
+        timestamps: fullTimestamps
+    };
+});
+
+
+const epcHistoryAsTripsAtom = atom<MergeTrip[]>((get) => {
+    const history = get(fullEpcEventHistoryAtom);
+    const nodes = get(nodesAtom);
+    const geometries = get(routeGeometriesAtom);
+    if (history.length < 2 || nodes.length === 0) return [];
+
+    const nodesMap = new Map(nodes.map(node => [node.scanLocation, node]));
+    const trips: MergeTrip[] = [];
+
+    for (let i = 0; i < history.length - 1; i++) {
+        const fromEvent = history[i];
+        const toEvent = history[i + 1];
+        const fromNode = nodesMap.get(fromEvent.scanLocation);
+        const toNode = nodesMap.get(toEvent.scanLocation);
+        if (!fromNode || !toNode) continue;
+
+        const roadId = fromEvent.eventId * 10000 + toEvent.eventId;
+        const geometry = geometries[roadId];
+        const path = geometry?.path || [fromNode.coord, toNode.coord];
+
+        const startTime = new Date(fromEvent.eventTime).getTime() / 1000;
+        const endTime = new Date(toEvent.eventTime).getTime() / 1000;
+        const duration = endTime - startTime;
+        const timestamps = path.map((_, index) => startTime + (duration * (index / (path.length - 1))));
+
+        trips.push({
+            roadId,
+            from: { ...fromEvent, coord: fromNode.coord, eventTime: startTime },
+            to: { ...toEvent, coord: toNode.coord, eventTime: endTime },
+            epcCode: fromEvent.epcCode,
+            productName: "Product Name", 
+            epcLot: "EPC Lot", 
+            eventType: toEvent.eventType,
+            anomalyTypeList: toEvent.anomalyTypeList as AnomalyType[],
+            path,
+            timestamps
+        });
+    }
+    return trips;
+});
+
+export const fullEpcHistoryAtom = atom<EventHistory[]>([]);
+
+export const epcFullTripHistoryAtom = atom<MergeTrip[]>([]);
+
+const convertHistoryToTrips = (history: EventHistory[], nodesMap: Map<string, LocationNode>): MergeTrip[] => {
+    if (history.length < 2) return [];
+    const trips: MergeTrip[] = [];
+    for (let i = 0; i < history.length - 1; i++) {
+        const fromEvent = history[i];
+        const toEvent = history[i + 1];
+        const fromNode = nodesMap.get(fromEvent.scanLocation);
+        const toNode = nodesMap.get(toEvent.scanLocation);
+        if (!fromNode || !toNode) continue;
+
+        trips.push({
+            roadId: fromEvent.eventId * 10000 + toEvent.eventId,
+            from: { ...fromEvent, coord: fromNode.coord, eventTime: new Date(fromEvent.eventTime).getTime() / 1000 },
+            to: { ...toEvent, coord: toNode.coord, eventTime: new Date(toEvent.eventTime).getTime() / 1000 },
+            epcCode: fromEvent.epcCode,
+            productName: "Product Name",
+            epcLot: "EPC Lot",
+            eventType: toEvent.eventType,
+            anomalyTypeList: toEvent.anomalyTypeList as AnomalyType[],
+        });
+    }
+    return trips;
+};
+
 export const loadInitialDataAtom = atom(null, async (get, set) => {
     const fileId = get(selectedFileIdAtom);
     if (!fileId) return;
-
     set(isLoadingAtom, true);
     try {
-        await Promise.all([
-            getNodes().then(data => set(nodesAtom, data)),
-            getFilterOptions({ fileId }).then(data => set(filterOptionsAtom, data)),
+        const [nodesData, anomaliesData] = await Promise.all([
+            getNodes(),
+            getAllAnomalies({ fileId })
         ]);
+        set(nodesAtom, nodesData);
+        set(allAnomalyTripsAtom, anomaliesData);
     } catch (error) {
-        console.error("초기 공통 데이터 로딩 실패:", error);
+        console.error("초기 데이터 로딩 실패:", error);
     } finally {
         set(isLoadingAtom, false);
     }
@@ -199,7 +282,7 @@ export const loadTripsDataAtom = atom(null, async (get, set) => {
 
     const currentTab = get(activeTabAtom);
     const currentFilters = get(appliedFiltersAtom);
-    const fetchFunction = currentTab === 'anomalies' ? getAnomalies : getTrips;
+    const fetchFunction = getAnomalies;
     const params = { ...currentFilters, fileId, limit: 50 };
 
     try {
@@ -224,7 +307,7 @@ export const loadMoreTripsAtom = atom(null, async (get, set) => {
 
     const currentTab = get(activeTabAtom);
     const currentFilters = get(appliedFiltersAtom);
-    const fetchFunction = currentTab === 'anomalies' ? getAnomalies : getTrips;
+    const fetchFunction = getAnomalies;
     const params = { ...currentFilters, fileId, limit: 50, cursor: nextCursor };
 
     try {
@@ -282,100 +365,113 @@ export const resetAnomalyFilterAtom = atom(
     }
 );
 
+
 export const selectTripAndFocusAtom = atom(
     null,
-    (get, set, trip: MergeTrip | null) => {
+    async (get, set, trip: MergeTrip | null) => {
         const currentViewState = get(mapViewStateAtom);
 
         if (trip === null) {
             set(selectedObjectAtom, null);
+            set(epcFullTripHistoryAtom, []);
             set(timeRangeAtom, null);
             return;
         }
 
-        const currentTab = get(activeTabAtom);
         set(selectedObjectAtom, trip);
+        set(isLoadingAtom, true);
 
-        if (currentTab === 'heatmap') {
-            set(activeTabAtom, 'anomalies');
-        }
+        try {
+            const nodes = get(nodesAtom);
+            const nodesMap = new Map(nodes.map(n => [n.scanLocation, n]));
 
-        if (trip.timestamps && trip.timestamps.length > 0) {
-            const startTime = trip.timestamps[0];
-            const endTime = trip.timestamps[trip.timestamps.length - 1];
-            set(timeRangeAtom, [startTime, endTime]);
-        }
+            const history = await fetchEpcHistory(trip);
+            const historyAsTripsForPath = convertHistoryToTrips(history, nodesMap);
 
-        const allCoords = trip.path || [trip.from.coord, trip.to.coord];
-        if (allCoords && allCoords.length > 0) {
-            const bounds: [[number, number], [number, number]] = allCoords.reduce(
-                (acc, coord) => [
-                    [Math.min(acc[0][0], coord[0]), Math.min(acc[0][1], coord[1])],
-                    [Math.max(acc[1][0], coord[0]), Math.max(acc[1][1], coord[1])],
-                ],
-                [[Infinity, Infinity], [-Infinity, -Infinity]]
-            );
+            const currentCache = get(routeGeometriesAtom);
+            const tripsToFetch = historyAsTripsForPath.filter(t => !currentCache[t.roadId]);
 
-            const viewport = new WebMercatorViewport({
-                ...currentViewState,
-                width: window.innerWidth,
-                height: window.innerHeight,
+            if (tripsToFetch.length > 0) {
+                const geometryPromises = tripsToFetch.map(async (t) => {
+                    const path = await fetchRouteGeometry(t.from.coord, t.to.coord);
+                    return { roadId: t.roadId, path };
+                });
+                const newGeometries = await Promise.all(geometryPromises);
+                const updatedCache = { ...currentCache };
+                newGeometries.forEach(geom => { if (geom.path) updatedCache[geom.roadId] = { path: geom.path }; });
+                set(routeGeometriesAtom, updatedCache);
+            }
+
+            const finalCache = get(routeGeometriesAtom);
+            const finalHistoryTrips = historyAsTripsForPath.map(t => {
+                const path = finalCache[t.roadId]?.path || [t.from.coord, t.to.coord];
+                const startTime = t.from.eventTime;
+                const endTime = t.to.eventTime;
+                const duration = endTime - startTime;
+
+                const timestamps = (path.length > 1 && duration > 0)
+                    ? path.map((_, index) => startTime + (duration * (index / (path.length - 1))))
+                    : [startTime, endTime];
+
+                return { ...t, path, timestamps };
             });
 
-            const { longitude, latitude, zoom } = viewport.fitBounds(bounds, {
-                padding: 200
-            });
+            set(epcFullTripHistoryAtom, finalHistoryTrips);
 
-            set(mapViewStateAtom, {
-                ...currentViewState,
-                longitude,
-                latitude,
-                zoom,
-                pitch: 50,
-                bearing: 0,
-                transitionDuration: 2000,
-                transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
-            });
-        }
+            if (finalHistoryTrips.length > 0) {
+                const allCoords = finalHistoryTrips.flatMap(t => t.path || []);
+                const allTimestamps = finalHistoryTrips.flatMap(t => t.timestamps || []);
 
-        const currentTrips = get(tripsAtom);
-        const isTripInList = currentTrips.some(t => t.roadId === trip.roadId);
+                if (allCoords.length > 0) {
+                    const bounds: [[number, number], [number, number]] = allCoords.reduce(
+                        (acc, coord) => [
+                            [Math.min(acc[0][0], coord[0]), Math.min(acc[0][1], coord[1])],
+                            [Math.max(acc[1][0], coord[0]), Math.max(acc[1][1], coord[1])],
+                        ],
+                        [[Infinity, Infinity], [-Infinity, -Infinity]]
+                    );
 
-        if (!isTripInList) {
-            set(tripsAtom, [trip]);
-            (async () => {
-                const fileId = get(selectedFileIdAtom);
-                if (!fileId) return;
+                    const viewport = new WebMercatorViewport({
+                        ...currentViewState,
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                    });
 
-                const geometries = get(routeGeometriesAtom);
-                const filters = get(appliedFiltersAtom);
-                const fetchFunc = get(activeTabAtom) === 'anomalies' ? getAnomalies : getTrips;
+                    const { longitude, latitude, zoom } = viewport.fitBounds(bounds, {
+                        padding: { top: 80, bottom: window.innerHeight * 0.33 + 40, left: 40, right: 40 }
+                    });
 
-                try {
-                    const response = await fetchFunc({ ...filters, fileId, limit: 50 });
-                    const fetchedTrips = mergeAndGenerateTimestamps(response.data, geometries);
-                    const otherTrips = fetchedTrips.filter(t => t.roadId !== trip.roadId);
-                    set(tripsAtom, [trip, ...otherTrips]);
-                    set(nextCursorAtom, response.nextCursor);
-                } catch (e) { console.error(e); }
-            })();
+                    set(mapViewStateAtom, {
+                        ...currentViewState,
+                        longitude, latitude, zoom,
+                        pitch: 50, bearing: 0,
+                        transitionDuration: 2000,
+                        transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+                    });
+                }
+                if (allTimestamps.length > 0) {
+                    set(timeRangeAtom, [Math.min(...allTimestamps), Math.max(...allTimestamps)]);
+                }
+            }
+        } catch (error) {
+            console.error("EPC 전체 이력 처리 실패:", error);
+            set(epcFullTripHistoryAtom, []);
+        } finally {
+            set(isLoadingAtom, false);
         }
     }
 );
 
-export const visibleTripsAtom = atom((get) => {
-    const allTrips = get(tripsAtom);
+export const visibleTripsAtom = atom<MergeTrip[]>((get) => {
     const selected = get(selectedObjectAtom);
-    if (!selected || 'roadId' in selected) {
-        return allTrips;
+    const fullHistoryTrips = get(epcHistoryAsTripsAtom);
+    const allAnomalyTrips = get(allAnomalyTripsAtom);
+
+    if (selected && fullHistoryTrips.length > 0) {
+        return fullHistoryTrips;
     }
-    if ('coord' in selected) {
-        const nodeLocation = selected.scanLocation;
-        return allTrips.filter(trip =>
-            trip.from.scanLocation === nodeLocation || trip.to.scanLocation === nodeLocation
-        );
-    }
-    return allTrips;
+
+    return allAnomalyTrips;
 });
 
 let prevSelectedObject: any = undefined;
@@ -401,18 +497,15 @@ export const allAnomalyTripsAtom = atom<MergeTrip[]>([]);
 
 export const loadAllAnomaliesAtom = atom(null, async (get, set) => {
     const fileId = get(selectedFileIdAtom);
-    if (!fileId) {
-        set(allAnomalyTripsAtom, []);
-        return;
-    }
-
+    if (!fileId) return;
+    set(isLoadingAtom, true);
     try {
         const allAnomaliesData = await getAllAnomalies({ fileId });
-        const mergedTrips = await fetchGeometriesAndMergeTrips(allAnomaliesData, get, set);
-        set(allAnomalyTripsAtom, mergedTrips);
+        set(allAnomalyTripsAtom, allAnomaliesData);
     } catch (error) {
         console.error("모든 이상 경로 데이터 로딩 실패:", error);
-        set(allAnomalyTripsAtom, []);
+    } finally {
+        set(isLoadingAtom, false);
     }
 });
 

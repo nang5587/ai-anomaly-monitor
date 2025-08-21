@@ -39,7 +39,7 @@ export default function FactoryDetailView({ factoryName, kpiData }: FactoryDetai
 
     return (
         <div className="bg-[rgba(40,40,40)] p-6 rounded-3xl shadow-lg flex flex-col">
-            <h2 className="font-noto-400 text-xl text-white mb-6 text-center rounded-2xl bg-[rgba(30,30,30)] p-2">{factoryName || '선택된 파일 없음'}</h2>
+            <h2 className="font-noto-400 text-xl text-white mb-6 text-center rounded-2xl bg-[rgba(30,30,30)] p-2">{factoryName || '인천공장'}</h2>
             <div className='flex flex-col justify-center gap-3'>
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-2 gap-3">
                     <MiniStatCard title="총 처리 건수" value={formatNumberCompact(kpiData.totalTripCount)} icon={<ListChecks size={32} className="text-white" />} />

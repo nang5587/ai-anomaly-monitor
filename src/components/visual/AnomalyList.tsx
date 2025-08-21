@@ -26,15 +26,6 @@ const AnomalyList: React.FC<AnomalyListProps> = ({ anomalies, onCaseClick, selec
             display: 'flex',
             flexDirection: 'column',
         }}>
-            <h3 style={{
-                margin: 0,
-                padding: '20px',
-                fontSize: '18px',
-                flexShrink: 0,
-            }}>
-                이상 탐지 리스트
-            </h3>
-
             <div style={{
                 overflowY: 'auto',
                 flex: 1,

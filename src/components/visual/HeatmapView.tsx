@@ -214,9 +214,9 @@ export const HeatmapView: React.FC = () => {
             </DeckGL>
             <div
                 style={{ position: 'absolute', top: '10px', right: '20px', zIndex: 10 }}
-                className="bg-[rgba(40,40,40)] rounded-2xl p-6 text-white w-48 shadow-lg backdrop-blur-sm"
+                className="bg-[rgba(40,40,40)] rounded-xl p-6 text-white w-48 shadow-lg backdrop-blur-sm"
             >
-                <h3 className="text-sm font-bold mb-3">이벤트 타입별 분류</h3>
+                <h3 className="text-base font-noto-400 mb-3">이벤트 타입별 분류</h3>
                 <div className="space-y-2">
                     {Object.entries(ANOMALY_TYPE_COLORS).map(([type, color]) => (
                         <div key={type} className="flex items-center">

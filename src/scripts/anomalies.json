@@ -1,0 +1,1664 @@
+{
+  "data": [
+    {
+      "roadId": 1,
+      "from": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1735691100,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1735707358,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.14070",
+      "productName": "던힐",
+      "epcLot": "LOTA-5929",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 3,
+      "from": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1735696800,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1735724046,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.696",
+      "productName": "게보린",
+      "epcLot": "LOTA-6222",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 5,
+      "from": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1735697280,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1735716393,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.696",
+      "productName": "게보린",
+      "epcLot": "LOTA-6222",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 2,
+      "from": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1735709160,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1735720893,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.14070",
+      "productName": "던힐",
+      "epcLot": "LOTA-5929",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 4,
+      "from": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1735718400,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1735730309,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.696",
+      "productName": "게보린",
+      "epcLot": "LOTA-6222",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 6,
+      "from": {
+        "scanLocation": "수도권_도매상3_권역_소매상3",
+        "coord": [
+          127.15,
+          37.51
+        ],
+        "eventTime": 1735786740,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상3_권역_소매상2",
+        "coord": [
+          128.695,
+          35.805
+        ],
+        "eventTime": 1735812998,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.697_TAMPER",
+      "productName": "말보로",
+      "epcLot": "LOTA-3366",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 7,
+      "from": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1735790400,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1735817883,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.698",
+      "productName": "게보린",
+      "epcLot": "LOTA-7649",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 9,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1735791420,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1735805770,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.698",
+      "productName": "게보린",
+      "epcLot": "LOTA-7649",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 8,
+      "from": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1735815600,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전북물류센터",
+        "coord": [
+          127.15,
+          35.82
+        ],
+        "eventTime": 1735835107,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.698",
+      "productName": "게보린",
+      "epcLot": "LOTA-7649",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 10,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1735876800,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1735900386,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.699",
+      "productName": "말보로",
+      "epcLot": "LOTA-1777",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 12,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1735878480,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1735902882,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.699",
+      "productName": "말보로",
+      "epcLot": "LOTA-1777",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 11,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1735898400,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1735917686,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.699",
+      "productName": "말보로",
+      "epcLot": "LOTA-1777",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 13,
+      "from": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1735963200,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1735981635,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.700",
+      "productName": "말보로",
+      "epcLot": "LOTA-9460",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 15,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1735964160,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1735981090,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.700",
+      "productName": "말보로",
+      "epcLot": "LOTA-9460",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 14,
+      "from": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1735977600,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전북물류센터",
+        "coord": [
+          127.15,
+          35.82
+        ],
+        "eventTime": 1735991108,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.700",
+      "productName": "말보로",
+      "epcLot": "LOTA-9460",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 16,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736050800,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736070333,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.41005",
+      "productName": "말보로",
+      "epcLot": "LOTA-7603",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 18,
+      "from": {
+        "scanLocation": "전북_도매상1_권역_소매상3",
+        "coord": [
+          127.1,
+          35.91
+        ],
+        "eventTime": 1736057040,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전남_도매상3_권역_소매상2",
+        "coord": [
+          127.045,
+          35.105
+        ],
+        "eventTime": 1736070263,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.702_TAMPER",
+      "productName": "에쎄",
+      "epcLot": "LOTA-2407",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 19,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736064000,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736081876,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.703",
+      "productName": "게보린",
+      "epcLot": "LOTA-4374",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 21,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1736064360,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736081795,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.703",
+      "productName": "게보린",
+      "epcLot": "LOTA-4374",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 17,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736069760,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736081831,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.41005",
+      "productName": "말보로",
+      "epcLot": "LOTA-7603",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 20,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736078400,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1736090042,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.703",
+      "productName": "게보린",
+      "epcLot": "LOTA-4374",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 22,
+      "from": {
+        "scanLocation": "수도권_도매상3_권역_소매상1",
+        "coord": [
+          127.155,
+          37.505
+        ],
+        "eventTime": 1736151720,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상1_권역_소매상1",
+        "coord": [
+          127.105,
+          35.905
+        ],
+        "eventTime": 1736178851,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.704_TAMPER",
+      "productName": "게보린",
+      "epcLot": "LOTA-3381",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 23,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736157600,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736175925,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.705",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-7441",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 25,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1736158680,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736178374,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.705",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-7441",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 24,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736182800,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736205467,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.705",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-7441",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 26,
+      "from": {
+        "scanLocation": "전남_도매상1_권역_소매상3",
+        "coord": [
+          126.85,
+          35.26
+        ],
+        "eventTime": 1736247300,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상3_권역_소매상3",
+        "coord": [
+          127.25,
+          35.76
+        ],
+        "eventTime": 1736271862,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.706_TAMPER",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-7966",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 27,
+      "from": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1736254560,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1736266619,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.69030",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-9786",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 29,
+      "from": {
+        "scanLocation": "경북_도매상2_권역_소매상2",
+        "coord": [
+          128.445,
+          36.005
+        ],
+        "eventTime": 1736259480,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상1_권역_소매상2",
+        "coord": [
+          128.595,
+          35.955
+        ],
+        "eventTime": 1736287732,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.708_TAMPER",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-1172",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 30,
+      "from": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1736265780,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상3_권역_소매상1",
+        "coord": [
+          127.255,
+          35.755
+        ],
+        "eventTime": 1736276806,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.709_TAMPER",
+      "productName": "게보린",
+      "epcLot": "LOTA-1889",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 28,
+      "from": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1736271900,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736293688,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.69030",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-9786",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 31,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736273280,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736296868,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.20043",
+      "productName": "에쎄",
+      "epcLot": "LOTA-4662",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 33,
+      "from": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736281080,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상3",
+        "coord": [
+          127.15,
+          37.5
+        ],
+        "eventTime": 1736297768,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.711_TAMPER",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-6656",
+      "eventType": "LogiHub_Outbound",
+      "anomalyTypeList": ["tamper"]
+    },
+    {
+      "roadId": 35,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1736287200,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736313722,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.712",
+      "productName": "에쎄",
+      "epcLot": "LOTA-7725",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 37,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736288760,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736315264,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.712",
+      "productName": "에쎄",
+      "epcLot": "LOTA-7725",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 32,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736292000,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1736316238,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.20043",
+      "productName": "에쎄",
+      "epcLot": "LOTA-4662",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 34,
+      "from": {
+        "scanLocation": "수도권_도매상3",
+        "coord": [
+          127.15,
+          37.5
+        ],
+        "eventTime": 1736299860,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736322745,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.711_TAMPER",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-6656",
+      "eventType": "Wholesaler_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 36,
+      "from": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736301600,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1736322824,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.712",
+      "productName": "에쎄",
+      "epcLot": "LOTA-7725",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 38,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736373600,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736394986,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.713",
+      "productName": "타이레놀",
+      "epcLot": "LOTA-1699",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 40,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1736374500,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736395763,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.713",
+      "productName": "타이레놀",
+      "epcLot": "LOTA-1699",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 39,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736391600,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736407345,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.713",
+      "productName": "타이레놀",
+      "epcLot": "LOTA-1699",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 41,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736463540,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736480075,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.25512",
+      "productName": "게보린",
+      "epcLot": "LOTA-1244",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 43,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1736467200,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736484739,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.715",
+      "productName": "말보로",
+      "epcLot": "LOTA-6922",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 45,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736467860,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736483847,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.715",
+      "productName": "말보로",
+      "epcLot": "LOTA-6922",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 42,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736479140,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736496316,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.25512",
+      "productName": "게보린",
+      "epcLot": "LOTA-1244",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 44,
+      "from": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736492400,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1736509803,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.715",
+      "productName": "말보로",
+      "epcLot": "LOTA-6922",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 46,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736555340,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736576062,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.82079",
+      "productName": "던힐",
+      "epcLot": "LOTA-9720",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 48,
+      "from": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1736563500,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1736579992,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.71754",
+      "productName": "게보린",
+      "epcLot": "LOTA-3290",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 50,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736568000,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736583270,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.718",
+      "productName": "게보린",
+      "epcLot": "LOTA-7760",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 52,
+      "from": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1736568720,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1736596218,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.718",
+      "productName": "게보린",
+      "epcLot": "LOTA-7760",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 47,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736573820,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1736594301,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.82079",
+      "productName": "던힐",
+      "epcLot": "LOTA-9720",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 49,
+      "from": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1736580360,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전북물류센터",
+        "coord": [
+          127.15,
+          35.82
+        ],
+        "eventTime": 1736607139,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.71754",
+      "productName": "게보린",
+      "epcLot": "LOTA-3290",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 51,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736593200,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1736615280,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.718",
+      "productName": "게보린",
+      "epcLot": "LOTA-7760",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 53,
+      "from": {
+        "scanLocation": "화성공장",
+        "coord": [
+          126.83,
+          37.2
+        ],
+        "eventTime": 1736655060,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736670747,
+        "businessStep": "WMS"
+      },
+      "epcCode": "FAKE.EPC.48877",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-6479",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": ["fake"]
+    },
+    {
+      "roadId": 55,
+      "from": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736662020,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "전남_도매상3",
+        "coord": [
+          127.05,
+          35.1
+        ],
+        "eventTime": 1736677420,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.720_TAMPER",
+      "productName": "던힐",
+      "epcLot": "LOTA-3355",
+      "eventType": "LogiHub_Outbound",
+      "anomalyTypeList": ["tamper"]
+    },
+    {
+      "roadId": 57,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상1",
+        "coord": [
+          128.705,
+          35.805
+        ],
+        "eventTime": 1736671800,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1736696439,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.721_TAMPER",
+      "productName": "게보린",
+      "epcLot": "LOTA-2168",
+      "eventType": "Reseller_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 54,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1736673060,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736693593,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "FAKE.EPC.48877",
+      "productName": "아로나민골드정",
+      "epcLot": "LOTA-6479",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "fake"
+      ]
+    },
+    {
+      "roadId": 58,
+      "from": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1736676000,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1736699351,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.722",
+      "productName": "게보린",
+      "epcLot": "LOTA-5641",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 60,
+      "from": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1736677740,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1736691542,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.722",
+      "productName": "게보린",
+      "epcLot": "LOTA-5641",
+      "eventType": "Factory_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    },
+    {
+      "roadId": 56,
+      "from": {
+        "scanLocation": "전남_도매상3",
+        "coord": [
+          127.05,
+          35.1
+        ],
+        "eventTime": 1736681220,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1736693666,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.720_TAMPER",
+      "productName": "던힐",
+      "epcLot": "LOTA-3355",
+      "eventType": "Wholesaler_Outbound",
+      "anomalyTypeList": [
+        "tamper"
+      ]
+    },
+    {
+      "roadId": 59,
+      "from": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1736701200,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전북물류센터",
+        "coord": [
+          127.15,
+          35.82
+        ],
+        "eventTime": 1736717853,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.722",
+      "productName": "게보린",
+      "epcLot": "LOTA-5641",
+      "eventType": "WMS_Outbound",
+      "anomalyTypeList": [
+        "clone"
+      ]
+    }
+  ]
+}

@@ -17,7 +17,11 @@ const tabButtonStyle = (isActive: boolean, disabled: boolean): React.CSSProperti
     fontSize: '14px',
     color: isActive ? '#FFFFFF' : '#E0E0E0',
     backgroundColor: isActive ? 'rgba(111, 131, 175, 1)' : 'transparent',
-    border: 'none',
+    
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: isActive ? '#8ec5ff' : 'transparent',
+
     borderRadius: '9999px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
@@ -40,9 +44,8 @@ const AnomalyFilterTabs: React.FC<AnomalyFilterTabsProps> = ({disabled}) => {
             padding: '6px',
             borderRadius: '9999px',
             backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
             pointerEvents: disabled ? 'none' : 'auto',
-        }}>
+        }} className='w-fit'>
             <button
                 style={tabButtonStyle(selectedFilter === null, disabled)}
                 onClick={() => setSelectedFilter(null)}
