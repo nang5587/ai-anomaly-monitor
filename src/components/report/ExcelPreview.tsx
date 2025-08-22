@@ -210,13 +210,13 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
             otherTitleRow.getCell(1).style = sectionTitleStyle;
             if (otherTrips.length > 0) {
                 detailsSheet.addRow([]);
-                const otherTitleRow = detailsSheet.addRow(['라. 신규 유형(Other) 목록']);
+                const otherTitleRow = detailsSheet.addRow(['라. AI탐지(Other) 목록']);
                 detailsSheet.mergeCells(`A${otherTitleRow.number}:F${otherTitleRow.number}`);
                 otherTitleRow.getCell(1).style = sectionTitleStyle;
 
                 otherTrips.forEach(trip => {
                     detailsSheet.addRow([
-                        otherCounter++, '신규 유형(Other)', trip.epcCode, trip.productName,
+                        otherCounter++, 'AI탐지(Other)', trip.epcCode, trip.productName,
                         `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
                         formatPdfDateTime(trip.to.eventTime) // *️⃣ 백연결 시 함수 변경?
                     ]);
@@ -414,13 +414,13 @@ const ExcelPreview = forwardRef<ExcelPreviewRef, {}>((props, ref) => {
                         </tr>
                     )}
                     <tr className="bg-gray-100 font-bold">
-                        <td colSpan={6} className={tdClass}>라. 신규 유형(Other) 목록</td>
+                        <td colSpan={6} className={tdClass}>라. AI탐지(Other) 목록</td>
                     </tr>
                     {otherTrips.length > 0 ? (
                         otherTrips.map(trip => (
                             <tr key={trip.epcCode + otherCounter}>
                                 <td className={tdClass}>{otherCounter++}</td>
-                                <td className={tdClass}>신규 유형(Other)</td>
+                                <td className={tdClass}>AI탐지(Other)</td>
                                 <td className={tdClass}>{trip.epcCode}</td>
                                 <td className={tdClass}>{trip.productName}</td>
                                 <td className={tdClass}>{`${trip.from.scanLocation} → ${trip.to.scanLocation}`}</td>

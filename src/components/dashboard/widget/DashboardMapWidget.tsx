@@ -55,27 +55,6 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
     return (
         <div className="relative w-full h-full rounded-3xl overflow-hidden bg-black">
             <AnimatePresence mode="wait">
-                {activeWidget === 'path' && (
-                    <motion.div
-                        key="path"
-                        className="w-full h-full"
-                        variants={widgetVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                    >
-                        <SupplyChainMapWidget
-                            onWidgetClick={() => onWidgetClick('anomalies')}
-                        />
-                        <button
-                            onClick={handleReplayClick}
-                            className="absolute top-4 left-4 text-white p-2 rounded-full bg-black/50 border border-white/30 hover:bg-black/80 transition-colors"
-                            title="애니메이션 다시 재생"
-                        >
-                            <Play size={24} />
-                        </button>
-                    </motion.div>
-                )}
                 {activeWidget === 'heatmap' && (
                     <motion.div
                         key="heatmap"
@@ -92,13 +71,6 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
                     </motion.div>
                 )}
             </AnimatePresence>
-            <button
-                onClick={toggleWidget}
-                className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/50 border border-white/30 hover:bg-black/80 transition-colors"
-                title="다음 위젯 보기"
-            >
-                <ArrowLeftRight size={24} />
-            </button>
         </div>
     );
 };

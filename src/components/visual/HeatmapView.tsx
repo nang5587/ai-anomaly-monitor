@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect } from 'react';
 import type { PickingInfo, Color } from 'deck.gl';
 
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 
 import { type AnalyzedTrip, type LocationNode, anomalyCodeToNameMap, type AnomalyType } from '../../types/data';
 import { type EventTypeStats, type NodeWithEventStats, type StatValue } from '@/types/map';
@@ -12,6 +12,7 @@ import {
     allAnomalyTripsAtom,
     type MapViewState,
     nodesAtom,
+    selectNodeAndFocusAtom,
 } from '@/stores/mapDataAtoms';
 import { tutorialSeenAtom } from '@/stores/uiAtoms';
 
@@ -30,7 +31,7 @@ const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 export const HeatmapView: React.FC = () => {
     const [viewState, setViewState] = useAtom(mapViewStateAtom);
-    const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
+    const selectNodeAndFocus = useSetAtom(selectNodeAndFocusAtom);
     const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom);
     const allAnomalies = useAtomValue(allAnomalyTripsAtom);
     const allNodes = useAtomValue(nodesAtom);
@@ -108,7 +109,11 @@ export const HeatmapView: React.FC = () => {
     }, [allAnomalies, allNodes]);
 
     const handleClick = (info: PickingInfo) => {
-        if (info.object) setSelectedObject(info.object);
+        if (info.object) {
+            selectNodeAndFocus(info.object);
+        } else {
+            selectNodeAndFocus(null);
+        }
     };
 
     const renderTooltip = (info: PickingInfo) => {
@@ -214,7 +219,7 @@ export const HeatmapView: React.FC = () => {
             </DeckGL>
             <div
                 style={{ position: 'absolute', top: '10px', right: '20px', zIndex: 10 }}
-                className="bg-[rgba(40,40,40)] rounded-xl p-6 text-white w-48 shadow-lg backdrop-blur-sm"
+                className="rounded-xl p-6 text-white w-52 shadow-lg backdrop-blur-sm"
             >
                 <h3 className="text-base font-noto-400 mb-3">이벤트 타입별 분류</h3>
                 <div className="space-y-2">

@@ -196,12 +196,12 @@ export default function UserSettings() {
     }
 
     return (
-        <div className="p-4 sm:p-8 text-white w-full max-w-7xl mx-auto flex flex-col gap-8">
+        <div className="p-4 sm:p-8 text-white w-full max-w-8xl mx-auto flex flex-col gap-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="flex flex-col bg-[rgba(30,30,30)] p-6 rounded-2xl">
                     <div className="flex items-center gap-5 mb-6">
                         <img
-                            src={`https://api.dicebear.com/8.x/adventurer/svg?seed=${user.userId}`}
+                            src={`https://api.dicebear.com/8.x/notionists/svg?seed=${user.userId}`}
                             alt="User Avatar"
                             className="w-20 h-20 rounded-full bg-gray-700 border-2 border-gray-500"
                         />

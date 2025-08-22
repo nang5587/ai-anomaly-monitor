@@ -124,11 +124,11 @@ export const getAnomalyDetailsForPdf = (
     }
 
     if (otherTrips.length > 0) {
-        body.push([{ content: '라. 신규 유형(other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
+        body.push([{ content: '라. AI탐지(other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
         fakeTrips.forEach(trip => {
             body.push([
                 counter++,
-                '신규 유형(other)',
+                'AI탐지(other)',
                 trip.epcCode,
                 trip.productName,
                 `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
@@ -210,8 +210,8 @@ export const preparePdfData = (
 
     let counter = 1;
 
-    const otherGroupType = '신규 유형(Other)';
-    body.push([{ content: '라. 신규 유형(Other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
+    const otherGroupType = 'AI탐지(Other)';
+    body.push([{ content: '라. AI탐지(Other) 목록', colSpan: 6, styles: groupHeaderStyles }]);
 
     if (otherTrips.length > 0) {
         otherTrips.forEach((trip: MergeTrip) => {

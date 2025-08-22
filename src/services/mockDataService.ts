@@ -112,7 +112,7 @@ export async function getKpiSummary(params?: { fileId?: number }): Promise<KpiSu
         anomalyCount,
         uniqueProductCount: 12,
         codeCount: 200000,
-        anomalyRate: totalTripCount > 0 ? anomalyCount / totalTripCount : 0,
+        anomalyRate: 1.25,
         salesRate: 85.5,
         dispatchRate: 92.1,
         inventoryRate: 78.2,

@@ -11,6 +11,7 @@ export interface EventHistory {
     eventTime: string;
     anomaly: number;
     anomalyTypeList: string[];
+    description: string;
 }
 
 interface HistoryApiResponse {

@@ -11,10 +11,8 @@ import {
   HomeIcon,
   BarChartIcon,
   SettingsIcon,
-  BellIcon,
   UserIcon,
   UploadCloud,
-  History,
   Map as MapIcon
 } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +23,6 @@ const menus = [
   { name: "AI 분석 리포트", icon: BarChartIcon, href: "/report" },
   { name: "AI 분석 지도", icon: MapIcon, href: "/map" },
   { name: "CSV 업로드", icon: UploadCloud, href: "/upload" },
-  { name: "CSV 목록", icon: History, href: "/filelist" },
   { name: "설정", icon: SettingsIcon, href: "/settings" },
   { name: "사용자 관리", icon: UserIcon, href: "/supervisor/management", requiredRole: "ADMIN" },
 ];
@@ -51,7 +48,7 @@ function NotificationBadge() {
 
   return (
     <span
-      className="absolute top-0 right-0 w-3 h-3 bg-[rgba(111,131,175)] border-2 border-black rounded-full"
+      className="absolute top-0 right-0 w-3 h-3 bg-blue-300 rounded-full"
       title={`${pendingCount}명의 승인 대기 중`}
     ></span>
   );
@@ -108,7 +105,7 @@ export default function Sidebar({ hovered, setHovered, userRole }: SidebarProps)
               <Link
                 key={menu.name}
                 href={href}
-                className={`relative flex items-center ${!hovered && "justify-center"} gap-4 py-2.5 px-4 hover:bg-[rgba(111,131,175,1)] rounded-xl`}
+                className={`relative flex items-center ${!hovered && "justify-center"} gap-4 py-2.5 px-4 hover:bg-[rgba(111,131,175,0.8)] rounded-lg`}
               >
                 <menu.icon className="w-6 h-6 text-white flex-shrink-0" />
                 {hovered && (

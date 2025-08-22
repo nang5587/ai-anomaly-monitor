@@ -13,14 +13,14 @@ export default function Header() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 w-full bg-black px-12 py-3 shadow-sm flex items-center justify-between z-50 h-20"
+      className="fixed top-0 left-0 right-0 w-full bg-black px-12 py-3 shadow-sm flex items-center justify-between z-50 h-20 font-noto-400"
     >
       <h1 className="flex justify-center items-center text-3xl text-white font-reem-kufi cursor-pointer" onClick={handleClick}><ScanLine />&nbsp;&nbsp;FLOW LOGIC</h1>
       <div className="flex items-center gap-4">
         {user ? (
           <>
             <span className="text-sm text-white">
-              안녕하세요, <strong>{user.userId}</strong> 님
+              안녕하세요, <span>{user.userName}</span>님
             </span>
             <button
               onClick={logout}

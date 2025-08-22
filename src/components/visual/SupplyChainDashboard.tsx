@@ -34,6 +34,7 @@ import { HeatmapView } from './HeatmapView';
 
 import { DetailPanel } from './DetailPanel';
 import { NodeTripListPanel } from './NodeTripListPanel';
+import { NodeFilterBar } from './NodeFilterBar';
 import FilterPanel from './FilterPanel';
 import AnomalyFilterTabs from './AnomalyFilterTabs';
 import { FullScreenAnomalyList } from './FullScreenAnomalyList';
@@ -101,11 +102,9 @@ export const SupplyChainDashboard: React.FC = () => {
     }, [activeTab, appliedFilters, resetAnomalyFilter]);
 
     useEffect(() => {
-        if (activeTab === 'heatmap') {
-            setSelectedObject(null);
-            return;
+        if (activeTab === 'anomalies') {
+            loadTrips();
         }
-        loadTrips();
     }, [activeTab, appliedFilters]);
 
     const filteredTrips = useMemo(() => {
@@ -152,6 +151,7 @@ export const SupplyChainDashboard: React.FC = () => {
                             </div>
                         }>
                             <HeatmapView />
+                            <NodeFilterBar />
                         </Suspense>
                     </div>
                 )}
@@ -160,7 +160,7 @@ export const SupplyChainDashboard: React.FC = () => {
                 className={`absolute inset-0 w-full h-full flex flex-col transition-opacity duration-300 overflow-y-auto
             ${isObjectSelected ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             >
-                <div className="h-2/3">
+                <div className="h-1/2">
                     {activeTab === 'heatmap' ? (
                         <Suspense fallback={
                             <div className="w-full h-full bg-black bg-opacity-70 flex items-center justify-center text-white">
@@ -174,7 +174,7 @@ export const SupplyChainDashboard: React.FC = () => {
                     )}
                 </div>
 
-                <div className="h-1/3 bg-[#1A1A1A] border-t border-white/20">
+                <div className="h-1/2 bg-[#1A1A1A] border-t border-white/20">
                     {selectedTrip && (
                         <DetailPanel
                             selectedTrip={selectedTrip}
@@ -184,6 +184,7 @@ export const SupplyChainDashboard: React.FC = () => {
                     {selectedNode && activeTab === 'heatmap' && (
                         <NodeTripListPanel />
                     )}
+                    {activeTab === 'heatmap' && !selectedNode && <NodeFilterBar />}
                 </div>
             </div>
         </div>

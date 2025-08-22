@@ -246,13 +246,13 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                 <div className="flex items-center bg-[rgba(60,60,60)] rounded-3xl py-1 px-1.5">
                     <button
                         onClick={() => setActiveTab('pdf')}
-                        className={`px-4 py-2 text-sm font-semibold rounded-2xl transition ${activeTab === 'pdf' ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-400 hover:bg-[rgba(70,70,70)]'}`}
+                        className={`px-4 py-2 text-sm font-semibold rounded-2xl transition cursor-pointer ${activeTab === 'pdf' ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-400 hover:bg-[rgba(70,70,70)]'}`}
                     >
                         PDF 미리보기
                     </button>
                     <button
                         onClick={() => setActiveTab('excel')}
-                        className={`px-4 py-2 text-sm font-semibold rounded-2xl transition ${activeTab === 'excel' ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-400 hover:bg-[rgba(70,70,70)]'}`}
+                        className={`px-4 py-2 text-sm font-semibold rounded-2xl transition cursor-pointer ${activeTab === 'excel' ? 'bg-[rgba(111,131,175)] text-white' : 'text-gray-400 hover:bg-[rgba(70,70,70)]'}`}
                     >
                         Excel 미리보기
                     </button>
@@ -285,7 +285,6 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     style={{
                         width: '25%',
                         maxWidth: '300px',
-                        backgroundColor: 'rgba(111, 131, 175, 1)',
                         borderRadius: '8px',
                         padding: '16px',
                         overflowY: 'auto'
@@ -324,6 +323,11 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                                 </p>
                             </li>
                         ))}
+                        {files.length < 1 && (
+                            <div className="text-center text-[#E0E0E0]">
+                                업로드된 파일이 없습니다.
+                            </div>
+                        )}
                     </ul>
                 </aside>
                 <main

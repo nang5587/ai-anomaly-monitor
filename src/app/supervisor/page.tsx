@@ -1,16 +1,19 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAtom } from 'jotai';
-
 import { useState, useEffect } from 'react';
-import { useSetAtom } from 'jotai';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAtomValue, useSetAtom } from 'jotai';
+import {
+    tripsAtom,
+    selectTripAndFocusAtom
+} from '@/stores/mapDataAtoms';
 import { activeTabAtom } from '@/stores/mapDataAtoms';
 
 import { motion, type Variants } from 'framer-motion';
 
 import { type Tab } from '@/components/visual/SupplyChainDashboard';
+import { MergeTrip } from '@/context/MapDataContext';
 
 import { useDashboard } from '@/context/dashboardContext';
 
@@ -19,6 +22,7 @@ import AnomalyList from '@/components/dashboard/AnomalyList';
 import { DashboardMapWidget } from '../../components/dashboard/widget/DashboardMapWidget';
 import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
 import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
+import { AnomalyTripTable } from '@/components/visual/AnomalyTripTable';
 import dynamic from 'next/dynamic';
 
 const factoryCodeNameMap: { [key: number]: string } = { 1: '인천공장', 2: '화성공장', 3: '양산공장', 4: '구미공장' };
@@ -91,6 +95,9 @@ export default function SupervisorDashboard() {
 
     const [replayTrigger, setReplayTrigger] = useState(0);
     const [isShowingProductChart, setIsShowingProductChart] = useState(true);
+
+    const trips = useAtomValue(tripsAtom);
+    const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
     const handleWidgetClick = (tab: Tab) => {
         setActiveTab(tab);
@@ -173,6 +180,16 @@ export default function SupervisorDashboard() {
                 ease: "easeOut",
             },
         },
+    };
+
+    const handleRowClick = (trip: MergeTrip) => {
+        if (!selectedFileId) {
+            console.error("파일 ID가 선택되지 않아 지도로 이동할 수 없습니다.");
+            return;
+        }
+        setActiveTab('anomalies');
+        selectTripAndFocus(trip);
+        router.push(`/map?fileId=${selectedFileId}`);
     };
 
 
@@ -294,21 +311,13 @@ export default function SupervisorDashboard() {
                         </motion.div>
                     </div>
                     <motion.div variants={itemVariants}>
-                        <h3 className="font-noto-400 text-white text-2xl mb-4">이상 탐지 리스트</h3>
-                        <div className="font-vietnam mb-20">
-                            <AnomalyList anomalies={anomalyTrips} />
-                            {nextCursor && anomalyTrips.length > 0 && (
-                                <div className="mt-4 text-center">
-                                    <button
-                                        onClick={handleLoadMore}
-                                        disabled={isFetchingMore}
-                                        className="bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155,1)] text-white font-bold py-2 px-6 rounded-full transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-                                    >
-                                        {isFetchingMore ? '로딩 중...' : '더 보기'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        <h3 className="font-noto-400 text-white text-2xl mb-4 font-vietnam mt-10">Anomaly List</h3>
+                        <AnomalyTripTable
+                            trips={anomalyTrips}
+                            onRowClick={handleRowClick}
+                            isLoading={isLoading}
+                            itemsPerPage={15}
+                        />
                     </motion.div>
                 </motion.div>
             </div >

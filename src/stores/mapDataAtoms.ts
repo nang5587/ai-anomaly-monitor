@@ -4,14 +4,12 @@ import {
     getNodes,
     getAnomalies,
     getAllAnomalies,
-    getFilterOptions,
 } from '@/services/dataService';
 
 import type {
     LocationNode,
     AnalyzedTrip,
     FilterOptions,
-    PaginatedTripsResponse,
     AnomalyType,
 } from '../types/data';
 
@@ -215,10 +213,12 @@ const epcHistoryAsTripsAtom = atom<MergeTrip[]>((get) => {
             from: { ...fromEvent, coord: fromNode.coord, eventTime: startTime },
             to: { ...toEvent, coord: toNode.coord, eventTime: endTime },
             epcCode: fromEvent.epcCode,
-            productName: "Product Name", 
-            epcLot: "EPC Lot", 
+            productName: "Product Name",
+            epcLot: "EPC Lot",
             eventType: toEvent.eventType,
+            anomaly: toEvent.anomaly,
             anomalyTypeList: toEvent.anomalyTypeList as AnomalyType[],
+            description: toEvent.description,
             path,
             timestamps
         });
@@ -227,7 +227,7 @@ const epcHistoryAsTripsAtom = atom<MergeTrip[]>((get) => {
 });
 
 export const fullEpcHistoryAtom = atom<EventHistory[]>([]);
-
+export const rawEpcTripHistoryAtom = atom<MergeTrip[]>([]);
 export const epcFullTripHistoryAtom = atom<MergeTrip[]>([]);
 
 const convertHistoryToTrips = (history: EventHistory[], nodesMap: Map<string, LocationNode>): MergeTrip[] => {
@@ -248,7 +248,9 @@ const convertHistoryToTrips = (history: EventHistory[], nodesMap: Map<string, Lo
             productName: "Product Name",
             epcLot: "EPC Lot",
             eventType: toEvent.eventType,
+            anomaly: toEvent.anomaly,
             anomalyTypeList: toEvent.anomalyTypeList as AnomalyType[],
+            description: toEvent.description,
         });
     }
     return trips;
@@ -374,6 +376,7 @@ export const selectTripAndFocusAtom = atom(
         if (trip === null) {
             set(selectedObjectAtom, null);
             set(epcFullTripHistoryAtom, []);
+            set(rawEpcTripHistoryAtom, []);
             set(timeRangeAtom, null);
             return;
         }
@@ -387,6 +390,8 @@ export const selectTripAndFocusAtom = atom(
 
             const history = await fetchEpcHistory(trip);
             const historyAsTripsForPath = convertHistoryToTrips(history, nodesMap);
+            set(rawEpcTripHistoryAtom, historyAsTripsForPath);
+
 
             const currentCache = get(routeGeometriesAtom);
             const tripsToFetch = historyAsTripsForPath.filter(t => !currentCache[t.roadId]);
@@ -456,8 +461,28 @@ export const selectTripAndFocusAtom = atom(
         } catch (error) {
             console.error("EPC 전체 이력 처리 실패:", error);
             set(epcFullTripHistoryAtom, []);
+            set(rawEpcTripHistoryAtom, []);
         } finally {
             set(isLoadingAtom, false);
+        }
+    }
+);
+
+export const selectNodeAndFocusAtom = atom(
+    null,
+    (get, set, node: LocationNode | null) => {
+        set(selectedObjectAtom, node);
+        if (node) {
+            const activeTab = get(activeTabAtom);
+
+            if (activeTab === 'heatmap') {
+                set(flyToLocationAtom, {
+                    longitude: node.coord[0],
+                    latitude: node.coord[1],
+                    zoom: 15, 
+                    pitch: 60, 
+                });
+            }
         }
     }
 );

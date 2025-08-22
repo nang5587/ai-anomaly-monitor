@@ -3,17 +3,98 @@
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import ChangeFactoryModal from './ChangeFactoryModal';
 import { toast } from 'sonner';
-import { UserPlusIcon, UserMinusIcon, TrashIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
+import { UserPlusIcon, UserMinusIcon, NoSymbolIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
+import { UserCircleIcon, EnvelopeIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
 import { updateUser, changeUserFactory, type AdminUser } from '@/api/adminApi';
-
 import { useAtomValue, useSetAtom } from 'jotai';
 import { usersAtom, usersLoadingAtom, loadUsersAtom, refetchUsersAtom } from '@/stores/userAtoms';
+import { Pagination } from '../ui/Pagination';
 
 const FACTORY_NAME_MAP: { [key: string]: string } = {
     '1': '인천공장',
     '2': '화성공장',
     '3': '양산공장',
     '4': '구미공장',
+};
+
+const UserCard = ({ user, activeTab, onApprove, onReject, onDelete, onRestore, onToggleActive, onEditFactory }: {
+    user: AdminUser;
+    activeTab: ActiveTab;
+    onApprove: (user: AdminUser) => void;
+    onReject: (user: AdminUser) => void;
+    onDelete: (user: AdminUser) => void;
+    onRestore: (user: AdminUser) => void;
+    onToggleActive: (user: AdminUser) => void;
+    onEditFactory: (user: AdminUser) => void;
+}) => {
+    
+    const renderActionButtons = () => {
+        switch (activeTab) {
+            case 'pending': return (
+                <>
+                    <button onClick={() => onApprove(user)} className="flex-1 bg-[rgba(30,30,30)] text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"><UserPlusIcon className='w-5 h-5' /> 승인</button>
+                    <button onClick={() => onReject(user)} className="flex-1 bg-[rgba(30,30,30)] text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"><UserMinusIcon className='w-5 h-5' /> 거절</button>
+                </>
+            );
+            case 'active': return (
+                <div className="flex w-full items-center justify-center gap-2">
+                    <StatusToggle isActive={user.status === 'active'} onClick={() => onToggleActive(user)} />
+                    <span className='text-sm text-[#E0E0E0]'>{user.status === 'active' ? '활성' : '비활성'}</span>
+                    <div className='flex-grow' />
+                    <button onClick={() => onDelete(user)} className='p-2 text-gray-400 hover:text-red-400 hover:underline cursor-pointer' title="삭제">사용자 삭제</button>
+                </div>
+            );
+            case 'rejected':
+            case 'del': return (
+                <button onClick={() => onRestore(user)} className="w-full bg-[rgba(30,30,30)] hover:bg-blue-200 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"><ArrowPathIcon className='w-5 h-5' /> 복구</button>
+            );
+            default: return null;
+        }
+    };
+
+    const statusInfo = {
+        active: { text: '활성', color: 'bg-green-400' },
+        inactive: { text: '비활성', color: 'bg-gray-400' },
+        pending: { text: '승인 대기', color: 'bg-yellow-300' },
+        rejected: { text: '거절됨', color: 'bg-red-400' },
+        del: { text: '삭제됨', color: 'bg-gray-400' },
+    }[user.status];
+
+    return (
+        <div className="bg-[rgba(50,50,50)] rounded-xl shadow-lg p-6 flex flex-col justify-between transition-transform hover:scale-[1.02] duration-200 ease-in-out">
+            <div>
+                <div className="flex justify-between items-start mb-4">
+                    <div className='flex items-center gap-3'>
+                        <UserCircleIcon className="w-10 h-10 text-gray-400" />
+                        <div>
+                            <h3 className="text-lg font-noto-500 text-white">{user.userName}</h3>
+                            <p className="text-sm text-gray-400 font-vietnam">{user.role}</p>
+                        </div>
+                    </div>
+                    <span className={`px-3 py-1 text-xs text-white rounded-full border-2 border-blue-300`}>
+                        {statusInfo.text}
+                    </span>
+                </div>
+                
+                <div className="space-y-3 text-sm text-gray-300">
+                    <p className="flex items-center gap-3"><EnvelopeIcon className="w-5 h-5 text-gray-500"/> {user.email}</p>
+                    <div className="flex items-center gap-3">
+                        <BuildingOffice2Icon className="w-5 h-5 text-gray-500"/>
+                        <span>{FACTORY_NAME_MAP[user.locationId] || '미지정'}</span>
+                        {(activeTab === 'active') && (
+                            <button onClick={() => onEditFactory(user)} className="p-1 rounded-md text-gray-400 hover:bg-white/10 hover:text-white cursor-pointer" title="소속 공장 변경">
+                                <p className='flex items-center gap-1'><PencilSquareIcon className="w-4 h-4" />변경</p>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+            
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center gap-4">
+                {renderActionButtons()}
+            </div>
+        </div>
+    );
 };
 
 const StatusToggle = ({ isActive, onClick }: { isActive: boolean; onClick: () => void; }) => {
@@ -49,14 +130,17 @@ export default function UserManagementClient() {
     const [selectedUserForFactoryChange, setSelectedUserForFactoryChange] = useState<AdminUser | null>(null);
     const [isProcessing, startTransition] = useTransition();
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 6;
+
     const isLoading = useAtomValue(usersLoadingAtom);
     const allUsers = useAtomValue(usersAtom);
     const loadUsers = useSetAtom(loadUsersAtom);
     const refetchUsers = useSetAtom(refetchUsersAtom);
 
-    useEffect(() => {
-        loadUsers();
-    }, [loadUsers]);
+    // useEffect(() => {
+    //     loadUsers();
+    // }, [loadUsers]);
 
     const handleUpdateUser = (user: AdminUser, updates: Partial<AdminUser>, confirmMessage: string) => {
         if (confirm(confirmMessage)) {
@@ -81,18 +165,20 @@ export default function UserManagementClient() {
         handleUpdateUser(user, { status: newStatus }, `'${user.userName}'님을 ${newStatus === 'inactive' ? '비활성화' : '활성화'}하시겠습니까?`);
     };
 
-    const handleFactoryUpdateSuccess = (userId: string, newFactoryId: string) => {
-        startTransition(async () => {
-            try {
-                await changeUserFactory(userId, Number(newFactoryId));
-                toast.success('소속 공장이 변경되었습니다.');
-                refetchUsers();
+    // const handleFactoryUpdateSuccess = (userId: string, newFactoryId: string) => {
+    //     startTransition(async () => {
+    //         try {
+    //             await changeUserFactory(userId, Number(newFactoryId));
+    //             toast.success('소속 공장이 변경되었습니다.');
+    //             refetchUsers();
 
-            } catch (error) {
-                toast.error("공장 변경 중 오류가 발생했습니다.");
-            }
-        });
-    };
+    //         } catch (error) {
+    //             toast.error("공장 변경 중 오류가 발생했습니다.");
+    //         }
+    //     });
+    // };
+
+    const handleFactoryUpdateSuccess = () => refetchUsers();
 
     const filteredUsers = useMemo(() => {
         if (!allUsers) return [];
@@ -110,53 +196,25 @@ export default function UserManagementClient() {
         }
     }, [activeTab, allUsers]);
 
-    const renderTableHeader = () => {
-        let actionHeader = '관리';
-        if (activeTab === 'pending') actionHeader = '승인 / 거절';
-        if (activeTab === 'active') actionHeader = '상태 / 삭제';
-        if (activeTab === 'rejected' || activeTab === 'del') actionHeader = '복구';
-        return (
-            <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">
-                {actionHeader}
-            </th>
-        );
-    };
+    const totalPages = useMemo(() => Math.ceil(filteredUsers.length / ITEMS_PER_PAGE), [filteredUsers]);
+    const paginatedUsers = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredUsers, currentPage]);
 
-    const renderActionButtons = (user: AdminUser) => {
-        switch (activeTab) {
-            case 'pending':
-                return (
-                    <>
-                        <button onClick={(e) => { e.stopPropagation(); handleApprove(user); }} className="p-2 text-gray-300 cursor-pointer mx-1 hover:text-green-200" title="승인"><UserPlusIcon className='w-5 h-5' /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleReject(user); }} className='p-2 text-gray-300 cursor-pointer mx-1 hover:text-red-200' title="거절"><UserMinusIcon className='w-5 h-5' /></button>
-                    </>
-                );
-            case 'active':
-                return (
-                    <div className="flex items-center justify-center gap-4">
-                        <StatusToggle isActive={user.status === 'active'} onClick={() => handleToggleActive(user)} />
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(user); }} className='p-2 text-gray-300 cursor-pointer mx-1 hover:text-red-400' title="삭제"><TrashIcon className='w-5 h-5' /></button>
-                    </div>
-                );
-            case 'rejected':
-            case 'del':
-                return (
-                    <button onClick={(e) => { e.stopPropagation(); handleRestore(user); }} className="p-2 text-gray-300 cursor-pointer mx-1 hover:text-blue-400" title="복구"><ArrowPathIcon className='w-5 h-5' /></button>
-                );
-            default:
-                return null;
-        }
-    };
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
 
     const TABS: { id: ActiveTab; label: string }[] = [
         { id: 'pending', label: '승인 대기' },
         { id: 'active', label: '사용자 관리' },
-        { id: 'rejected', label: '처리된 요청' },
+        { id: 'rejected', label: '거절한 요청' },
         { id: 'del', label: '삭제된 사용자' },
     ];
 
     return (
-        <div className='relative bg-[rgba(30,30,30)] p-4 sm:p-6 rounded-2xl w-full'>
+        <div className='relative bg-[rgba(30,30,30)] p-4 sm:p-6 rounded-2xl w-full font-noto-400'>
             <div className="mb-6 inline-flex items-center rounded-2xl bg-[rgba(30,30,30)] p-1">
                 {TABS.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -167,7 +225,7 @@ export default function UserManagementClient() {
             </div>
 
             {isProcessing && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 rounded-2xl">
+                <div className="absolute inset-0 flex items-center justify-center z-10 rounded-2xl">
                     <p className="text-white text-lg animate-pulse">처리 중...</p>
                 </div>
             )}
@@ -179,63 +237,35 @@ export default function UserManagementClient() {
                     {filteredUsers.length === 0 ? (
                         <p className="text-center text-gray-500 py-8">해당하는 사용자가 없습니다.</p>
                     ) : (
-                        <div className="rounded-lg overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-white bg-[rgba(20,20,20)]/50">
-                                    <tr>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">이름</th>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">이메일</th>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider whitespace-nowrap">소속 공장</th>
-                                        <th scope="col" className="px-6 py-3 text-sm text-center font-semibold uppercase tracking-wider">상태</th>
-                                        {renderTableHeader()}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100/10">
-                                    {filteredUsers.map((user) => (
-                                        <tr
-                                            key={user.userId}
-                                            className="hover:bg-[rgba(20,20,20)]/40 transition-colors"
-                                        >
-                                            <td className="px-6 py-3 text-sm whitespace-nowrap text-white text-center">{user.userName}</td>
-                                            <td className="px-6 py-3 whitespace-nowrap text-center text-gray-300 font-vietnam">{user.email}</td>
-                                            <td className="px-6 py-3 whitespace-nowrap text-center text-gray-300">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <span>{FACTORY_NAME_MAP[user.locationId] || '미지정'}</span>
-                                                    {(activeTab === 'active' && (user.status === 'active' || user.status === 'inactive')) && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedUserForFactoryChange(user);
-                                                            }}
-                                                            className="p-1 rounded-md text-gray-400 hover:bg-white/10 hover:text-white"
-                                                            title="소속 공장 변경"
-                                                        >
-                                                            <PencilSquareIcon className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-3 whitespace-nowrap text-center">
-                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    ${user.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                        user.status === 'inactive' ? 'bg-gray-200 text-gray-800' :
-                                                            user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                                'bg-red-100 text-red-800'}`}>
-                                                    {user.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-3 text-center whitespace-nowrap">
-                                                {renderActionButtons(user)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="min-h-[600px] flex flex-col justify-between">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                {paginatedUsers.map((user) => (
+                                    <UserCard
+                                        key={user.userId}
+                                        user={user}
+                                        activeTab={activeTab}
+                                        onApprove={handleApprove}
+                                        onReject={handleReject}
+                                        onDelete={handleDelete}
+                                        onRestore={handleRestore}
+                                        onToggleActive={handleToggleActive}
+                                        onEditFactory={setSelectedUserForFactoryChange}
+                                    />
+                                ))}
+                            </div>
+                            {totalPages > 1 && (
+                                <div className="mt-8 flex justify-center">
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onPageChange={setCurrentPage}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </>
             )}
-
             {selectedUserForFactoryChange && (
                 <ChangeFactoryModal
                     user={selectedUserForFactoryChange}

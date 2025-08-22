@@ -12,7 +12,7 @@ export const anomalyCodeToNameMap: Record<AnomalyType, string> = {
     fake: '위조',
     tamper: '변조',
     clone: '복제',
-    other: '신규 유형'
+    other: 'AI탐지'
 };
 
 export interface TripEndpoint {
@@ -30,7 +30,9 @@ export interface AnalyzedTrip {
     productName: string;
     epcLot: string;
     eventType: string;
+    anomaly: number;
     anomalyTypeList: AnomalyType[];
+    description: string;
 }
 
 export interface PaginatedTripsResponse {

@@ -2,7 +2,10 @@ import json
 import random
 from datetime import datetime, timedelta
 
-nodes_info = [
+# 1. 입력 데이터 및 설정 (이전과 동일)
+# =================================
+
+NODES_INFO = [
     { "hubType": "ICN_Factory", "scanLocation": "인천공장", "businessStep": "Factory", "coord": [126.65, 37.45] },
     { "hubType": "HWS_Factory", "scanLocation": "화성공장", "businessStep": "Factory", "coord": [126.83, 37.20] },
     { "hubType": "YGS_Factory", "scanLocation": "양산공장", "businessStep": "Factory", "coord": [129.04, 35.33] },
@@ -62,152 +65,169 @@ nodes_info = [
     { "hubType": "KB_WS3_R2", "scanLocation": "경북_도매상3_권역_소매상2", "businessStep": "Reseller", "coord": [128.695, 35.805] },
     { "hubType": "KB_WS3_R3", "scanLocation": "경북_도매상3_권역_소매상3", "businessStep": "Reseller", "coord": [128.700, 35.810] }
 ]
-
-products = ["말보로", "던힐", "에쎄", "타이레놀", "아로나민골드정", "게보린"]
-anomaly_types = ["fake", "tamper", "clone"]
-
-nodes_by_step = {step: [] for step in ["Factory", "WMS", "LogiHub", "Wholesaler", "Reseller"]}
-for node in nodes_info:
-    if node["businessStep"] in nodes_by_step:
-        nodes_by_step[node["businessStep"]].append(node)
-
-factory_wms_map = {
-    "인천공장": "인천공장창고",
-    "화성공장": "화성공장창고",
-    "양산공장": "양산공장창고",
-    "구미공장": "구미공장창고"
+PRODUCTS = ["말보로 레드", "던힐 프로스트", "에쎄 체인지", "타이레놀 500mg", "아로나민 골드", "게보린"]
+ANOMALY_DESCRIPTIONS = {
+    "type_anomaly": {
+        "fake": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다.",
+        "tamper": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다.",
+        "clone": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다.",
+    },
+    "percent_anomaly": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
 }
 
+# 2. 데이터 전처리 및 헬퍼 함수 (이전과 동일)
+# =================================
 
-def generate_trips(num_trips_to_generate):
-    all_trips = []
-    base_epc_num = 695 # 시작 EPC 번호
-    road_id_counter = 1
-    start_time = datetime(2025, 1, 1, 9, 0, 0)
-    
-    anomaly_types_pool = ["fake", "tamper", "clone"]
+nodes_by_step = {step: [] for step in ["Factory", "WMS", "LogiHub", "Wholesaler", "Reseller"]}
+for node in NODES_INFO:
+    if node["businessStep"] in nodes_by_step:
+        nodes_by_step[node["businessStep"]].append(node)
+node_map = {node["scanLocation"]: node for node in NODES_INFO}
 
-    while len(all_trips) < num_trips_to_generate:
-        
-        # 1. 이상 타입을 먼저 결정
-        chosen_anomaly = random.choice(anomaly_types_pool)
-        
-        # 기본 정보 생성
-        epc_code = f"1.880.123.{base_epc_num}"
-        product_name = random.choice(products)
-        epc_lot = f"LOTA-{random.randint(1000, 9999)}"
-        
-        # 2. 이상 타입에 맞는 데이터 및 경로 생성
-        path = []
-        
-        if chosen_anomaly == "clone":
-            # clone 시나리오: 동일 EPC로 두 개의 다른 경로 생성
-            # 경로 1
-            factory1 = random.choice(nodes_by_step["Factory"])
-            wms1 = next(n for n in nodes_by_step["WMS"] if n["scanLocation"] == factory_wms_map[factory1["scanLocation"]])
-            logihub1 = random.choice(nodes_by_step["LogiHub"])
-            path1 = [factory1, wms1, logihub1]
-            
-            # 경로 2 (다른 지역에서 동시간대 발생)
-            factory2 = random.choice([f for f in nodes_by_step["Factory"] if f != factory1])
-            wms2 = next(n for n in nodes_by_step["WMS"] if n["scanLocation"] == factory_wms_map[factory2["scanLocation"]])
-            path2 = [factory2, wms2]
-
-            # 두 경로의 모든 트립에 'clone' 태그 부여
-            clone_time = start_time
-            for i in range(len(path1) - 1):
-                all_trips.append(create_trip(road_id_counter, path1[i], path1[i+1], epc_code, product_name, epc_lot, clone_time, ["clone"]))
-                road_id_counter += 1
-                clone_time += timedelta(hours=random.randint(4, 8))
-
-            clone_time = start_time + timedelta(minutes=random.randint(5, 30)) # 약간의 시간차
-            for i in range(len(path2) - 1):
-                all_trips.append(create_trip(road_id_counter, path2[i], path2[i+1], epc_code, product_name, epc_lot, clone_time, ["clone"]))
-                road_id_counter += 1
-                clone_time += timedelta(hours=random.randint(4, 8))
-            
-            start_time += timedelta(days=1)
-            base_epc_num += 1
-            continue # clone은 독립적으로 처리되므로 루프 다음으로
-
-        elif chosen_anomaly == "fake":
-            epc_code = f"FAKE.EPC.{random.randint(10000, 99999)}"
-            # 경로는 짧은 정상 흐름
-            factory = random.choice(nodes_by_step["Factory"])
-            wms = next(n for n in nodes_by_step["WMS"] if n["scanLocation"] == factory_wms_map[factory["scanLocation"]])
-            logihub = random.choice(nodes_by_step["LogiHub"])
-            path = [factory, wms, logihub]
-
-        elif chosen_anomaly == "tamper":
-            epc_code = f"1.880.123.{base_epc_num}_TAMPER"
-            # 경로는 규칙 위반 (소매 -> 소매) 또는 역행
-            scenario = random.choice(["reseller_move", "reverse"])
-            if scenario == "reseller_move":
-                reseller1, reseller2 = random.sample(nodes_by_step["Reseller"], 2)
-                path = [reseller1, reseller2]
-            else: # reverse
-                logihub = random.choice(nodes_by_step["LogiHub"])
-                wholesaler = random.choice(nodes_by_step["Wholesaler"])
-                path = [logihub, wholesaler, logihub]
-        
-        # 3. 경로를 트립으로 변환하고, 마지막 트립에 비정상 태그 부여
-        for i in range(len(path) - 1):
-            trip_time = start_time + timedelta(hours=i*5, minutes=random.randint(0, 59))
-            
-            # 마지막 이동에만 비정상 태그를 적용
-            is_last_trip = i == len(path) - 2
-            current_anomaly_list = [chosen_anomaly] if is_last_trip else []
-            
-            all_trips.append(create_trip(road_id_counter, path[i], path[i+1], epc_code, product_name, epc_lot, trip_time, current_anomaly_list))
-            road_id_counter += 1
-        
-        start_time += timedelta(hours=2)
-        base_epc_num += 1
-
-    return all_trips
-
-
-
-def create_trip(road_id, from_node, to_node, epc_code, product_name, epc_lot, start_time, anomaly_list):
-    duration_hours = random.uniform(3, 8)
-    end_time = start_time + timedelta(hours=duration_hours)
-    
-    final_anomaly_list = anomaly_list if anomaly_list else []
+def create_trip(road_id, from_node, to_node, epc_info, time_info, anomaly_info):
+    """단일 트립 객체를 생성하는 헬퍼 함수"""
+    description_parts = []
+    if anomaly_info["type"]:
+        description_parts.append(ANOMALY_DESCRIPTIONS["type_anomaly"][anomaly_info["type"]])
+    if anomaly_info["percent"] >= 50:
+        description_parts.append(ANOMALY_DESCRIPTIONS["percent_anomaly"])
     
     return {
         "roadId": road_id,
         "from": {
-            "scanLocation": from_node["scanLocation"],
-            "coord": from_node["coord"],
-            # [수정] * 1000 제거 -> 초 단위 정수로 변경
-            "eventTime": int(start_time.timestamp()),
-            "businessStep": from_node["businessStep"]
+            "scanLocation": from_node["scanLocation"], "coord": from_node["coord"],
+            "eventTime": int(time_info["start"].timestamp()), "businessStep": from_node["businessStep"]
         },
         "to": {
-            "scanLocation": to_node["scanLocation"],
-            "coord": to_node["coord"],
-            # [수정] * 1000 제거 -> 초 단위 정수로 변경
-            "eventTime": int(end_time.timestamp()),
-            "businessStep": to_node["businessStep"]
+            "scanLocation": to_node["scanLocation"], "coord": to_node["coord"],
+            "eventTime": int(time_info["end"].timestamp()), "businessStep": to_node["businessStep"]
         },
-        "epcCode": epc_code,
-        "productName": product_name,
-        "epcLot": epc_lot,
-        "eventType": f'{from_node["businessStep"]}_Outbound',
-        "anomalyTypeList": final_anomaly_list
+        "epcCode": epc_info["code"], "productName": epc_info["product"], "epcLot": epc_info["lot"],
+        "eventType": "출고",
+        "anomaly": anomaly_info["percent"],
+        "anomalyTypeList": [anomaly_info["type"]] if anomaly_info["type"] else [],
+        "description": " ".join(description_parts)
     }
 
+# 3. 이상 시나리오 생성 함수 (로직 대폭 수정)
+# =================================
 
-# 3. 메인 실행 부분
-if __name__ == "__main__":
-    generated_trips = generate_trips(60)
+def generate_all_anomaly_trips(num_trips_target):
+    all_trips = []
+    road_id_counter = 1
+    epc_counter = 695
+    clone_set_count = 0
+    start_time = datetime(2024, 1, 1, 9, 0, 0)
     
-    # eventTime 순으로 최종 정렬
+    while len(all_trips) < num_trips_target:
+        # 시나리오 결정
+        if clone_set_count < 4 and random.random() < 0.1: # 약 10% 확률로 복제 시나리오 생성
+            scenario_type = 'clone'
+            clone_set_count += 1
+        else:
+            scenario_type = random.choice(['fake', 'tamper', 'rule_violation'])
+        
+        # --- 시나리오별 단일 또는 그룹 이상 트립 생성 ---
+        
+        if scenario_type == 'clone':
+            epc_code = f"1.880.123.{epc_counter}"
+            product_name = random.choice(PRODUCTS)
+            epc_lot = f"LOT-C-{random.randint(1000, 9999)}"
+            
+            # 2~3개의 복제 트립 생성
+            num_clones = random.randint(2, 3)
+            # 서로 다른 출발지와 도착지 선택
+            node_pairs = random.sample(list(node_map.values()), k=num_clones * 2)
+
+            for i in range(num_clones):
+                if len(all_trips) >= num_trips_target: break
+                
+                from_node = node_pairs[i*2]
+                to_node = node_pairs[i*2+1]
+                
+                # 시간은 거의 동시간대로 설정
+                current_time = start_time + timedelta(minutes=random.randint(0, 30))
+                duration = timedelta(hours=random.uniform(2, 5))
+                
+                # 모든 복제 트립은 anomalyTypeList에 'clone'이 있고, anomaly 수치도 높음
+                anomaly_info = {"type": "clone", "percent": random.randint(70, 100)}
+
+                all_trips.append(create_trip(
+                    road_id_counter, from_node, to_node,
+                    {"code": epc_code, "product": product_name, "lot": epc_lot},
+                    {"start": current_time, "end": current_time + duration},
+                    anomaly_info
+                ))
+                road_id_counter += 1
+            epc_counter += 1
+            start_time += timedelta(days=1) # 다음 복제 세트는 다른 날짜에
+            continue
+
+        # --- fake, tamper, rule_violation (단일 트립 생성) ---
+        
+        # 출발지/도착지 및 EPC 결정
+        if scenario_type == 'rule_violation':
+            # 물류 흐름 위반 경로 생성
+            violation = random.choice(['reverse', 'hop', 'forbidden'])
+            if violation == 'reverse':
+                from_node = random.choice(nodes_by_step["Wholesaler"])
+                to_node = random.choice(nodes_by_step["LogiHub"])
+            elif violation == 'hop':
+                from_node = random.choice(nodes_by_step["LogiHub"])
+                to_node = random.choice(nodes_by_step["Reseller"])
+            else: # forbidden
+                from_node, to_node = random.sample(nodes_by_step["Reseller"], 2)
+            epc_code = f"1.880.123.{epc_counter}"
+        elif scenario_type == 'fake':
+            from_node, to_node = random.sample(list(node_map.values()), 2)
+            epc_code = f"1.880.123.{random.randint(10000, 99999)}"
+        else: # tamper
+            from_node, to_node = random.sample(list(node_map.values()), 2)
+            epc_code = f"2.{random.randint(100, 999)}.{random.randint(100, 999)}.{random.randint(1000, 9999)}"
+
+        product_name = random.choice(PRODUCTS)
+        epc_lot = f"LOT-A-{random.randint(1000, 9999)}"
+
+        # **핵심 로직**: 모든 트립이 이상 조건을 만족하도록 보장
+        anomaly_info = {}
+        if scenario_type == 'rule_violation':
+            # 규칙 위반은 타입 없이 높은 anomaly 수치만 가짐
+            anomaly_info["type"] = None
+            anomaly_info["percent"] = random.randint(50, 100)
+        else: # fake, tamper
+            # 타입은 항상 존재
+            anomaly_info["type"] = scenario_type
+            # 70% 확률로 높은 anomaly 수치도 함께 가짐
+            if random.random() < 0.7:
+                anomaly_info["percent"] = random.randint(50, 100)
+            else:
+                anomaly_info["percent"] = random.randint(10, 49)
+
+        duration = timedelta(hours=random.uniform(5, 10))
+        all_trips.append(create_trip(
+            road_id_counter, from_node, to_node,
+            {"code": epc_code, "product": product_name, "lot": epc_lot},
+            {"start": start_time, "end": start_time + duration},
+            anomaly_info
+        ))
+
+        road_id_counter += 1
+        epc_counter += 1
+        start_time += timedelta(hours=random.randint(1, 3))
+    
+    return all_trips
+
+# 4. 메인 실행
+# =================================
+if __name__ == "__main__":
+    generated_trips = generate_all_anomaly_trips(60)
+    
+    # from.eventTime 순으로 최종 정렬
     sorted_trips = sorted(generated_trips, key=lambda x: x["from"]["eventTime"])
 
     # JSON 파일로 저장
     output_data = {"data": sorted_trips}
-    with open("trips_data.json", "w", encoding="utf-8") as f:
+    with open("guaranteed_anomaly_trips.json", "w", encoding="utf-8") as f:
         json.dump(output_data, f, ensure_ascii=False, indent=2)
 
-    print(f"✅ 완료: {len(sorted_trips)}개의 트립 데이터가 'trips_data.json' 파일로 저장되었습니다.")
+    print(f"✅ 완료: {len(sorted_trips)}개의 '보장된 이상 트립' 데이터가 'guaranteed_anomaly_trips.json' 파일로 저장되었습니다.")

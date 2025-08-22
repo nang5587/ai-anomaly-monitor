@@ -4,65 +4,37 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
     nodesAtom,
-    visibleTripsAtom,
+    rawEpcTripHistoryAtom,
     epcFullTripHistoryAtom,
     selectedObjectAtom,
     mapViewStateAtom,
     timeRangeAtom,
     epcDupTargetAtom,
     selectTripAndFocusAtom,
+    selectNodeAndFocusAtom,
     type MapViewState
 } from '@/stores/mapDataAtoms';
 
 import { tutorialSeenAtom } from '@/stores/uiAtoms';
 
-import type { Color } from 'deck.gl';
-import DeckGL, { FlyToInterpolator } from 'deck.gl';
-import { PathLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers';
-import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
+import DeckGL from 'deck.gl';
+import { PathLayer } from '@deck.gl/layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
-import { PathStyleExtension } from '@deck.gl/extensions'
-import { WebMercatorViewport } from '@deck.gl/core';
-import { OBJLoader } from '@loaders.gl/obj';
-import { parseSync } from '@loaders.gl/core';
-import { default as ReactMapGL, Marker, ViewState, } from 'react-map-gl';
+import { default as ReactMapGL, Marker } from 'react-map-gl';
 import type { PickingInfo } from '@deck.gl/core';
 
 import { type LocationNode, type AnalyzedTrip } from '../../types/data';
-import { cubeModel, factoryBuildingModel } from './models';
 
 import TutorialOverlay from './TutorialOverlay';
 import TimeSlider from './TimeSlider';
 import MapLegend from './MapLegend';
 
-import { getNodeColor, getAnomalyColor, getAnomalyName } from '../../types/colorUtils';
+import { getAnomalyName } from '../../types/colorUtils';
 import { NodeIcon, getIconAltitude } from '../visual/icons';
-import { toast } from 'sonner';
 import { MergeTrip } from './SupplyChainDashboard';
 
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const TARGET_ANIMATION_DURATION_SECONDS = 15;
-const parsedCubeModel = parseSync(cubeModel, OBJLoader);
-const parsedFactoryBuildingModel = parseSync(factoryBuildingModel, OBJLoader);
-
-const OTHER_MODEL_MAPPING: Record<string, any> = {
-    WMS: parsedCubeModel,
-    LogiHub: parsedCubeModel,
-    Wholesaler: parsedCubeModel,
-    Reseller: parsedCubeModel,
-};
-
-const material = {
-    ambient: 0.9,
-    diffuse: 0.6,
-    shininess: 128,
-    specularColor: [255, 255, 255]
-} satisfies {
-    ambient: number;
-    diffuse: number;
-    shininess: number;
-    specularColor: [number, number, number];
-};
 
 export const SupplyChainMap: React.FC = () => {
     const nodes = useAtomValue(nodesAtom);
@@ -70,6 +42,7 @@ export const SupplyChainMap: React.FC = () => {
     const [selectedObject, setSelectedObject] = useAtom(selectedObjectAtom);
     const [viewState, setViewState] = useAtom(mapViewStateAtom);
     const timeRange = useAtomValue(timeRangeAtom);
+    const rawTripHistory = useAtomValue(rawEpcTripHistoryAtom);
 
     const [epcDupTarget, setEpcDupTarget] = useAtom(epcDupTargetAtom);
     const [hasSeenTutorial, setHasSeenTutorial] = useAtom(tutorialSeenAtom);
@@ -83,6 +56,7 @@ export const SupplyChainMap: React.FC = () => {
     const [pulseRadius, setPulseRadius] = useState(0);
 
     const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
+    const selectNodeAndFocus = useSetAtom(selectNodeAndFocusAtom);
 
     const activeTimeRange = useMemo(() => {
         if (timeRange) return { minTime: timeRange[0], maxTime: timeRange[1] };
@@ -258,9 +232,66 @@ export const SupplyChainMap: React.FC = () => {
     }, [selectedTrip, tripsToDisplay]);
 
     const cloneDestinationMarkers = useMemo(() => {
-        if (!selectedTrip || !selectedTrip.anomalyTypeList?.includes('clone')) return [];
-        return tripsToDisplay.filter(t => t.roadId !== selectedTrip.roadId);
-    }, [selectedTrip, tripsToDisplay]);
+        if (!selectedTrip || !selectedTrip.anomalyTypeList?.includes('clone') || !rawTripHistory) {
+            return [];
+        }
+        const otherCloneTrips = rawTripHistory.filter(trip =>
+            trip.anomalyTypeList?.includes('clone') &&
+            trip.roadId !== selectedTrip.roadId
+        );
+        const uniqueDestinations = new Map<string, MergeTrip>();
+        otherCloneTrips.forEach(trip => {
+            uniqueDestinations.set(trip.to.scanLocation, trip);
+        });
+        return Array.from(uniqueDestinations.values());
+    }, [selectedTrip, rawTripHistory]);
+
+    const sequentialMarkers = useMemo(() => {
+        if (!selectedTrip || rawTripHistory.length === 0) {
+            return [];
+        }
+        const markerMap = new Map();
+
+        const startTrip = rawTripHistory[0];
+        markerMap.set(startTrip.from.scanLocation, {
+            key: `seq-0-${startTrip.from.scanLocation}`,
+            coord: startTrip.from.coord,
+            label: '1',
+            isAnomaly: false,
+        });
+
+        rawTripHistory.forEach((trip, index) => {
+            if (!markerMap.has(trip.to.scanLocation)) {
+                markerMap.set(trip.to.scanLocation, {
+                    key: `seq-${index + 1}-${trip.to.scanLocation}`,
+                    coord: trip.to.coord,
+                    label: `${index + 2}`,
+                    isAnomaly: false,
+                });
+            }
+        });
+
+        rawTripHistory.forEach(trip => {
+            const hasAnomaly = Array.isArray(trip.anomalyTypeList) && trip.anomalyTypeList.length > 0;
+
+            if (hasAnomaly) {
+                const fromMarker = markerMap.get(trip.from.scanLocation);
+                if (fromMarker) {
+                    fromMarker.isAnomaly = true;
+                }
+                const toMarker = markerMap.get(trip.to.scanLocation);
+                if (toMarker) {
+                    toMarker.isAnomaly = true;
+                }
+            }
+        });
+
+        const markers = Array.from(markerMap.values());
+        markers.sort((a, b) => parseInt(a.label, 10) - parseInt(b.label, 10));
+
+        return markers;
+
+    }, [selectedTrip, rawTripHistory]);
 
     const layers = useMemo(() => {
         return [
@@ -273,31 +304,17 @@ export const SupplyChainMap: React.FC = () => {
                 widthMinPixels: 8,
                 getPolygonOffset: ({ layerIndex }) => [0, -layerIndex * 100 - 20]
             }),
-            // new PathLayer<MergeTrip>({
-            //     id: 'path-dashed-foreground-layer',
-            //     data: tripsToDisplay,
-            //     getPath: d => d.path || [d.from.coord, d.to.coord],
-            //     getColor: [200, 200, 200, 255],
-            //     getWidth: 8,
-            //     widthMinPixels: 8,
-            //     // @ts-ignore
-            //     getDashArray: [3, 3],
-            //     // @ts-ignore
-            //     dashJustified: true,
-            //     extensions: [new PathStyleExtension({ dash: true })],
-            //     getPolygonOffset: ({ layerIndex }) => [0, -layerIndex * 100 - 10]
-            // }),
             new TripsLayer<MergeTrip>({
                 id: 'main-trips-layer',
                 data: tripsToDisplay,
                 getPath: d => d.path || [d.from.coord, d.to.coord],
                 getTimestamps: d => d.timestamps || [d.from.eventTime, d.to.eventTime],
-                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 120] : [60, 150, 255, 120],
+                getColor: d => d.anomalyTypeList.length > 0 ? [0, 123, 255, 255] : [60, 150, 255, 255],
                 opacity: 1,
                 getWidth: 8,
                 widthMinPixels: 8,
                 rounded: true,
-                trailLength: 10000,
+                trailLength: 20000,
                 currentTime,
                 pickable: true,
                 onHover: info => setHoverInfo(info),
@@ -348,6 +365,26 @@ export const SupplyChainMap: React.FC = () => {
                     background-color: #007bff;
                     border: 2px solid #fff;
                 }
+                .sequential-marker {
+                background-color: #007bff;
+                color: white;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 12px;
+                font-weight: bold;
+                border: 2px solid white;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+                transform: translate(-50%, -50%);
+                cursor: default;
+                z-index: 5;
+                }
+                .sequential-marker.anomaly-marker {
+                background-color: #faa35c;
+                }
             `}</style>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 {!hasSeenTutorial && (
@@ -390,7 +427,7 @@ export const SupplyChainMap: React.FC = () => {
                             <Marker key={`marker-${node.hubType}`} longitude={node.coord[0]} latitude={node.coord[1]} pitchAlignment="viewport" rotationAlignment="map" altitude={getIconAltitude(node)}
                                 onClick={(e) => {
                                     e.originalEvent.stopPropagation();
-                                    setSelectedObject(node);
+                                    selectNodeAndFocus(node);
                                 }}
                             >
                                 <div className="map-marker">
@@ -433,6 +470,20 @@ export const SupplyChainMap: React.FC = () => {
                             >
                                 <div className="path-marker-label clone-marker">
                                     복제
+                                </div>
+                            </Marker>
+                        ))}
+                        {sequentialMarkers.map((marker) => (
+                            <Marker
+                                key={marker.key}
+                                longitude={marker.coord[0]}
+                                latitude={marker.coord[1]}
+                                pitchAlignment="viewport"
+                            >
+                                <div
+                                    className={`sequential-marker ${marker.isAnomaly ? 'anomaly-marker' : ''}`}
+                                >
+                                    {marker.label}
                                 </div>
                             </Marker>
                         ))}

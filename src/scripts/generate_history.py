@@ -2,7 +2,7 @@ import json
 import random
 from datetime import datetime, timedelta
 
-# 1. 노드 정보 및 기본 데이터 정의
+# 1. 노드 정보 및 기본 데이터 정의 (이전과 동일)
 nodes_info = [
     { "hubType": "ICN_Factory", "scanLocation": "인천공장", "businessStep": "Factory", "coord": [126.65, 37.45] },
     { "hubType": "HWS_Factory", "scanLocation": "화성공장", "businessStep": "Factory", "coord": [126.83, 37.20] },
@@ -76,7 +76,7 @@ factory_wms_map = {
 }
 step_order = ["Factory", "WMS", "LogiHub", "Wholesaler", "Reseller", "POS"]
 
-# 2. EPC 이력 생성 함수 (이전과 동일)
+# 2. EPC 이력 생성 함수 (로직 수정)
 def generate_epc_history(anomalous_trip):
     """주어진 이상 트립을 포함하는 전체 EPC 이력을 생성합니다."""
     
@@ -87,6 +87,7 @@ def generate_epc_history(anomalous_trip):
         print(f"Warning: Skipping trip with invalid scanLocation. From: {anomalous_trip['from']['scanLocation']}, To: {anomalous_trip['to']['scanLocation']}")
         return []
 
+    # --- 이상 트립 앞/뒤의 정상 경로 생성 (Prologue / Epilogue) ---
     prologue_path = []
     current_step = from_node
     while current_step["businessStep"] != "Factory":
@@ -101,8 +102,10 @@ def generate_epc_history(anomalous_trip):
                     break
         if not prev_node:
             prev_node = random.choice(nodes_by_step.get(prev_step_name, []))
-        prologue_path.insert(0, prev_node)
-        current_step = prev_node
+        if prev_node:
+            prologue_path.insert(0, prev_node)
+            current_step = prev_node
+        else: break
 
     epilogue_path = []
     current_step = to_node
@@ -111,17 +114,20 @@ def generate_epc_history(anomalous_trip):
         if next_step_index >= len(step_order): break
         next_step_name = step_order[next_step_index]
         next_node = random.choice(nodes_by_step.get(next_step_name, []))
-        epilogue_path.append(next_node)
-        current_step = next_node
+        if next_node:
+            epilogue_path.append(next_node)
+            current_step = next_node
+        else: break
 
     full_path_nodes = prologue_path + [from_node, to_node] + epilogue_path
     unique_path_nodes = []
     last_node_location = None
     for node in full_path_nodes:
-        if node["scanLocation"] != last_node_location:
+        if node and node["scanLocation"] != last_node_location:
             unique_path_nodes.append(node)
             last_node_location = node["scanLocation"]
 
+    # --- 경로 노드를 기반으로 이벤트 리스트 생성 ---
     history = []
     anomaly_from_time = datetime.fromtimestamp(anomalous_trip["from"]["eventTime"])
     anomaly_to_time = datetime.fromtimestamp(anomalous_trip["to"]["eventTime"])
@@ -132,7 +138,7 @@ def generate_epc_history(anomalous_trip):
             from_index = i
             break
             
-    if from_index == -1: return [] # from_node를 경로에서 찾지 못한 경우
+    if from_index == -1: return []
 
     for i, node in enumerate(unique_path_nodes):
         event_time_dt = None
@@ -147,40 +153,58 @@ def generate_epc_history(anomalous_trip):
             time_diff_hours = (i - (from_index + 1)) * random.uniform(4, 8)
             event_time_dt = anomaly_to_time + timedelta(hours=time_diff_hours)
 
+        # 이 이벤트가 이상 트립의 도착 지점인지 확인
         is_anomaly_event = (i == from_index + 1)
         
-        history.append({
-            "eventId": int(f"{anomalous_trip['roadId']}{i+1}"), # roadId 기반 고유 eventId 생성
+        # [수정] 이벤트 객체 생성 로직 변경
+        event_data = {
+            "eventId": int(f"{anomalous_trip['roadId']}{i+1}"),
             "epcCode": anomalous_trip["epcCode"],
+            "productName": anomalous_trip.get("productName", "N/A"), # [추가]
+            "epcLot": anomalous_trip.get("epcLot", "N/A"),           # [추가]
             "locationId": list(nodes_by_location.keys()).index(node["scanLocation"]) + 1,
             "scanLocation": node["scanLocation"],
             "hubType": node["hubType"],
             "businessStep": node["businessStep"],
             "eventType": "Aggregation" if i == 0 else f'{unique_path_nodes[i-1]["businessStep"]}_Outbound',
-            "eventTime": event_time_dt.strftime("%Y-%m-%d %H:%M:%S"),
-            "anomaly": 98 if is_anomaly_event else 0,
-            "anomalyTypeList": anomalous_trip["anomalyTypeList"] if is_anomaly_event else []
-        })
+            "eventTime": int(event_time_dt.timestamp()), # [형식 변경]
+            "anomaly": anomalous_trip.get("anomaly", 0) if is_anomaly_event else 0,
+            "anomalyTypeList": anomalous_trip.get("anomalyTypeList", []) if is_anomaly_event else []
+        }
+        
+        # 이상 이벤트인 경우에만 description 필드 추가
+        if is_anomaly_event:
+            event_data["description"] = anomalous_trip.get("description", "이상 감지됨.") # [추가]
+
+        history.append(event_data)
         
     return history
 
 # 3. 메인 실행 부분
 if __name__ == "__main__":
     
-    input_filename = "anomalies.json" # 입력 파일 이름
-    output_filename = "epc_history.json" # 출력 파일 이름
+    input_filename = "guaranteed_anomaly_trips.json" # 입력 파일 이름
+    output_filename = "full_epc_history.json" # 출력 파일 이름
 
     try:
         with open(input_filename, "r", encoding="utf-8") as f:
             anomalous_trips_data = json.load(f)
             anomalous_trips_list = anomalous_trips_data.get("data", [])
     except FileNotFoundError:
-        print(f"오류: '{input_filename}' 파일을 찾을 수 없습니다. 스크립트와 같은 폴더에 파일을 위치시켜 주세요.")
+        print(f"오류: '{input_filename}' 파일을 찾을 수 없습니다. 이전 스크립트를 실행하여 파일을 먼저 생성해주세요.")
         exit()
 
     all_events = []
+    processed_epcs = set() # Clone 처리를 위한 중복 EPC 추적
+
     for trip in anomalous_trips_list:
-        # 각 이상 트립에 대해 전체 이력 생성
+        epc = trip["epcCode"]
+        # Clone 타입의 경우, 동일 EPC에 대해 한 번만 이력을 생성
+        if trip.get("anomalyTypeList") == ["clone"]:
+            if epc in processed_epcs:
+                continue # 이미 이력이 생성된 clone EPC는 건너뜀
+            processed_epcs.add(epc)
+
         epc_full_history = generate_epc_history(trip)
         all_events.extend(epc_full_history)
 

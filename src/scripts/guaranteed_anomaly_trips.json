@@ -1,0 +1,1782 @@
+{
+  "data": [
+    {
+      "roadId": 1,
+      "from": {
+        "scanLocation": "경북_도매상1",
+        "coord": [
+          128.6,
+          35.95
+        ],
+        "eventTime": 1704067200,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1704098316,
+        "businessStep": "WMS"
+      },
+      "epcCode": "2.414.412.7034",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-5216",
+      "eventType": "출고",
+      "anomaly": 97,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 2,
+      "from": {
+        "scanLocation": "전북_도매상3_권역_소매상3",
+        "coord": [
+          127.25,
+          35.76
+        ],
+        "eventTime": 1704070800,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상2_권역_소매상1",
+        "coord": [
+          128.455,
+          36.005
+        ],
+        "eventTime": 1704093985,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.128.709.1923",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-5496",
+      "eventType": "출고",
+      "anomaly": 61,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 4,
+      "from": {
+        "scanLocation": "수도권_도매상3_권역_소매상3",
+        "coord": [
+          127.15,
+          37.51
+        ],
+        "eventTime": 1704081960,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2",
+        "coord": [
+          126.95,
+          37.6
+        ],
+        "eventTime": 1704094965,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.697",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-C-5492",
+      "eventType": "출고",
+      "anomaly": 80,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 3,
+      "from": {
+        "scanLocation": "경북_도매상2_권역_소매상1",
+        "coord": [
+          128.455,
+          36.005
+        ],
+        "eventTime": 1704082260,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2_권역_소매상3",
+        "coord": [
+          126.95,
+          37.61
+        ],
+        "eventTime": 1704095880,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.697",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-C-5492",
+      "eventType": "출고",
+      "anomaly": 72,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 5,
+      "from": {
+        "scanLocation": "경북_도매상1_권역_소매상1",
+        "coord": [
+          128.605,
+          35.955
+        ],
+        "eventTime": 1704168000,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전남_도매상1_권역_소매상1",
+        "coord": [
+          126.855,
+          35.255
+        ],
+        "eventTime": 1704197062,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.961.384.6570",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-5402",
+      "eventType": "출고",
+      "anomaly": 71,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 6,
+      "from": {
+        "scanLocation": "전북_도매상2",
+        "coord": [
+          126.98,
+          35.8
+        ],
+        "eventTime": 1704175200,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1704207110,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.699",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-7002",
+      "eventType": "출고",
+      "anomaly": 99,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 7,
+      "from": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1704182400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상2",
+        "coord": [
+          128.45,
+          36.0
+        ],
+        "eventTime": 1704211641,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "2.185.827.4429",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-4337",
+      "eventType": "출고",
+      "anomaly": 53,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 8,
+      "from": {
+        "scanLocation": "수도권_도매상1",
+        "coord": [
+          127.05,
+          37.55
+        ],
+        "eventTime": 1704193200,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1704212619,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.450.473.2612",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-3646",
+      "eventType": "출고",
+      "anomaly": 45,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다."
+    },
+    {
+      "roadId": 9,
+      "from": {
+        "scanLocation": "전북_도매상3",
+        "coord": [
+          127.25,
+          35.75
+        ],
+        "eventTime": 1704200400,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1704224388,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "2.594.858.6693",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-9628",
+      "eventType": "출고",
+      "anomaly": 71,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 10,
+      "from": {
+        "scanLocation": "전북_도매상3_권역_소매상3",
+        "coord": [
+          127.25,
+          35.76
+        ],
+        "eventTime": 1704211200,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1704240160,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.88945",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-5234",
+      "eventType": "출고",
+      "anomaly": 14,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다."
+    },
+    {
+      "roadId": 12,
+      "from": {
+        "scanLocation": "경북_도매상1_권역_소매상3",
+        "coord": [
+          128.6,
+          35.96
+        ],
+        "eventTime": 1704215640,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전남_도매상3_권역_소매상1",
+        "coord": [
+          127.055,
+          35.105
+        ],
+        "eventTime": 1704228273,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.704",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-C-6927",
+      "eventType": "출고",
+      "anomaly": 78,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 11,
+      "from": {
+        "scanLocation": "수도권_도매상2_권역_소매상3",
+        "coord": [
+          126.95,
+          37.61
+        ],
+        "eventTime": 1704215940,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상2",
+        "coord": [
+          128.45,
+          36.0
+        ],
+        "eventTime": 1704223748,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.704",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-C-6927",
+      "eventType": "출고",
+      "anomaly": 76,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 13,
+      "from": {
+        "scanLocation": "전남_도매상1_권역_소매상1",
+        "coord": [
+          126.855,
+          35.255
+        ],
+        "eventTime": 1704301200,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2",
+        "coord": [
+          126.95,
+          37.6
+        ],
+        "eventTime": 1704320391,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.63165",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-2776",
+      "eventType": "출고",
+      "anomaly": 51,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 14,
+      "from": {
+        "scanLocation": "전남_도매상2_권역_소매상1",
+        "coord": [
+          126.755,
+          35.055
+        ],
+        "eventTime": 1704308400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전남_도매상1",
+        "coord": [
+          126.85,
+          35.25
+        ],
+        "eventTime": 1704343408,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.79829",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-8171",
+      "eventType": "출고",
+      "anomaly": 36,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다."
+    },
+    {
+      "roadId": 15,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상1",
+        "coord": [
+          128.705,
+          35.805
+        ],
+        "eventTime": 1704319200,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1704340437,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.88524",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-3443",
+      "eventType": "출고",
+      "anomaly": 90,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 16,
+      "from": {
+        "scanLocation": "전북_도매상2_권역_소매상2",
+        "coord": [
+          126.975,
+          35.805
+        ],
+        "eventTime": 1704330000,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상3_권역_소매상1",
+        "coord": [
+          128.705,
+          35.805
+        ],
+        "eventTime": 1704348780,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.640.542.6385",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-4179",
+      "eventType": "출고",
+      "anomaly": 61,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 17,
+      "from": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1704337200,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전남_도매상2_권역_소매상1",
+        "coord": [
+          126.755,
+          35.055
+        ],
+        "eventTime": 1704361268,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.127.404.5066",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-4044",
+      "eventType": "출고",
+      "anomaly": 62,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 18,
+      "from": {
+        "scanLocation": "경북_도매상2_권역_소매상1",
+        "coord": [
+          128.455,
+          36.005
+        ],
+        "eventTime": 1704340800,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상1_권역_소매상2",
+        "coord": [
+          127.095,
+          35.905
+        ],
+        "eventTime": 1704376210,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.355.471.4880",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-3112",
+      "eventType": "출고",
+      "anomaly": 46,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다."
+    },
+    {
+      "roadId": 19,
+      "from": {
+        "scanLocation": "수도권_도매상1",
+        "coord": [
+          127.05,
+          37.55
+        ],
+        "eventTime": 1704351600,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1704376222,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.711",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-6999",
+      "eventType": "출고",
+      "anomaly": 60,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 20,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상1",
+        "coord": [
+          128.705,
+          35.805
+        ],
+        "eventTime": 1704358800,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상3_권역_소매상1",
+        "coord": [
+          127.155,
+          37.505
+        ],
+        "eventTime": 1704382097,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.54571",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-9867",
+      "eventType": "출고",
+      "anomaly": 62,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 21,
+      "from": {
+        "scanLocation": "전남_도매상2_권역_소매상2",
+        "coord": [
+          126.745,
+          35.055
+        ],
+        "eventTime": 1704369600,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상2_권역_소매상1",
+        "coord": [
+          128.455,
+          36.005
+        ],
+        "eventTime": 1704392421,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.388.459.6434",
+      "productName": "게보린",
+      "epcLot": "LOT-A-7222",
+      "eventType": "출고",
+      "anomaly": 55,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 22,
+      "from": {
+        "scanLocation": "경북_도매상1",
+        "coord": [
+          128.6,
+          35.95
+        ],
+        "eventTime": 1704380400,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1704399646,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.714",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-1331",
+      "eventType": "출고",
+      "anomaly": 70,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 23,
+      "from": {
+        "scanLocation": "전북_도매상2",
+        "coord": [
+          126.98,
+          35.8
+        ],
+        "eventTime": 1704391200,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전북_도매상3",
+        "coord": [
+          127.25,
+          35.75
+        ],
+        "eventTime": 1704425702,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.89787",
+      "productName": "게보린",
+      "epcLot": "LOT-A-9832",
+      "eventType": "출고",
+      "anomaly": 69,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 24,
+      "from": {
+        "scanLocation": "수도권_도매상2",
+        "coord": [
+          126.95,
+          37.6
+        ],
+        "eventTime": 1704394800,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전북물류센터",
+        "coord": [
+          127.15,
+          35.82
+        ],
+        "eventTime": 1704418086,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.716",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-4095",
+      "eventType": "출고",
+      "anomaly": 54,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 25,
+      "from": {
+        "scanLocation": "구미공장창고",
+        "coord": [
+          128.41,
+          36.14
+        ],
+        "eventTime": 1704402000,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남_도매상2_권역_소매상2",
+        "coord": [
+          126.745,
+          35.055
+        ],
+        "eventTime": 1704422753,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.955.347.1056",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-7937",
+      "eventType": "출고",
+      "anomaly": 63,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 26,
+      "from": {
+        "scanLocation": "전북_도매상1",
+        "coord": [
+          127.1,
+          35.9
+        ],
+        "eventTime": 1704409200,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2_권역_소매상3",
+        "coord": [
+          126.95,
+          37.61
+        ],
+        "eventTime": 1704436908,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.954.822.9285",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-6832",
+      "eventType": "출고",
+      "anomaly": 64,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 27,
+      "from": {
+        "scanLocation": "경북_도매상2_권역_소매상1",
+        "coord": [
+          128.455,
+          36.005
+        ],
+        "eventTime": 1704420000,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상1_권역_소매상3",
+        "coord": [
+          127.05,
+          37.56
+        ],
+        "eventTime": 1704445745,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.734.560.4981",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-5606",
+      "eventType": "출고",
+      "anomaly": 78,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 28,
+      "from": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1704427200,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남_도매상3_권역_소매상3",
+        "coord": [
+          127.05,
+          35.11
+        ],
+        "eventTime": 1704462309,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.335.813.9268",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-1381",
+      "eventType": "출고",
+      "anomaly": 91,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 29,
+      "from": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1704434400,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "전북_도매상2_권역_소매상3",
+        "coord": [
+          126.98,
+          35.81
+        ],
+        "eventTime": 1704453277,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.721",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-4909",
+      "eventType": "출고",
+      "anomaly": 72,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 30,
+      "from": {
+        "scanLocation": "전북_도매상1",
+        "coord": [
+          127.1,
+          35.9
+        ],
+        "eventTime": 1704439380,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전북_도매상2_권역_소매상3",
+        "coord": [
+          126.98,
+          35.81
+        ],
+        "eventTime": 1704448834,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.722",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-C-2111",
+      "eventType": "출고",
+      "anomaly": 97,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 31,
+      "from": {
+        "scanLocation": "수도권_도매상2_권역_소매상2",
+        "coord": [
+          126.945,
+          37.605
+        ],
+        "eventTime": 1704439500,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "인천공장창고",
+        "coord": [
+          126.66,
+          37.46
+        ],
+        "eventTime": 1704452997,
+        "businessStep": "WMS"
+      },
+      "epcCode": "1.880.123.722",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-C-2111",
+      "eventType": "출고",
+      "anomaly": 70,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 32,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상2",
+        "coord": [
+          128.695,
+          35.805
+        ],
+        "eventTime": 1704524400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상2_권역_소매상3",
+        "coord": [
+          128.45,
+          36.01
+        ],
+        "eventTime": 1704546614,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.945.338.4460",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-5157",
+      "eventType": "출고",
+      "anomaly": 65,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 33,
+      "from": {
+        "scanLocation": "전남_도매상1_권역_소매상2",
+        "coord": [
+          126.845,
+          35.255
+        ],
+        "eventTime": 1704531600,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전남_도매상1_권역_소매상3",
+        "coord": [
+          126.85,
+          35.26
+        ],
+        "eventTime": 1704566249,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.167.962.1497",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-8391",
+      "eventType": "출고",
+      "anomaly": 71,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 34,
+      "from": {
+        "scanLocation": "전남_도매상1_권역_소매상1",
+        "coord": [
+          126.855,
+          35.255
+        ],
+        "eventTime": 1704542400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상3_권역_소매상2",
+        "coord": [
+          128.695,
+          35.805
+        ],
+        "eventTime": 1704569226,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.28148",
+      "productName": "게보린",
+      "epcLot": "LOT-A-1171",
+      "eventType": "출고",
+      "anomaly": 56,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 35,
+      "from": {
+        "scanLocation": "전남_도매상1",
+        "coord": [
+          126.85,
+          35.25
+        ],
+        "eventTime": 1704546000,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1704572934,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.726",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-1621",
+      "eventType": "출고",
+      "anomaly": 80,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 36,
+      "from": {
+        "scanLocation": "수도권_도매상3",
+        "coord": [
+          127.15,
+          37.5
+        ],
+        "eventTime": 1704549600,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1704572304,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.727",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-3664",
+      "eventType": "출고",
+      "anomaly": 90,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 37,
+      "from": {
+        "scanLocation": "전북_도매상3_권역_소매상1",
+        "coord": [
+          127.255,
+          35.755
+        ],
+        "eventTime": 1704560400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상2_권역_소매상1",
+        "coord": [
+          126.985,
+          35.805
+        ],
+        "eventTime": 1704593732,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.65284",
+      "productName": "게보린",
+      "epcLot": "LOT-A-6130",
+      "eventType": "출고",
+      "anomaly": 65,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 38,
+      "from": {
+        "scanLocation": "전남물류센터",
+        "coord": [
+          126.9,
+          35.15
+        ],
+        "eventTime": 1704567600,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2",
+        "coord": [
+          126.95,
+          37.6
+        ],
+        "eventTime": 1704600220,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "2.323.860.7706",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-6992",
+      "eventType": "출고",
+      "anomaly": 18,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다."
+    },
+    {
+      "roadId": 39,
+      "from": {
+        "scanLocation": "전남_도매상3_권역_소매상1",
+        "coord": [
+          127.055,
+          35.105
+        ],
+        "eventTime": 1704571200,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상2",
+        "coord": [
+          126.98,
+          35.8
+        ],
+        "eventTime": 1704606246,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "2.351.724.5435",
+      "productName": "게보린",
+      "epcLot": "LOT-A-6003",
+      "eventType": "출고",
+      "anomaly": 79,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 40,
+      "from": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1704574800,
+        "businessStep": "Factory"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2_권역_소매상3",
+        "coord": [
+          126.95,
+          37.61
+        ],
+        "eventTime": 1704597129,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.810.396.7780",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-3910",
+      "eventType": "출고",
+      "anomaly": 81,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 41,
+      "from": {
+        "scanLocation": "전북_도매상1_권역_소매상1",
+        "coord": [
+          127.105,
+          35.905
+        ],
+        "eventTime": 1704578400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상3",
+        "coord": [
+          127.15,
+          37.5
+        ],
+        "eventTime": 1704606842,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "2.986.613.7427",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-8701",
+      "eventType": "출고",
+      "anomaly": 40,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다."
+    },
+    {
+      "roadId": 42,
+      "from": {
+        "scanLocation": "전북물류센터",
+        "coord": [
+          127.15,
+          35.82
+        ],
+        "eventTime": 1704582000,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "양산공장",
+        "coord": [
+          129.04,
+          35.33
+        ],
+        "eventTime": 1704609857,
+        "businessStep": "Factory"
+      },
+      "epcCode": "2.693.934.6956",
+      "productName": "게보린",
+      "epcLot": "LOT-A-7484",
+      "eventType": "출고",
+      "anomaly": 69,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 43,
+      "from": {
+        "scanLocation": "화성공장창고",
+        "coord": [
+          126.84,
+          37.21
+        ],
+        "eventTime": 1704589200,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1704609367,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "2.336.840.6991",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-1211",
+      "eventType": "출고",
+      "anomaly": 80,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 44,
+      "from": {
+        "scanLocation": "수도권_도매상3",
+        "coord": [
+          127.15,
+          37.5
+        ],
+        "eventTime": 1704600000,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "경북_도매상1_권역_소매상1",
+        "coord": [
+          128.605,
+          35.955
+        ],
+        "eventTime": 1704626164,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.16780",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-9963",
+      "eventType": "출고",
+      "anomaly": 41,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다."
+    },
+    {
+      "roadId": 45,
+      "from": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1704610800,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상1_권역_소매상2",
+        "coord": [
+          127.045,
+          37.555
+        ],
+        "eventTime": 1704640174,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.736",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-7744",
+      "eventType": "출고",
+      "anomaly": 52,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 46,
+      "from": {
+        "scanLocation": "경북_도매상2_권역_소매상3",
+        "coord": [
+          128.45,
+          36.01
+        ],
+        "eventTime": 1704614400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1704633746,
+        "businessStep": "Factory"
+      },
+      "epcCode": "2.889.234.8824",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-5566",
+      "eventType": "출고",
+      "anomaly": 47,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다."
+    },
+    {
+      "roadId": 47,
+      "from": {
+        "scanLocation": "전남_도매상1_권역_소매상2",
+        "coord": [
+          126.845,
+          35.255
+        ],
+        "eventTime": 1704618000,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상1",
+        "coord": [
+          127.1,
+          35.9
+        ],
+        "eventTime": 1704648251,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "2.960.236.9866",
+      "productName": "게보린",
+      "epcLot": "LOT-A-6528",
+      "eventType": "출고",
+      "anomaly": 23,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다."
+    },
+    {
+      "roadId": 48,
+      "from": {
+        "scanLocation": "양산공장창고",
+        "coord": [
+          129.05,
+          35.34
+        ],
+        "eventTime": 1704621600,
+        "businessStep": "WMS"
+      },
+      "to": {
+        "scanLocation": "전남_도매상1_권역_소매상2",
+        "coord": [
+          126.845,
+          35.255
+        ],
+        "eventTime": 1704648860,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.32467",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-9777",
+      "eventType": "출고",
+      "anomaly": 38,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다."
+    },
+    {
+      "roadId": 49,
+      "from": {
+        "scanLocation": "경북_도매상1_권역_소매상1",
+        "coord": [
+          128.605,
+          35.955
+        ],
+        "eventTime": 1704628800,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1704648243,
+        "businessStep": "Factory"
+      },
+      "epcCode": "1.880.123.97787",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-A-9939",
+      "eventType": "출고",
+      "anomaly": 89,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 50,
+      "from": {
+        "scanLocation": "전남_도매상2_권역_소매상2",
+        "coord": [
+          126.745,
+          35.055
+        ],
+        "eventTime": 1704636000,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상3_권역_소매상2",
+        "coord": [
+          127.145,
+          37.505
+        ],
+        "eventTime": 1704647313,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.741",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-C-5580",
+      "eventType": "출고",
+      "anomaly": 91,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 51,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상3",
+        "coord": [
+          128.7,
+          35.81
+        ],
+        "eventTime": 1704636840,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "경북_도매상1",
+        "coord": [
+          128.6,
+          35.95
+        ],
+        "eventTime": 1704644821,
+        "businessStep": "Wholesaler"
+      },
+      "epcCode": "1.880.123.741",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-C-5580",
+      "eventType": "출고",
+      "anomaly": 95,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 52,
+      "from": {
+        "scanLocation": "전남_도매상2_권역_소매상1",
+        "coord": [
+          126.755,
+          35.055
+        ],
+        "eventTime": 1704637380,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1704644881,
+        "businessStep": "Factory"
+      },
+      "epcCode": "1.880.123.741",
+      "productName": "말보로 레드",
+      "epcLot": "LOT-C-5580",
+      "eventType": "출고",
+      "anomaly": 75,
+      "anomalyTypeList": [
+        "clone"
+      ],
+      "description": "하나의 EPC 코드가 동시간대에 여러 위치에서 동시에 감지되었습니다. 코드 복제를 통한 불법 유통일 수 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 53,
+      "from": {
+        "scanLocation": "전남_도매상1_권역_소매상1",
+        "coord": [
+          126.855,
+          35.255
+        ],
+        "eventTime": 1704722400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "수도권_도매상2_권역_소매상3",
+        "coord": [
+          126.95,
+          37.61
+        ],
+        "eventTime": 1704746382,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.83845",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-8311",
+      "eventType": "출고",
+      "anomaly": 50,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 54,
+      "from": {
+        "scanLocation": "수도권_도매상1",
+        "coord": [
+          127.05,
+          37.55
+        ],
+        "eventTime": 1704729600,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "전북_도매상3_권역_소매상1",
+        "coord": [
+          127.255,
+          35.755
+        ],
+        "eventTime": 1704751699,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "2.805.574.8043",
+      "productName": "에쎄 체인지",
+      "epcLot": "LOT-A-3815",
+      "eventType": "출고",
+      "anomaly": 51,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 55,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상1",
+        "coord": [
+          128.705,
+          35.805
+        ],
+        "eventTime": 1704740400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1704759800,
+        "businessStep": "Factory"
+      },
+      "epcCode": "1.880.123.75551",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-3356",
+      "eventType": "출고",
+      "anomaly": 96,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 56,
+      "from": {
+        "scanLocation": "전남_도매상2_권역_소매상2",
+        "coord": [
+          126.745,
+          35.055
+        ],
+        "eventTime": 1704747600,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "전북_도매상1_권역_소매상3",
+        "coord": [
+          127.1,
+          35.91
+        ],
+        "eventTime": 1704771359,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.745",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-7374",
+      "eventType": "출고",
+      "anomaly": 54,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 57,
+      "from": {
+        "scanLocation": "경북_도매상2",
+        "coord": [
+          128.45,
+          36.0
+        ],
+        "eventTime": 1704754800,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "수도권물류센터",
+        "coord": [
+          127.2,
+          37.35
+        ],
+        "eventTime": 1704777530,
+        "businessStep": "LogiHub"
+      },
+      "epcCode": "1.880.123.746",
+      "productName": "던힐 프로스트",
+      "epcLot": "LOT-A-9449",
+      "eventType": "출고",
+      "anomaly": 87,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 58,
+      "from": {
+        "scanLocation": "경북물류센터",
+        "coord": [
+          128.52,
+          35.87
+        ],
+        "eventTime": 1704765600,
+        "businessStep": "LogiHub"
+      },
+      "to": {
+        "scanLocation": "전북_도매상1_권역_소매상1",
+        "coord": [
+          127.105,
+          35.905
+        ],
+        "eventTime": 1704788974,
+        "businessStep": "Reseller"
+      },
+      "epcCode": "1.880.123.747",
+      "productName": "아로나민 골드",
+      "epcLot": "LOT-A-4569",
+      "eventType": "출고",
+      "anomaly": 87,
+      "anomalyTypeList": [],
+      "description": "이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 59,
+      "from": {
+        "scanLocation": "경북_도매상3_권역_소매상1",
+        "coord": [
+          128.705,
+          35.805
+        ],
+        "eventTime": 1704776400,
+        "businessStep": "Reseller"
+      },
+      "to": {
+        "scanLocation": "인천공장",
+        "coord": [
+          126.65,
+          37.45
+        ],
+        "eventTime": 1704809139,
+        "businessStep": "Factory"
+      },
+      "epcCode": "2.104.944.7971",
+      "productName": "타이레놀 500mg",
+      "epcLot": "LOT-A-1102",
+      "eventType": "출고",
+      "anomaly": 59,
+      "anomalyTypeList": [
+        "tamper"
+      ],
+      "description": "기존 EPC 코드가 비정상적으로 변조된 것으로 의심됩니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    },
+    {
+      "roadId": 60,
+      "from": {
+        "scanLocation": "전남_도매상3",
+        "coord": [
+          127.05,
+          35.1
+        ],
+        "eventTime": 1704783600,
+        "businessStep": "Wholesaler"
+      },
+      "to": {
+        "scanLocation": "구미공장",
+        "coord": [
+          128.4,
+          36.13
+        ],
+        "eventTime": 1704818050,
+        "businessStep": "Factory"
+      },
+      "epcCode": "1.880.123.30126",
+      "productName": "게보린",
+      "epcLot": "LOT-A-4331",
+      "eventType": "출고",
+      "anomaly": 68,
+      "anomalyTypeList": [
+        "fake"
+      ],
+      "description": "정식으로 등록되지 않은 새로운 EPC 코드가 감지되었습니다. 위조품일 가능성이 있습니다. 이 구간의 이동 패턴이 비정상적입니다. 시스템은 과거 데이터와 비교하여 높은 확률로 이상 이동으로 분류했습니다. (예: 경로 역행, 단계 건너뛰기, 비정상적 소요 시간 등)"
+    }
+  ]
+}

@@ -6,10 +6,14 @@ import { fetchEpcHistory, type EventHistory } from '@/services/historyService';
 import { fetchComments, postComment, type EpcComment } from '@/services/commentService';
 import { useSetAtom } from 'jotai';
 import { selectTripAndFocusAtom } from '@/stores/mapDataAtoms';
+import { AnomalyType } from '@/types/data';
+import { anomalyCodeToNameMap } from '@/types/anomalyUtils';
 import {
     X, PackagePlus, PackageMinus, Factory, ShoppingCart, Box, MessageSquare, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const ANOMALY_PERCENTAGE_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '50', 10);
 
 interface DetailPanelProps {
     selectedTrip: MergeTrip | null;
@@ -40,28 +44,30 @@ const CloneHistoryTable: React.FC<{
 
     const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
 
-    // EventHistory[]를 MergeTrip[]으로 변환 (좌표 등 필요 정보 추가)
-    const historyAsTrips = useMemo(() => {
+    const otherCloneTrips = useMemo(() => {
         if (history.length < 2) return [];
         const trips: MergeTrip[] = [];
         for (let i = 0; i < history.length - 1; i++) {
             const from = history[i];
             const to = history[i + 1];
-            trips.push({
-                roadId: from.eventId * 10000 + to.eventId,
-                from: { scanLocation: from.scanLocation, eventTime: new Date(from.eventTime).getTime() / 1000, businessStep: from.businessStep, coord: [0, 0] },
-                to: { scanLocation: to.scanLocation, eventTime: new Date(to.eventTime).getTime() / 1000, businessStep: to.businessStep, coord: [0, 0] },
-                epcCode: from.epcCode,
-                productName: "Product",
-                epcLot: "Lot",
-                eventType: to.eventType,
-                anomalyTypeList: to.anomalyTypeList as any,
-            });
+            const isCloneTrip = Array.isArray(to.anomalyTypeList) && to.anomalyTypeList.includes('clone' as AnomalyType);
+            if (isCloneTrip) {
+                trips.push({
+                    roadId: from.eventId * 10000 + to.eventId,
+                    from: { scanLocation: from.scanLocation, eventTime: new Date(from.eventTime).getTime() / 1000, businessStep: from.businessStep, coord: [0, 0] },
+                    to: { scanLocation: to.scanLocation, eventTime: new Date(to.eventTime).getTime() / 1000, businessStep: to.businessStep, coord: [0, 0] },
+                    epcCode: from.epcCode,
+                    productName: selectedTrip.productName || "Product",
+                    epcLot: selectedTrip.epcLot || "Lot",
+                    eventType: to.eventType,
+                    anomaly: to.anomaly,
+                    anomalyTypeList: to.anomalyTypeList as AnomalyType[],
+                    description: to.description,
+                });
+            }
         }
-        return trips;
-    }, [history]);
-
-    const otherCloneTrips = historyAsTrips.filter(t => t.roadId !== selectedTrip.roadId);
+        return trips.filter(t => t.roadId !== selectedTrip.roadId);
+    }, [history, selectedTrip.roadId]);
 
     if (otherCloneTrips.length === 0) return null;
 
@@ -72,11 +78,12 @@ const CloneHistoryTable: React.FC<{
             </h4>
             <div className="rounded-lg border border-white/20 overflow-hidden">
                 <table className="w-full text-left text-sm text-gray-300">
-                    <thead className="bg-[#2A2A2A] text-gray-400 text-xs uppercase">
+                    <thead className="bg-[#2A2A2A] text-white text-xs uppercase">
                         <tr>
                             <th className="px-4 py-2 font-medium">출발지</th>
                             <th className="px-4 py-2 font-medium">도착지</th>
                             <th className="px-4 py-2 font-medium">발생 시간</th>
+                            <th className="px-4 py-2 font-medium">AI 탐지율</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 bg-[#1E1E1E]">
@@ -85,6 +92,9 @@ const CloneHistoryTable: React.FC<{
                                 <td className="px-4 py-3">{trip.from.scanLocation}</td>
                                 <td className="px-4 py-3">{trip.to.scanLocation}</td>
                                 <td className="px-4 py-3 whitespace-nowrap">{new Date(trip.to.eventTime * 1000).toLocaleString('ko-KR')}</td>
+                                <td className={`px-4 py-3 ${trip.anomaly >= ANOMALY_PERCENTAGE_THRESHOLD ? 'text-[#FF9945]' : ''}`}>
+                                    {trip.anomaly}%
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -128,7 +138,6 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
             .finally(() => {
                 setIsLoading(false);
             });
-
     }, [selectedTrip]);
 
     const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -175,6 +184,8 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                 <div className="flex-shrink-0 mb-6">
                     <h3 className="text-4xl font-lato font-bold mb-10 text-white tracking-wider">{selectedTrip.epcCode}</h3>
                     <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-base font-noto-400">
+                        <span className="text-gray-400">상품명</span>
+                        <span className="text-white">{selectedTrip.productName}</span>
                         <span className="text-gray-400">전체 출발</span>
                         <span className="text-white">{firstEvent.scanLocation}</span>
                         <span className="text-gray-400">전체 도착</span>
@@ -214,21 +225,15 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
 
                                             return (
                                                 <div key={event.eventId} style={{ direction: 'ltr' }} className="relative flex flex-col items-center text-center pt-8 font-noto-400">
-
-                                                    {/* 수평 연결선 */}
                                                     {!isFirstInChunk && (
                                                         <div className={`absolute top-12 -translate-y-1/2 h-2 w-full z-0 ${isReversed ? 'left-1/2' : 'left-1/2 -translate-x-full'} ${isCurrentStepAnomaly ? 'bg-[#FF9945]' : 'bg-blue-500/50'}`}></div>
                                                     )}
-
-                                                    {/* 숫자 원 */}
                                                     <div className={`relative w-9 h-9 rounded-full flex items-center justify-center text-white font-lato text-sm z-10 ${isCurrentStepAnomaly || isPathToNextNodeAnomaly ? 'bg-[#FF9945]' : 'bg-blue-500'}`}>
                                                         {originalIndex + 1}
                                                     </div>
-
-                                                    {/* 이벤트 정보 박스 */}
                                                     <div className="mt-4 z-10">
-                                                        <div className={`p-3 bg-[#2A2A2A] rounded-lg flex flex-col items-center gap-2 transition-all w-52 h-28 justify-center ${isCurrentStepAnomaly || isPathToNextNodeAnomaly ? 'ring-2 ring-[#FF9945]' : ''}`}>
-                                                            <EventIcon type={event.eventType} />
+                                                        <div className={`p-3 bg-[#2A2A2A] rounded-lg flex flex-col items-center gap-2 transition-all w-56 h-28 justify-center ${isCurrentStepAnomaly || isPathToNextNodeAnomaly ? 'ring-2 ring-[#FF9945]' : ''}`}>
+                                                            <span className='flex gap-4'><EventIcon type={event.eventType} />{event.eventType}</span>
                                                             <span className="font-noto-400 text-white text-sm whitespace-nowrap overflow-hidden text-ellipsis w-full" title={event.scanLocation}>
                                                                 {event.scanLocation}
                                                             </span>
@@ -263,8 +268,13 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                     <div>
                         <h4 className="text-lg mb-4 text-white">이상 현상 분석</h4>
                         <div className="p-4 bg-[#2A2A2A] rounded-lg text-base space-y-2">
-                            <p><p className="text-[#faa35c]">유형</p> {selectedTrip.anomalyTypeList.join(', ')}</p>
-                            <p><p className="text-gray-400">설명</p> 이 구간에서 비정상적인 이동 패턴이 감지되었습니다. 예를 들어, 예상 경로를 이탈했거나, 비정상적으로 긴 시간이 소요되었을 수 있습니다. 시스템은 이전 정상 데이터 패턴과 비교하여 이 이동을 이상으로 분류했습니다.</p>
+                            <p>
+                                <p className="text-[#faa35c]">유형</p>
+                                {selectedTrip.anomalyTypeList
+                                    .map(type => anomalyCodeToNameMap[type as AnomalyType] || type)
+                                    .join(', ')}
+                            </p>
+                            <p><p className="text-gray-400">설명</p> {selectedTrip.description}</p>
                         </div>
                     </div>
                     <div>
