@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import ChangeFactoryModal from './ChangeFactoryModal';
 import { toast } from 'sonner';
-import { UserPlusIcon, UserMinusIcon, NoSymbolIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
+import { UserPlusIcon, UserMinusIcon, IdentificationIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
 import { UserCircleIcon, EnvelopeIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
 import { updateUser, changeUserFactory, type AdminUser } from '@/api/adminApi';
 import { useAtomValue, useSetAtom } from 'jotai';
@@ -27,7 +27,7 @@ const UserCard = ({ user, activeTab, onApprove, onReject, onDelete, onRestore, o
     onToggleActive: (user: AdminUser) => void;
     onEditFactory: (user: AdminUser) => void;
 }) => {
-    
+
     const renderActionButtons = () => {
         switch (activeTab) {
             case 'pending': return (
@@ -65,21 +65,25 @@ const UserCard = ({ user, activeTab, onApprove, onReject, onDelete, onRestore, o
             <div>
                 <div className="flex justify-between items-start mb-4">
                     <div className='flex items-center gap-3'>
-                        <UserCircleIcon className="w-10 h-10 text-gray-400" />
+                        <img
+                            src={`https://api.dicebear.com/8.x/notionists/svg?seed=${user.userId}`}
+                            alt="User Avatar"
+                            className="w-15 h-15 rounded-full bg-gray-700 border-2 border-gray-500"
+                        />
                         <div>
-                            <h3 className="text-lg font-noto-500 text-white">{user.userName}</h3>
-                            <p className="text-sm text-gray-400 font-vietnam">{user.role}</p>
+                            <h3 className="text-lg font-noto-500 text-white mb-2">{user.userName}</h3>
+                            <p className="text-sm text-gray-400 font-vietnam">{user.userId}</p>
                         </div>
                     </div>
                     <span className={`px-3 py-1 text-xs text-white rounded-full border-2 border-blue-300`}>
                         {statusInfo.text}
                     </span>
                 </div>
-                
+
                 <div className="space-y-3 text-sm text-gray-300">
-                    <p className="flex items-center gap-3"><EnvelopeIcon className="w-5 h-5 text-gray-500"/> {user.email}</p>
+                    <p className="flex items-center gap-3"><EnvelopeIcon className="w-5 h-5 text-gray-500" /> {user.email}</p>
                     <div className="flex items-center gap-3">
-                        <BuildingOffice2Icon className="w-5 h-5 text-gray-500"/>
+                        <BuildingOffice2Icon className="w-5 h-5 text-gray-500" />
                         <span>{FACTORY_NAME_MAP[user.locationId] || '미지정'}</span>
                         {(activeTab === 'active') && (
                             <button onClick={() => onEditFactory(user)} className="p-1 rounded-md text-gray-400 hover:bg-white/10 hover:text-white cursor-pointer" title="소속 공장 변경">
@@ -89,7 +93,7 @@ const UserCard = ({ user, activeTab, onApprove, onReject, onDelete, onRestore, o
                     </div>
                 </div>
             </div>
-            
+
             <div className="mt-6 pt-4 border-t border-white/10 flex items-center gap-4">
                 {renderActionButtons()}
             </div>
@@ -218,7 +222,7 @@ export default function UserManagementClient() {
             <div className="mb-6 inline-flex items-center rounded-2xl bg-[rgba(30,30,30)] p-1">
                 {TABS.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className={`px-6 py-2 text-base font-medium transition-colors ${activeTab === tab.id ? 'text-[rgba(111,131,175)] font-noto-500 border-b-2 border-b-[rgba(111,131,175)]' : 'text-gray-500 hover:text-gray-400 font-noto-500'}`}>
+                        className={`px-6 py-2 text-xl font-medium transition-colors ${activeTab === tab.id ? 'text-[rgba(111,131,175)] font-noto-500 border-b-2 border-b-[rgba(111,131,175)]' : 'text-gray-500 hover:text-gray-400 font-noto-500'}`}>
                         {tab.label}
                     </button>
                 ))}

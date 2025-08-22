@@ -9,9 +9,9 @@ import { selectedFileIdAtom } from '@/stores/mapDataAtoms';
 
 import {
   HomeIcon,
-  BarChartIcon,
-  SettingsIcon,
-  UserIcon,
+  FileText,
+  IdCard,
+  Users,
   UploadCloud,
   Map as MapIcon
 } from "lucide-react";
@@ -20,11 +20,11 @@ import { useMemo } from 'react';
 
 const menus = [
   { name: "대시보드", icon: HomeIcon, href: "/" },
-  { name: "AI 분석 리포트", icon: BarChartIcon, href: "/report" },
+  { name: "AI 분석 리포트", icon: FileText, href: "/report" },
   { name: "AI 분석 지도", icon: MapIcon, href: "/map" },
   { name: "CSV 업로드", icon: UploadCloud, href: "/upload" },
-  { name: "설정", icon: SettingsIcon, href: "/settings" },
-  { name: "사용자 관리", icon: UserIcon, href: "/supervisor/management", requiredRole: "ADMIN" },
+  { name: "마이페이지", icon: IdCard, href: "/settings" },
+  { name: "사용자 관리", icon: Users, href: "/supervisor/management", requiredRole: "ADMIN" },
 ];
 
 interface SidebarProps {

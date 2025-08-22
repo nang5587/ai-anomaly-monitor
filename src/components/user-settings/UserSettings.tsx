@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useSetAtom } from 'jotai';
@@ -9,10 +9,10 @@ import { useRouter } from 'next/navigation';
 import { getMyProfile, updateProfileInfo, deleteMyAccount, changePassword } from '@/api/userApi'
 import apiClient, { getFiles_client, markFileAsDeleted } from '@/api/apiClient';
 import { selectedFileIdAtom } from "@/stores/mapDataAtoms";
-import { FileItem } from "@/types/file";
+import { FileItem, LOCATION_MAP } from "@/types/file";
 
-import { KeyIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { LayoutDashboard, Download, Trash2, SearchIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { KeyIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { LayoutDashboard, Download, Trash2, SearchIcon, ChevronLeftIcon, ChevronRightIcon, FileClockIcon, FileIcon } from 'lucide-react'
 
 const factoryCodeNameMap: { [key: number]: string } = {
     1: '인천',
@@ -29,6 +29,7 @@ export default function UserSettings() {
     const [originalProfile, setOriginalProfile] = useState({ userName: '', email: '' });
     const [isProfileChanged, setIsProfileChanged] = useState(false);
     const [isProfileLoading, setIsProfileLoading] = useState(true);
+    const [isPasswordFormVisible, setIsPasswordFormVisible] = useState(false);
 
     const [files, setFiles] = useState<FileItem[]>([]);
     const [isFilesLoading, setIsFilesLoading] = useState(true);
@@ -38,6 +39,9 @@ export default function UserSettings() {
 
     const setFileId = useSetAtom(selectedFileIdAtom);
     const router = useRouter();
+
+    const profileCardRef = useRef<HTMLDivElement>(null);
+    const [recentFilesHeight, setRecentFilesHeight] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         async function fetchInitialData() {
@@ -71,8 +75,21 @@ export default function UserSettings() {
         setIsProfileChanged(hasChanged);
     }, [formData, originalProfile]);
 
+    useEffect(() => {
+        if (profileCardRef.current && !isPasswordFormVisible) {
+            setRecentFilesHeight(profileCardRef.current.offsetHeight);
+        }
+    }, [isProfileLoading]);
+
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPasswordData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+    const recentFiles = useMemo(() => {
+        if (!files) return [];
+        return [...files]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 3);
+    }, [files]);
 
     const handleProfileSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -111,6 +128,7 @@ export default function UserSettings() {
             });
             toast.success("비밀번호가 성공적으로 변경되었습니다.");
             setPasswordData({ password: '', newPassword: '', confirmPassword: '' });
+            setIsPasswordFormVisible(false);
         } catch (error) {
         }
     };
@@ -196,9 +214,9 @@ export default function UserSettings() {
     }
 
     return (
-        <div className="p-4 sm:p-8 text-white w-full max-w-8xl mx-auto flex flex-col gap-8">
+        <div className="p-4 sm:p-8 text-white w-full max-w-8xl mx-auto flex flex-col gap-8 font-noto-400">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="flex flex-col bg-[rgba(30,30,30)] p-6 rounded-2xl">
+                <div ref={profileCardRef} className="flex flex-col bg-[rgba(30,30,30)] p-6 rounded-2xl self-start">
                     <div className="flex items-center gap-5 mb-6">
                         <img
                             src={`https://api.dicebear.com/8.x/notionists/svg?seed=${user.userId}`}
@@ -206,64 +224,108 @@ export default function UserSettings() {
                             className="w-20 h-20 rounded-full bg-gray-700 border-2 border-gray-500"
                         />
                         <div>
-                            <h2 className="text-2xl font-bold">{user.userId}</h2>
+                            <h2 className="text-2xl font-noto-500">{user.userName}</h2>
                             <p className="text-gray-400">{factoryName}</p>
                         </div>
                     </div>
                     <form onSubmit={handleProfileSave} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0] mb-1">아이디</label>
-                            <input name="userId" type="text" value={user?.userId || ''} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        <div className='flex gap-4'>
+                            <div className='flex-1'>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-1">아이디</label>
+                                <input name="userId" type="text" value={user?.userId || ''} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                            </div>
+                            <div className='flex-1'>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-1">소속 공장</label>
+                                <input name="factory" type="text" value={factoryName} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">소속 공장</label>
-                            <input name="factory" type="text" value={factoryName} readOnly className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">이름</label>
-                            <input name="userName" type="text" value={formData.userName} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">이메일</label>
-                            <input name="email" type="email" value={formData.email} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
+                        <div className='flex gap-4'>
+                            <div className='flex-1'>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-1">이름</label>
+                            <input name="userName" type="text" value={formData.userName} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2  transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                            </div>
+                            <div className='flex-1'>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-1">이메일</label>
+                            <input name="email" type="email" value={formData.email} onChange={handleProfileChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2  transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                            </div>
                         </div>
                         <div className="pt-2 text-right">
-                            <button type="submit" disabled={!isProfileChanged} className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)] disabled:bg-gray-600 disabled:cursor-not-allowed">
+                            <button type="submit" disabled={!isProfileChanged} className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(50,50,50)] disabled:bg-gray-600 disabled:cursor-not-allowed">
                                 저장
                             </button>
                         </div>
                     </form>
-                </div>
-
-                <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl">
-                    <div className="flex items-center gap-4 mb-6">
-                        <KeyIcon className="w-8 h-8 text-[#E0E0E0}" />
-                        <h2 className="text-xl font-semibold">비밀번호 변경</h2>
+                    <div className="border-t border-gray-700 mt-6 pt-6">
+                        <button
+                            onClick={() => setIsPasswordFormVisible(!isPasswordFormVisible)}
+                            className="w-full flex justify-between items-center text-left text-lg font-noto-500"
+                        >
+                            <span>비밀번호 변경</span>
+                            {isPasswordFormVisible ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
+                        </button>
+                        <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isPasswordFormVisible ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                            <form onSubmit={handlePasswordSave} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#E0E0E0] mb-1">현재 비밀번호</label>
+                                    <input name="password" type="password" value={passwordData.password} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2  transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#E0E0E0] mb-1">새 비밀번호</label>
+                                    <input name="newPassword" type="password" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#E0E0E0] mb-1">새 비밀번호 확인</label>
+                                    <input name="confirmPassword" type="password" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                                </div>
+                                <div className="pt-2 text-right">
+                                    <button type="submit" className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)]">
+                                        변경
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <form onSubmit={handlePasswordSave} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">현재 비밀번호</label>
-                            <input name="password" type="password" value={passwordData.password} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">새 비밀번호</label>
-                            <input name="newPassword" type="password" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#E0E0E0} mb-1">새 비밀번호 확인</label>
-                            <input name="confirmPassword" type="password" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full bg-[rgba(20,20,20)] border-none rounded-md p-2" />
-                        </div>
-                        <div className="pt-2 text-right">
-                            <button type="submit" className="font-noto-500 px-4 py-2 rounded-md bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)]">
-                                변경
-                            </button>
-                        </div>
-                    </form>
+                </div>
+                <div
+                    className="bg-[rgba(30,30,30)] px-12 pb-12 pt-6 rounded-2xl self-start flex flex-col"
+                    style={{ height: recentFilesHeight ? `${recentFilesHeight}px` : 'auto' }}
+                >
+                    <div className="flex items-center gap-4 mb-6">
+                        <FileClockIcon className="w-8 h-8 text-[#E0E0E0}" />
+                        <h2 className="text-2xl font-noto-500">최근 업로드 파일</h2>
+                    </div>
+
+                    <div className="flex-grow flex gap-8">
+                        {isFilesLoading ? (
+                            <p className="w-full text-center text-gray-400 self-center">파일 목록을 불러오는 중...</p>
+                        ) : recentFiles.length > 0 ? (
+                            recentFiles.map(file => (
+                                <div key={file.fileId} className="flex-1 flex flex-col justify-between p-6 bg-[rgba(50,50,50)] rounded-lg">
+                                    <div>
+                                        <div className="flex items-start gap-3">
+                                            <FileIcon className="w-6 h-6 text-gray-400 mt-1 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-lg font-medium text-white line-clamp-2" title={file.fileName}>{file.fileName}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-base text-blue-400 mt-2 pl-9">{new Date(file.createdAt).toLocaleString()}</p>
+                                    </div>
+                                    <div className="flex items-center justify-center gap-1 mt-3">
+                                        <button onClick={() => handleFileSelect(file.fileId)} className="p-2 rounded-lg hover:bg-[rgba(55,55,55)]" title="대시보드 보기"><LayoutDashboard className="h-9 w-9 text-blue-300" /></button>
+                                        <button onClick={() => handleDownload(file.fileId, file.fileName)} className="p-2 rounded-lg hover:bg-[rgba(55,55,55)]" title="다운로드"><Download className="h-9 w-9 text-green-300" /></button>
+                                        <button onClick={() => handleDelete(file.fileId, file.fileName)} className="p-2 rounded-lg hover:bg-[rgba(55,55,55)]" title="삭제"><Trash2 className="h-9 w-9 text-red-300" /></button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="w-full text-center text-gray-400 self-center">최근에 업로드한 파일이 없습니다.</p>
+                        )}
+                    </div>
                 </div>
             </div>
             <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold">파일 업로드 이력</h2>
+                    <h2 className="text-2xl font-noto-500">파일 업로드 이력</h2>
                     <div className="relative">
                         <input
                             type="text"
@@ -277,13 +339,13 @@ export default function UserSettings() {
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-left text-gray-300">
-                        <thead className="text-sm font-medium text-white uppercase border-b-2 border-b-[rgba(111,131,175)]">
+                        <thead className="text-sm text-white uppercase border-b-2 border-b-[rgba(111,131,175)]">
                             <tr>
-                                <th scope="col" className="px-6 py-3">파일명</th>
-                                <th scope="col" className="px-6 py-3">업로더</th>
-                                <th scope="col" className="px-6 py-3">크기</th>
-                                <th scope="col" className="px-6 py-3">업로드 시간</th>
-                                <th scope="col" className="px-6 py-3 text-center">작업</th>
+                                <th scope="col" className="px-6 py-3 font-normal">파일명</th>
+                                <th scope="col" className="px-6 py-3 font-normal">업로더</th>
+                                <th scope="col" className="px-6 py-3 font-normal">크기</th>
+                                <th scope="col" className="px-6 py-3 font-normal">업로드 시간</th>
+                                <th scope="col" className="px-6 py-3 text-center font-normal">작업</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
@@ -311,13 +373,11 @@ export default function UserSettings() {
                         </tbody>
                     </table>
                 </div>
-
-                {/* 페이지네이션 */}
                 <div className="flex items-center justify-end pt-4">
                     <span className="text-sm text-gray-400 mr-4">총 {filteredFiles.length}개</span>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-md disabled:opacity-40 hover:bg-gray-600"><ChevronLeftIcon className="w-4 h-4" /></button>
-                        <span className="text-sm font-semibold">{currentPage} / {totalPages || 1}</span>
+                        <span className="text-sm font-lato">{currentPage} / {totalPages || 1}</span>
                         <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="p-2 rounded-md disabled:opacity-40 hover:bg-gray-600"><ChevronRightIcon className="w-4 h-4" /></button>
                     </div>
                 </div>
@@ -325,17 +385,18 @@ export default function UserSettings() {
 
 
             <div className="bg-[rgba(30,30,30)] p-6 rounded-2xl">
-                <div className="flex items-start justify-between">
+                <div className="flex items-center justify-between">
                     <div>
-                        <h3 className="text-xl font-bold text-white mb-2">회원 탈퇴</h3>
+                        <h3 className="text-xl font-noto-500 text-white mb-2">회원 탈퇴</h3>
                         <p className="text-gray-400 text-sm">
-                            계정을 삭제하면 모든 개인 정보와 활동 내역이 영구적으로 제거됩니다.<br />
-                            이 작업은 되돌릴 수 없으니 신중하게 결정해주세요.
+                            계정 삭제 시 회원님의 계정은 비활성화 처리되며, 서비스에 로그인할 수 없게 됩니다.
+                            <br />
+                            계정 복구를 원하시면 관리자에게 문의하여 복원할 수 있습니다.
                         </p>
                     </div>
                     <button
                         onClick={handleDeleteAccount}
-                        className="flex items-center gap-2 bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)] text-white font-semibold px-4 py-2 rounded-md transition-colors cursor-pointer whitespace-nowrap"
+                        className="flex items-center gap-2 bg-[rgba(111,131,175)] hover:bg-[rgba(91,111,155)] text-white px-4 py-2 rounded-md transition-colors cursor-pointer whitespace-nowrap"
                     >
                         <TrashIcon className="w-5 h-5" />
                         계정 삭제

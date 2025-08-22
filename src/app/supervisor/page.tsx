@@ -23,6 +23,7 @@ import { DashboardMapWidget } from '../../components/dashboard/widget/DashboardM
 import FactoryDetailView from '@/components/dashboard/FactoryDetailView';
 import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
 import { AnomalyTripTable } from '@/components/visual/AnomalyTripTable';
+import GaugeChart from '@/components/dashboard/GaugeChart';
 import dynamic from 'next/dynamic';
 
 const factoryCodeNameMap: { [key: number]: string } = { 1: '인천공장', 2: '화성공장', 3: '양산공장', 4: '구미공장' };
@@ -192,6 +193,7 @@ export default function SupervisorDashboard() {
         router.push(`/map?fileId=${selectedFileId}`);
     };
 
+    const someValue = 5.6;
 
     return (
         <div className="h-screen grid grid-rows-[auto_1fr] bg-black overflow-y-auto hide-scrollbar">
@@ -318,6 +320,15 @@ export default function SupervisorDashboard() {
                             isLoading={isLoading}
                             itemsPerPage={15}
                         />
+                        <div className='mb-40 flex justify-center'>
+                            <h2 className='text-white'>현재 진행률</h2>
+                            <GaugeChart
+                                progress={someValue}
+                                size={300}
+                                strokeWidth={25}
+                                segments={30}
+                            />
+                        </div>
                     </motion.div>
                 </motion.div>
             </div >

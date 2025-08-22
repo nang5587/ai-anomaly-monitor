@@ -18,11 +18,11 @@ interface GetUsersApiResponse {
 const isMockMode = process.env.NEXT_PUBLIC_MOCK_API === 'true';
 
 let mockUsers: AdminUser[] = [
-    { userId: 'user002', userName: '이매니저', email: 'manager_lee@example.com', locationId: '2', role: 'MANAGER', status: 'active', createdAt: new Date('2023-11-05T11:20:00Z').toISOString() },
-    { userId: 'user003', userName: '박대기', email: 'pending_park@example.com', locationId: '3', role: 'UNAUTH', status: 'pending', createdAt: new Date('2024-01-15T09:30:00Z').toISOString() },
-    { userId: 'user004', userName: '최승인', email: 'new_choi@example.com', locationId: '4', role: 'UNAUTH', status: 'pending', createdAt: new Date('2024-02-20T14:00:00Z').toISOString() },
-    { userId: 'user005', userName: '정비활성', email: 'inactive_jung@example.com', locationId: '1', role: 'MANAGER', status: 'inactive', createdAt: new Date('2023-12-10T18:00:00Z').toISOString() },
-    { userId: 'user006', userName: '강거절', email: 'rejected_kang@example.com', locationId: '2', role: 'UNAUTH', status: 'rejected', createdAt: new Date('2024-03-01T12:00:00Z').toISOString() },
+    { userId: 'sion221', userName: '오시온', email: 'icn@logistics.com', locationId: '1', role: 'MANAGER', status: 'active', createdAt: new Date('2023-11-05T11:20:00Z').toISOString() },
+    { userId: 'dae0', userName: '김재희', email: 'ygs@logistics.com', locationId: '3', role: 'UNAUTH', status: 'pending', createdAt: new Date('2024-01-15T09:30:00Z').toISOString() },
+    { userId: 'ten10', userName: '이영흠', email: 'gum@logistics.com', locationId: '4', role: 'UNAUTH', status: 'pending', createdAt: new Date('2024-02-20T14:00:00Z').toISOString() },
+    { userId: 'hslee01', userName: '이희승', email: 'hws@logistics.com', locationId: '2', role: 'MANAGER', status: 'inactive', createdAt: new Date('2023-12-10T18:00:00Z').toISOString() },
+    { userId: 'song01', userName: '송은석', email: 'rejc@logistics.com', locationId: '2', role: 'UNAUTH', status: 'rejected', createdAt: new Date('2024-03-01T12:00:00Z').toISOString() },
 ];
 
 const simulateDelay = (ms: number) => new Promise(res => setTimeout(res, ms));
