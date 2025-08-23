@@ -58,6 +58,7 @@ interface DashboardContextType {
     nodes: LocationNode[];
     productAnomalyData: ByProductResponse;
     anomalyChartData: any[];
+    vennDiagramData: { sets: string[]; value: number }[];
     stageChartData: StageBarDataPoint[];
     eventTimelineData: any[];
     calculatedReportKpis: {
@@ -117,7 +118,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     const selectedFileName = useMemo(() => {
         if (!selectedFileId) return null;
-        return uploadHistory.find(file => file.fileId === selectedFileId)?.fileName || `File ID: ${selectedFileId}`;
+        return uploadHistory.find(file => file.fileId === selectedFileId)?.fileName || null;
     }, [selectedFileId, uploadHistory]);
 
     const { minTime, maxTime } = useMemo(() => {
@@ -260,24 +261,61 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user, selectedFileId, store]);
 
-    const { anomalyChartData, stageChartData, eventTimelineData } = useMemo(() => {
+    const { anomalyChartData, stageChartData, eventTimelineData, vennDiagramData } = useMemo(() => {
         if (isLoading || !nodes.length || !chartDataSource.length) {
-            return { anomalyChartData: [], stageChartData: [], eventTimelineData: [] };
+            return { anomalyChartData: [], stageChartData: [], eventTimelineData: [], vennDiagramData: [] };
         }
-        const countsByType = chartDataSource.reduce((acc, trip) => {
-            trip.anomalyTypeList?.forEach(code => { acc[code] = (acc[code] || 0) + 1; });
-            return acc;
-        }, {} as Record<AnomalyType, number>);
-        const newAnomalyChartData = ALL_ANOMALY_TYPES.map(type => {
-            const count = countsByType[type] || 0;
+
+        const anomalyThreshold = parseFloat(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '0.5');
+        const thresholdValue = anomalyThreshold * 100;
+        const countsByType: Record<AnomalyType, number> = { fake: 0, tamper: 0, clone: 0, other: 0 };
+        let ruleBasedOnlyCount = 0;
+        let aiBasedOnlyCount = 0;
+        let intersectionCount = 0; 
+
+        chartDataSource.forEach(trip => {
+            const isRuleBased = trip.anomalyTypeList && trip.anomalyTypeList.length > 0;
+            const isAiBased = typeof trip.anomaly === 'number' && trip.anomaly >= thresholdValue;
+
+            if (isRuleBased) {
+                trip.anomalyTypeList?.forEach(code => {
+                    if (code in countsByType) {
+                        countsByType[code] = (countsByType[code] || 0) + 1;
+                    }
+                });
+            }
+            if (isAiBased) {
+                countsByType.other = (countsByType.other || 0) + 1;
+            }
+
+            if (isRuleBased && isAiBased) {
+                intersectionCount++;
+            } else if (isRuleBased) {
+                ruleBasedOnlyCount++;
+            } else if (isAiBased) {
+                aiBasedOnlyCount++;
+            }
+        });
+
+        const ALL_CHART_TYPES: (AnomalyType)[] = [...ALL_ANOMALY_TYPES, 'other'];
+        const newAnomalyChartData = ALL_CHART_TYPES.map(type => {
+            const name = type === 'other' ? 'AI 탐지' : getAnomalyName(type as AnomalyType);
+            const color = type === 'other' ? [255, 159, 64] : getAnomalyColor(type as AnomalyType);
             return {
                 type: type,
-                name: getAnomalyName(type),
-                count: count,
-                color1: `rgb(${getAnomalyColor(type).join(', ')})`,
-                color2: `rgb(${getAnomalyColor(type).join(', ')})`,
+                name: name,
+                count: countsByType[type] || 0,
+                color1: `rgb(${color.join(', ')})`,
+                color2: `rgb(${color.join(', ')})`,
             };
         });
+
+        const newVennDiagramData = [
+            { sets: ['룰 기반'], value: ruleBasedOnlyCount },
+            { sets: ['AI 기반'], value: aiBasedOnlyCount },
+            { sets: ['룰 기반', 'AI 기반'], value: intersectionCount },
+        ];
+
         const STAGES = [
             { from: 'Factory', to: 'WMS', name: '공장 → 창고' },
             { from: 'WMS', to: 'LogiHub', name: '창고 → 물류' },
@@ -317,7 +355,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         return {
             anomalyChartData: newAnomalyChartData,
             stageChartData: newStageChartData,
-            eventTimelineData: newEventTimelineData
+            eventTimelineData: newEventTimelineData,
+            vennDiagramData: newVennDiagramData,
         };
     }, [chartDataSource, nodes, isLoading]);
 
@@ -392,7 +431,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const value: DashboardContextType = {
         user, isAuthLoading, coverData,
         kpiData, anomalyTrips, allTripsForMap, inventoryData, nodes, productAnomalyData,
-        anomalyChartData, stageChartData, eventTimelineData,
+        anomalyChartData, stageChartData, eventTimelineData, vennDiagramData,
         isLoading, isFetchingMore, nextCursor, selectedFileId, selectedFactoryName, uploadHistory, selectedFileName,
         isHistoryModalOpen, calculatedReportKpis,
         viewProps, minTime, maxTime,

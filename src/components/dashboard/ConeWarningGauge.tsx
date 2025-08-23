@@ -7,7 +7,7 @@ type ConeWarningGaugeProps = {
 }
 
 export default function ConeWarningGauge({rate}:ConeWarningGaugeProps) {
-    const totalSegments = 40;
+    const totalSegments = 30;
     const maxValue = 100;
     
     const safeRate = isNaN(rate) ? 0 : Math.max(0, Math.min(rate, 100));
@@ -19,7 +19,7 @@ export default function ConeWarningGauge({rate}:ConeWarningGaugeProps) {
         fill: i < filledSegments ? 'rgba(121,141,185)' : '#ffffff',
     }));
     return (
-        <div className="relative w-56 h-56">
+        <div className="relative w-44 h-44">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Pie
@@ -42,9 +42,9 @@ export default function ConeWarningGauge({rate}:ConeWarningGaugeProps) {
                 </PieChart>
             </ResponsiveContainer>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-5xl font-bold text-white font-lato">{safeRate.toFixed(2)}</p>
-                <p className="text-base text-[#E0E0E0] mt-1">%</p>
+            <div className="absolute inset-0 flex items-center justify-center gap-1 pointer-events-none">
+                <span className="text-5xl font-bold text-white font-lato">{safeRate.toFixed(2)}</span>
+                <span className="text-base text-[#E0E0E0] mt-1">%</span>
             </div>
         </div>
     );

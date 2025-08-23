@@ -1,7 +1,7 @@
 import { LocationNode, AnomalyType } from './data';
 import type { Color } from 'deck.gl';
 
-export const ALL_ANOMALY_TYPES: AnomalyType[] = ['fake', 'tamper', 'clone', 'other'];
+export const ALL_ANOMALY_TYPES: AnomalyType[] = ['fake', 'tamper', 'clone'];
 
 export const ANOMALY_TYPE_COLORS: Record<AnomalyType, Color> = {
     'fake': [215, 189, 226, 200],   

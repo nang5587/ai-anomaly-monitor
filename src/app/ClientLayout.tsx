@@ -61,7 +61,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (isLoading || !user) {
         return (
             <div className="bg-black h-screen flex items-center justify-center">
-                <p className="text-white">사용자 정보를 불러오는 중...</p>
+                <p className="text-white"></p>
             </div>
         );
     }

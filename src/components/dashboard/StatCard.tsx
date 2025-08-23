@@ -3,18 +3,16 @@ import React, { ReactNode } from 'react';
 interface StatCardProps {
     title: string;
     value: string;
-    change?: string;
-    changeType?: 'increase' | 'decrease';
     icon?: ReactNode;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon }) => {
     return (
-        <div className='flex items-center'>
-            <div className="bg-[rgba(40,40,40)] p-8 rounded-3xl flex items-center justify-center">
+        <div className='flex items-center justify-center'>
+            <div className="bg-[rgba(40,40,40)] p-8 rounded-xl flex items-center justify-center">
                 {React.isValidElement(icon) ?
                     React.cloneElement(icon as React.ReactElement, {
-                        className: `${icon.props.className || ''} w-10 h-10`
+                        className: `${icon.props.className || ''} w-12 h-12`
                     })
                     : icon
                 }

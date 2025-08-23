@@ -2,35 +2,54 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSetAtom } from 'jotai';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAtomValue, useSetAtom } from 'jotai';
+import {
+    tripsAtom,
+    selectTripAndFocusAtom
+} from '@/stores/mapDataAtoms';
 import { activeTabAtom } from '@/stores/mapDataAtoms';
-import { motion } from 'framer-motion';
 
-import { useDashboard } from '@/context/dashboardContext';
-import { AnomalyTripTable } from '@/components/visual/AnomalyTripTable';
-import GaugeChart from '@/components/dashboard/GaugeChart';
-import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
+import { motion, type Variants } from 'framer-motion';
+
+import { type Tab } from '@/components/visual/SupplyChainDashboard';
 import { MergeTrip } from '@/context/MapDataContext';
 
-// -- 위젯들을 감싸는 공용 컴포넌트 (코드 재사용성 향상) --
-const DashboardWidget = ({ title, children, className }: { title: string, children: React.ReactNode, className?: string }) => (
-    <div className={`bg-[rgba(45,45,45)] rounded-2xl p-4 flex flex-col ${className}`}>
-        <h3 className="text-white font-noto-500 mb-2 text-center">{title}</h3>
-        <div className="flex-grow flex items-center justify-center w-full h-full">
-            {children}
-        </div>
-    </div>
+import { useDashboard } from '@/context/dashboardContext';
+
+import StatCard from '@/components/dashboard/StatCard';
+import { DashboardMapWidget } from '../../components/dashboard/widget/DashboardMapWidget';
+import { AnomalyTripTable } from '@/components/visual/AnomalyTripTable';
+import Loading from '@/components/Loading';
+import UploadHistoryModal from '@/components/dashboard/UploadHistoryModal';
+import FactoryIcon from '@/components/ui/FactoryIcon';
+import VennDiagramChart from '@/components/dashboard/VennDiagramChart';
+import AnomalyRateBar from '@/components/dashboard/AnomalyRateBar';
+import dynamic from 'next/dynamic';
+
+const DynamicAnomalyChart = dynamic(
+    () => import('@/components/dashboard/AnomalyEventsChart'),
+    { ssr: false }
+);
+const DynamicInventoryChart = dynamic(
+    () => import('@/components/dashboard/DataBalanceRadarChart'),
+    { ssr: false }
+);
+const DynamicProductChart = dynamic(
+    () => import('@/components/dashboard/ProductAnomalyChart'),
+    { ssr: false });
+const DynamicTimelineChart = dynamic(
+    () => import('@/components/dashboard/AnomalyTimelineChart'),
+    { ssr: false });
+const DynamicStageLollipopChart = dynamic(
+    () => import('@/components/dashboard/StageLollipopChart'),
+    { ssr: false }
 );
 
-// -- 오른쪽 KPI 알약들을 위한 컴포넌트 --
-const KpiPill = ({ label, value }: { label: string, value: string | number }) => (
-    <div className="bg-[rgba(45,45,45)] rounded-full text-center py-3 px-6">
-        <p className="text-white text-lg font-noto-500">{label}</p>
-        <p className="text-gray-300 text-sm">{value}</p>
-    </div>
-);
-
+import {
+    AlertTriangle, CircleHelp,
+    History, Download
+} from "lucide-react";
 
 export default function SupervisorDashboard() {
     const router = useRouter();
@@ -39,125 +58,317 @@ export default function SupervisorDashboard() {
     const {
         kpiData,
         anomalyTrips,
+        allTripsForMap,
+        inventoryData,
+        nodes,
+        productAnomalyData,
+        anomalyChartData,
+        vennDiagramData,
+        stageChartData,
+        eventTimelineData,
+        isAuthLoading,
         isLoading,
         user,
+        isFetchingMore,
+        nextCursor,
         selectedFileName,
         selectedFileId,
         isHistoryModalOpen,
         uploadHistory,
+        viewProps,
+        minTime,
+        maxTime,
         handleFileSelect,
         handleLoadMore,
+        clearFilters,
         openHistoryModal,
         closeHistoryModal,
     } = useDashboard();
 
-    // -- 로딩 및 인증 상태 처리는 기존과 동일 --
-    if (isLoading && !kpiData) return <div className="h-screen bg-black flex items-center justify-center text-white"><p>대시보드 데이터를 불러오는 중입니다...</p></div>;
-    if (!user) return <div className="h-screen bg-black flex items-center justify-center text-white"><p>접근 권한이 없습니다.</p></div>;
-    if (!kpiData) return <div className="h-screen bg-black flex items-center justify-center text-white"><p>분석할 파일을 선택해주세요.</p></div>;
+    const [isTooltipVisible, setIsTooltipVisible] = useState(false);
 
-    // --- 새로운 레이아웃을 위한 데이터 계산 ---
-    const totalEvents = 1000000;
-    const anomalyEvents = kpiData.anomalyCount;
-    const anomalyPercentage = (anomalyEvents / totalEvents) * 100;
+    const trips = useAtomValue(tripsAtom);
+    const selectTripAndFocus = useSetAtom(selectTripAndFocusAtom);
+
+    const handleWidgetClick = () => {
+        setActiveTab('heatmap');
+        router.push(`/map?fileId=${selectedFileId}`);
+    };
+
+    const handleFileUpload = async () => {
+        router.push('/upload');
+    };
+
+    const handleDownloadReport = () => {
+        if (!selectedFileId) {
+            alert("보고서를 생성할 파일을 먼저 선택해주세요.");
+            return;
+        }
+        router.push(`/supervisor/report?fileId=${selectedFileId}`);
+    };
+
+    const formatNumberCompact = (num: number): string => {
+        if (isNaN(num)) return '0';
+
+        const formatter = new Intl.NumberFormat('en-US', {
+            notation: 'compact',
+            maximumFractionDigits: 1,
+        });
+        return formatter.format(num);
+    };
+
+    if (!user) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
+                <p>접근 권한이 없습니다. 로그인 페이지로 이동합니다.</p>
+            </div>
+        );
+    }
+
+    if (isLoading && !kpiData) {
+        return (
+            <Loading />
+        );
+    }
+
+    if (!kpiData) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
+                <p className="text-xl"></p>
+            </div>
+        )
+    }
+
+    const containerVariants: Variants = {
+        hidden: { opacity: 1 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.2,
+            },
+        },
+    };
+
+    const itemVariants: Variants = {
+        hidden: {
+            y: 30,
+            opacity: 0,
+            scale: 0.98
+        },
+        visible: {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            transition: {
+                type: "spring",
+                damping: 15,
+                stiffness: 100,
+                duration: 0.8,
+            },
+        },
+    };
+
+    const handleRowClick = (trip: MergeTrip) => {
+        if (!selectedFileId) {
+            console.error("파일 ID가 선택되지 않아 지도로 이동할 수 없습니다.");
+            return;
+        }
+        setActiveTab('anomalies');
+        selectTripAndFocus(trip);
+        router.push(`/map?fileId=${selectedFileId}`);
+    };
+
+    const anomalyPercentage = kpiData.anomalyRate * 100;
 
     return (
-        <div className="bg-black text-white w-full h-full p-6 font-noto-400 overflow-y-auto">
+        <div className="h-screen grid grid-rows-[auto_1fr] bg-black overflow-y-auto hide-scrollbar">
             <UploadHistoryModal
                 isOpen={isHistoryModalOpen}
                 onClose={closeHistoryModal}
                 files={uploadHistory}
                 onFileSelect={handleFileSelect}
             />
+            <motion.div
+                className="px-8 space-y-4 "
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                <div className='flex items-center justify-between mb-6'>
+                    <motion.h2 variants={itemVariants} className="font-vietnam text-white text-[50px] whitespace-nowrap">Supervisor<br />DashBoard</motion.h2>
+                    <motion.div
+                        className="col-span-8 grid grid-cols-6 gap-8 h-[120px] items-center mr-4"
+                        variants={containerVariants}
+                    >
+                        <motion.div variants={itemVariants}>
+                            <div className="flex items-center justify-end gap-2">
+                                <button onClick={openHistoryModal} className='bg-[rgba(111,131,175)] rounded-full p-4'>
+                                    <History className="h-6 w-6 text-white" />
+                                </button>
+                                <button onClick={handleDownloadReport} className='bg-[rgba(50,50,50)] rounded-full p-4'>
+                                    <Download className="h-6 w-6 text-white" />
+                                </button>
+                            </div>
+                        </motion.div>
+                        <motion.div variants={itemVariants} className="col-span-4">
+                            <AnomalyRateBar
+                                title="이상 발생 비율"
+                                percentage={anomalyPercentage}
+                            />
+                        </motion.div>
+                        <motion.div variants={itemVariants}>
+                            <StatCard
+                                title="탐지된 이상 이벤트(건)"
+                                value={kpiData.anomalyCount.toString()}
+                                icon={<AlertTriangle className="text-[#E0E0E0]" />}
+                            />
+                        </motion.div>
+                    </motion.div>
+                </div>
+            </motion.div>
 
-            {/* 1. 최상단 정보 바 */}
-            <header className="bg-[rgba(45,45,45)] w-full p-3 rounded-t-2xl flex justify-between items-center text-lg">
-                <p>2025.08.23. 오후 8:00</p>
-                <p>File: {selectedFileName || '선택된 파일 없음'}</p>
-            </header>
+            <div className="px-8 pb-[0px]">
+                <motion.div
+                    className="space-y-4"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                >
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <motion.div variants={itemVariants} className="lg:col-span-6 h-full flex flex-col">
+                            <div className="grid grid-cols-2 gap-6 h-full">
+                                <div className="relative bg-[#E0E0E0] p-4 rounded-2xl shadow flex flex-col gap-6">
+                                    <div
+                                        className="absolute top-4 right-4"
+                                        onMouseEnter={() => setIsTooltipVisible(true)}
+                                        onMouseLeave={() => setIsTooltipVisible(false)}
+                                    >
+                                        <button title="도움말 보기">
+                                            <CircleHelp className="w-6 h-6 text-[rgba(111,131,175)] cursor-pointer" />
+                                        </button>
+                                        {isTooltipVisible && (
+                                            <div className="absolute top-12 right-0 mb-2 w-80 p-4 bg-[#E0E0E0] border-2 border-[rgba(111,131,175)] text-white rounded-lg shadow-xl z-20">
+                                                <h4 className="font-noto-500 text-[rgba(111,131,175)] text-lg mb-2 border-b border-[rgba(111,131,175)] pb-2">탐지 유형 안내</h4>
 
-            {/* 2. 메인 대시보드 그리드 */}
-            <main className="grid grid-cols-12 grid-rows-3 gap-6 h-[75vh]">
+                                                <div className="mb-3">
+                                                    <p className="text-lg text-[rgba(111,131,175)]">룰 기반 탐지 (Rule-based)</p>
+                                                    <p className="text-md text-gray-600 mt-1">
+                                                        사전에 정의된 명확한 비즈니스 규칙(Rule)을 위반하는 이벤트를 식별합니다.
+                                                    </p>
+                                                    <ul className="list-disc list-inside text-md text-gray-500 mt-2 space-y-1">
+                                                        <li><strong>위조(Fake):</strong> 등록되지 않은 EPC 코드가 시스템에 등장</li>
+                                                        <li><strong>변조(Tamper):</strong> EPC 코드의 구조적 비정상성 감지</li>
+                                                        <li><strong>복제(Clone):</strong> 동일 코드가 비정상적 시간/장소에서 동시 사용</li>
+                                                    </ul>
+                                                </div>
 
-                {/* 왼쪽 게이지 차트 섹션 (3컬럼, 3로우 차지) */}
-                <div className="col-span-3 row-span-3 bg-[rgba(30,30,30)] rounded-2xl flex flex-col items-center justify-around p-4">
-                    <h2 className="text-xl font-noto-500">방금 만든 반원 차트 들어갈 곳</h2>
-                    <div className="relative">
-                        <GaugeChart
-                            progress={anomalyPercentage}
-                            size={280} // 크기 조절
-                            strokeWidth={30}
-                            segments={30}
-                            gradientFrom="#3b82f6" // 파란색 계열로 변경
-                            gradientTo="#60a5fa"
+                                                <div>
+                                                    <p className="text-lg text-[rgba(111,131,175)]">AI 기반 탐지 (AI-based)</p>
+                                                    <p className="text-md text-gray-600 mt-1">
+                                                        과거 물류 데이터의 복합적인 패턴을 학습한 AI 모델이 정상 범주를 벗어나는 이벤트를 '이상치(Anomaly)'로 판단하여 탐지합니다.<br />
+                                                        이는 개별 규칙으로는 식별하기 어려운 미묘하고 복합적인 이상 신호를 찾아내는 데 효과적입니다.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col flex-1 min-h-[300px]">
+                                        <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-2 pb-2 flex-shrink-0">
+                                            이상 탐지 유형별 건수
+                                        </h3>
+                                        <div className="flex-grow relative">
+                                            <div className="absolute inset-0">
+                                                <DynamicAnomalyChart data={anomalyChartData} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col flex-1 min-h-[300px]">
+                                        <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-2 pb-2 flex-shrink-0">
+                                            룰 기반 vs AI 기반 탐지 분석
+                                        </h3>
+                                        <div className="flex-grow relative">
+                                            <div className="absolute inset-0 p-2">
+                                                <VennDiagramChart data={vennDiagramData} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-6">
+                                    <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
+                                        <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">요일별 이상 이벤트 추이</h3>
+                                        <div className="flex-grow overflow-hidden">
+                                            <DynamicTimelineChart data={eventTimelineData} />
+                                        </div>
+                                    </div>
+                                    <div className="bg-[rgba(40,40,40)] px-4 pt-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
+                                        <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트 추이</h3>
+                                        <div className="flex-grow overflow-hidden">
+                                            <DynamicStageLollipopChart data={stageChartData} />
+                                        </div>
+                                    </div>
+                                    <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
+                                        <h3 className="font-noto-500 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">제품별 이상 이벤트 추이</h3>
+                                        <div className="flex-grow overflow-hidden">
+                                            <DynamicProductChart data={productAnomalyData} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                        <motion.div variants={itemVariants} className="lg:col-span-3 h-full">
+                            <DashboardMapWidget
+                                onWidgetClick={handleWidgetClick}
+                            />
+                        </motion.div>
+                        <motion.div variants={itemVariants} className="flex flex-col lg:col-span-3 h-full gap-6">
+                            <div className="relative min-h-[380px] font-noto-400">
+                                <FactoryIcon className="h-full shadow" />
+                                <div className="absolute inset-0 z-10 top-0 left-0 p-4">
+                                    <h3 className=" text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">전체 물류 성과</h3>
+                                </div>
+                                <div className="absolute inset-0 z-10 top-12 flex-grow grid grid-cols-2 grid-rows-2 gap-4 mt-4 p-6">
+                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
+                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
+                                        <p className="text-sm text-gray-300">판매율</p>
+                                        <p className="text-5xl font-bold font-lato text-white">{kpiData.salesRate}<span className="text-xl">%</span></p>
+                                    </div>
+                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
+                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
+                                        <p className="text-sm text-gray-300">출고율</p>
+                                        <p className="text-5xl font-bold text-white font-lato">{kpiData.dispatchRate}<span className="text-xl">%</span></p>
+                                    </div>
+                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
+                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
+                                        <p className="text-sm text-gray-300">평균 리드타임</p>
+                                        <p className="text-5xl font-bold text-white font-lato">{kpiData.avgLeadTime.toFixed(1)}<span className="text-xl">일</span></p>
+                                    </div>
+                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
+                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
+                                        <p className="text-sm text-gray-300">총 품목 수</p>
+                                        <p className="text-5xl font-bold text-white font-lato">{formatNumberCompact(kpiData.codeCount)}<span className="text-xl">개</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
+                                <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
+                                <div className="flex-grow overflow-hidden">
+                                    <DynamicInventoryChart data={inventoryData} />
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                    <motion.div variants={itemVariants}>
+                        <h3 className="font-noto-400 text-white text-2xl mb-4 font-vietnam mt-10">Anomaly List</h3>
+                        <AnomalyTripTable
+                            trips={anomalyTrips}
+                            onRowClick={handleRowClick}
+                            isLoading={isLoading}
+                            itemsPerPage={15}
                         />
-                        <p className="absolute bottom-[25%] right-0 text-blue-400 font-bold text-lg">
-                            {anomalyPercentage.toFixed(1)}%
-                        </p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-gray-400 text-lg">총 이상탐지 이벤트</p>
-                        <p className="text-white text-6xl font-bold my-1">{anomalyEvents}</p>
-                        <p className="text-gray-600">/ {totalEvents.toLocaleString()}</p>
-                    </div>
-                </div>
-
-                {/* 중앙 그리드 아이템들 */}
-                <div className="col-span-6 row-span-2 rounded-2xl bg-[rgba(91,111,155,0.7)] flex items-center justify-center">
-                    <p className="text-2xl">만들 예정...</p>
-                </div>
-
-                <div className="col-span-2 row-span-2">
-                    <DashboardWidget title="지도 위젯">
-                        {/* 여기에 지도 관련 컴포넌트나 이미지를 넣을 수 있습니다. */}
-                        <p className="text-gray-400">지도 위젯</p>
-                    </DashboardWidget>
-                </div>
-
-                <div className="col-span-2">
-                    <DashboardWidget title="요일별 추이">
-                        <p className="text-gray-400">차트</p>
-                    </DashboardWidget>
-                </div>
-
-                <div className="col-span-2 bg-[rgba(91,111,155,0.7)] rounded-2xl flex items-center justify-center">
-                    <p className="text-white">제품별 추이</p>
-                </div>
-
-                <div className="col-span-2">
-                    <DashboardWidget title="공급별 추이">
-                        <p className="text-gray-400">차트</p>
-                    </DashboardWidget>
-                </div>
-
-                <div className="col-span-2">
-                    <DashboardWidget title="재고분산">
-                        <p className="text-gray-400">차트</p>
-                    </DashboardWidget>
-                </div>
-
-                {/* 오른쪽 KPI 알약 섹션 (1컬럼, 3로우 차지) */}
-                <div className="col-span-1 row-span-3 flex flex-col justify-around">
-                    <KpiPill label="판매율" value={`${kpiData.salesRate.toFixed(1)}%`} />
-                    <KpiPill label="출고율" value={`${kpiData.dispatchRate.toFixed(1)}%`} />
-                    <KpiPill label="리드타임" value="미정" />
-                    <KpiPill label="EPC 수" value="미정" />
-                    <KpiPill label="제품 수" value="미정" />
-                </div>
-            </main>
-
-            {/* 3. 하단 AI 분석 결과 리스트 */}
-            <footer className="mt-6">
-                <h2 className="text-xl text-gray-400 mb-4">AI 분석 결과 리스트 (스크롤해서 내려야 보일듯)</h2>
-                <div className="bg-[rgba(30,30,30)] p-4 rounded-2xl">
-                    <AnomalyTripTable
-                        trips={anomalyTrips}
-                        onRowClick={() => { }} // 행 클릭 이벤트 핸들러 연결 필요
-                        isLoading={isLoading}
-                        itemsPerPage={10}
-                    />
-                </div>
-            </footer>
-        </div>
+                    </motion.div>
+                </motion.div>
+            </div >
+        </div >
     );
 }

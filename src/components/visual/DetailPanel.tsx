@@ -192,9 +192,9 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                         <span className="text-white">{lastEvent.scanLocation}</span>
 
                         <div className="col-span-2 mt-2 pt-2 border-t border-white/20"></div>
-                        <span className="text-[#faa35c]">이상 경로 출발</span>
+                        <span className="text-[#FFBA69]">이상 경로 출발</span>
                         <span className="text-white">{selectedTrip.from.scanLocation}</span>
-                        <span className="text-[#faa35c]">이상 경로 도착</span>
+                        <span className="text-[#FFBA69]">이상 경로 도착</span>
                         <span className="text-white">{selectedTrip.to.scanLocation}</span>
                     </div>
                 </div>
@@ -238,7 +238,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                                                                 {event.scanLocation}
                                                             </span>
                                                         </div>
-                                                        <div className={`text-sm mt-2 ${isCurrentStepAnomaly || isPathToNextNodeAnomaly ? 'text-[#faa35c]' : 'text-blue-300'}`}>
+                                                        <div className={`text-sm mt-2 ${isCurrentStepAnomaly || isPathToNextNodeAnomaly ? 'text-[#FFBA69]' : 'text-blue-300'}`}>
                                                             {new Date(event.eventTime).toLocaleString('ko-KR', {
                                                                 year: 'numeric', month: '2-digit', day: '2-digit',
                                                                 hour: '2-digit', minute: '2-digit'
@@ -269,7 +269,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ selectedTrip, onClose 
                         <h4 className="text-lg mb-4 text-white">이상 현상 분석</h4>
                         <div className="p-4 bg-[#2A2A2A] rounded-lg text-base space-y-2">
                             <p>
-                                <p className="text-[#faa35c]">유형</p>
+                                <p className="text-[#FFBA69]">유형</p>
                                 {selectedTrip.anomalyTypeList
                                     .map(type => anomalyCodeToNameMap[type as AnomalyType] || type)
                                     .join(', ')}

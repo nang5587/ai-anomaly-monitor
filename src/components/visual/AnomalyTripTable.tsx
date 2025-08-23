@@ -10,7 +10,7 @@ import { Pagination } from '@/components/ui/Pagination';
 type SortKey = 'productName' | 'epcCode' | 'from' | 'to' | 'anomalyType' | 'eventTime' | 'anomaly';
 type SortDirection = 'asc' | 'desc';
 
-const ANOMALY_PERCENTAGE_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '50', 10);
+const ANOMALY_PERCENTAGE_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '70', 10);
 
 interface AnomalyTripTableProps {
     trips: MergeTrip[];
@@ -127,10 +127,10 @@ export const AnomalyTripTable: React.FC<AnomalyTripTableProps> = ({
                                     <td className="p-4 whitespace-nowrap">{trip.to.scanLocation}</td>
                                     <td className="p-4">
                                         {trip.anomalyTypeList && trip.anomalyTypeList.length > 0 ? (
-                                            <span className="px-2 py-1 text-[#FF9945] text-xs">{trip.anomalyTypeList.map(getAnomalyName).join(', ')}</span>
-                                        ) : (<span className="px-2 py-1 text-xs">-</span>)}
+                                            <span className="px-2 py-1 text-[#FFBA69]">{trip.anomalyTypeList.map(getAnomalyName).join(', ')}</span>
+                                        ) : (<span className="px-2 py-1">-</span>)}
                                     </td>
-                                    <td className={`p-4 font-normal ${trip.anomaly >= ANOMALY_PERCENTAGE_THRESHOLD ? 'text-[#FF9945]' : ''}`}>
+                                    <td className={`p-4 font-normal ${trip.anomaly >= ANOMALY_PERCENTAGE_THRESHOLD ? 'text-[#FFBA69]' : ''}`}>
                                         {trip.anomaly}%
                                     </td>
                                 </tr>

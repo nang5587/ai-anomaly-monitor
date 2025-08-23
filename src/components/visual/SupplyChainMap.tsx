@@ -383,7 +383,7 @@ export const SupplyChainMap: React.FC = () => {
                 z-index: 5;
                 }
                 .sequential-marker.anomaly-marker {
-                background-color: #faa35c;
+                background-color: #FFBA69;
                 }
             `}</style>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>

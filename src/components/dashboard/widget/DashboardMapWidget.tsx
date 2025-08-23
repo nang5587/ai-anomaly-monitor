@@ -70,6 +70,9 @@ export const DashboardMapWidget: React.FC<DashboardMapWidgetProps> = ({ onWidget
                         />
                     </motion.div>
                 )}
+                <div className="absolute inset-0 z-10 top-0 left-0 p-4">
+                    <h3 className=" text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">이상 발생 밀집도</h3>
+                </div>
             </AnimatePresence>
         </div>
     );
