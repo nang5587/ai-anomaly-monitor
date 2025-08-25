@@ -43,8 +43,8 @@ interface VennDiagramChartProps {
 const VennDiagramChart: React.FC<VennDiagramChartProps> = ({ data, title }) => {
     const colors = {
         rule: 'rgb(111, 131, 175)',
-        ai: 'rgb(255, 186, 105)',
-        intersection: 'rgb(253, 131, 109)',
+        ai: 'rgb(224, 224, 224)',
+        intersection: 'rgb(254, 168, 153)',
     };
     const labels = {
         rule: '룰 기반',
@@ -58,10 +58,10 @@ const VennDiagramChart: React.FC<VennDiagramChartProps> = ({ data, title }) => {
                 data: data,
                 backgroundColor: [
                     `rgba(${colors.rule.match(/\d+/g)?.join(', ')}, 0.6)`,
-                    `rgba(${colors.ai.match(/\d+/g)?.join(', ')}, 0.6)`,
+                    `rgba(${colors.ai.match(/\d+/g)?.join(', ')}, 0.7)`,
                     `rgba(${colors.intersection.match(/\d+/g)?.join(', ')}, 0.6)`,
                 ],
-                borderColor: [colors.rule, colors.ai, colors.intersection],
+                borderColor: ['#93c5fd', '#ffffff', colors.intersection],
                 borderWidth: 1,
                 labels: {
                     display: false,
@@ -91,14 +91,14 @@ const VennDiagramChart: React.FC<VennDiagramChartProps> = ({ data, title }) => {
                                 text: labels.rule,
                                 fillStyle: colors.rule,
                                 fontColor: 'gray',
-                                strokeStyle: colors.rule,
+                                strokeStyle: '#93c5fd',
                                 lineWidth: 1,
                             },
                             {
                                 text: labels.ai,
                                 fillStyle: colors.ai,
                                 fontColor: 'gray',
-                                strokeStyle: colors.ai,
+                                strokeStyle: '#ffffff',
                                 lineWidth: 1,
                             },
                             {

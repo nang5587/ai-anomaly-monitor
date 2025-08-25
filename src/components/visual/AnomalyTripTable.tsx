@@ -6,6 +6,9 @@ import { MergeTrip } from '@/context/MapDataContext';
 import { getAnomalyName } from '@/types/colorUtils';
 import { ArrowUpDown } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
+import AnomalyFilterTabs from './AnomalyFilterTabs';
+import { useAtom } from 'jotai';
+import { anomalyFilterAtom } from '@/stores/mapDataAtoms';
 
 type SortKey = 'productName' | 'epcCode' | 'from' | 'to' | 'anomalyType' | 'eventTime' | 'anomaly';
 type SortDirection = 'asc' | 'desc';
@@ -25,25 +28,21 @@ export const AnomalyTripTable: React.FC<AnomalyTripTableProps> = ({
     isLoading = false,
     itemsPerPage = 15,
 }) => {
-    const [activeFilter, setActiveFilter] = useState<string>('전체');
     const [sortKey, setSortKey] = useState<SortKey>('eventTime');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedFilter, setSelectedFilter] = useAtom(anomalyFilterAtom);
 
     const processedTrips = useMemo(() => {
-        let filtered = [...trips];
-        if (activeFilter !== '전체') {
-            const filterKeyMap: Record<string, AnomalyType | 'other'> = {
-                '위조': 'fake', '변조': 'tamper', '복제': 'clone', 'AI탐지': 'other'
-            };
-            const filterKey = filterKeyMap[activeFilter];
-            if (filterKey === 'other') {
-                filtered = trips.filter(trip => trip.anomaly >= ANOMALY_PERCENTAGE_THRESHOLD);
-            } else if (filterKey) {
-                filtered = trips.filter(trip => trip.anomalyTypeList.includes(filterKey as AnomalyType));
+        let filteredTrips = [...trips];
+        if (selectedFilter) { 
+            if (selectedFilter === 'other') {
+                filteredTrips = trips.filter(trip => (trip.anomaly ?? 0) >= ANOMALY_PERCENTAGE_THRESHOLD);
+            } else {
+                filteredTrips = trips.filter(trip => trip.anomalyTypeList?.includes(selectedFilter as AnomalyType));
             }
         }
-        filtered.sort((a, b) => {
+        filteredTrips.sort((a, b) => {
             let valA: string | number, valB: string | number;
             switch (sortKey) {
                 case 'productName': valA = a.productName; valB = b.productName; break;
@@ -64,8 +63,8 @@ export const AnomalyTripTable: React.FC<AnomalyTripTableProps> = ({
             if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
-        return filtered;
-    }, [trips, activeFilter, sortKey, sortDirection]);
+        return filteredTrips;
+    }, [trips, selectedFilter, sortKey, sortDirection]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -96,12 +95,8 @@ export const AnomalyTripTable: React.FC<AnomalyTripTableProps> = ({
 
     return (
         <div className="w-full h-full flex flex-col pb-20">
-            <div className="flex-shrink-0 mb-4 p-1 flex items-center gap-1 bg-[#2A2A2A] rounded-lg w-fit">
-                {['전체', '위조', '변조', '복제', 'AI탐지'].map(filter => (
-                    <button key={filter} onClick={() => setActiveFilter(filter)}
-                        className={`px-4 py-2 rounded-md text-sm transition-colors cursor-pointer ${activeFilter === filter ? 'bg-[rgba(111,131,175)] text-white shadow-md border-2 border-blue-300' : 'bg-[#2A2A2A] text-gray-300/70 hover:bg-gray-600'}`}
-                    >{filter}</button>
-                ))}
+            <div className="flex-shrink-0 mb-4 flex items-center">
+                <AnomalyFilterTabs disabled={isLoading} />
             </div>
 
             <div className="text-white mb-2 text-sm">총 {processedTrips.length}개의 결과</div>

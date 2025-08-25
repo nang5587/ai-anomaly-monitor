@@ -195,37 +195,44 @@ export default function SupervisorDashboard() {
                 initial="hidden"
                 animate="visible"
             >
-                <div className='flex items-center justify-between mb-6'>
-                    <motion.h2 variants={itemVariants} className="font-vietnam text-white text-[50px] whitespace-nowrap">Supervisor<br />DashBoard</motion.h2>
-                    <motion.div
-                        className="col-span-8 grid grid-cols-6 gap-8 h-[120px] items-center mr-4"
-                        variants={containerVariants}
+                <motion.div
+                    className='grid grid-cols-4 items-center gap-8 mb-6'
+                    variants={containerVariants}
+                >
+                    <motion.h2
+                        variants={itemVariants}
+                        className="col-span-1 font-vietnam text-white text-[50px] whitespace-nowrap"
                     >
-                        <motion.div variants={itemVariants}>
-                            <div className="flex items-center justify-end gap-2">
-                                <button onClick={openHistoryModal} className='bg-[rgba(111,131,175)] rounded-full p-4'>
-                                    <History className="h-6 w-6 text-white" />
-                                </button>
-                                <button onClick={handleDownloadReport} className='bg-[rgba(50,50,50)] rounded-full p-4'>
-                                    <Download className="h-6 w-6 text-white" />
-                                </button>
-                            </div>
-                        </motion.div>
-                        <motion.div variants={itemVariants} className="col-span-4">
-                            <AnomalyRateBar
-                                title="이상 발생 비율"
-                                percentage={anomalyPercentage}
-                            />
-                        </motion.div>
-                        <motion.div variants={itemVariants}>
-                            <StatCard
-                                title="탐지된 이상 이벤트(건)"
-                                value={kpiData.anomalyCount.toString()}
-                                icon={<AlertTriangle className="text-[#E0E0E0]" />}
-                            />
-                        </motion.div>
+                        Supervisor<br />DashBoard
+                    </motion.h2>
+                    <motion.div
+                        variants={itemVariants}
+                        className="col-span-2"
+                    >
+                        <AnomalyRateBar
+                            title="이상 발생 비율"
+                            percentage={anomalyPercentage}
+                        />
                     </motion.div>
-                </div>
+                    <motion.div
+                        variants={itemVariants}
+                        className="col-span-1 flex items-center justify-end gap-4"
+                    >
+                        <div className="flex items-end justify-end gap-2">
+                            <button onClick={openHistoryModal} className="cursor-pointer w-14 h-14 flex items-center justify-center hover:bg-[rgba(30,30,30)] text-white border border-gray-400 rounded-full"
+                                title='최근 csv 업로드 목록'
+                            >
+                                <History size={22} />
+                            </button>
+                            <button onClick={handleDownloadReport} className="cursor-pointer py-4 flex items-center gap-2 hover:bg-[rgba(30,30,30)] text-white border border-gray-400 px-6 rounded-[50px]" title='보고서 다운로드'><Download size={18} />Download Report</button>
+                        </div>
+                        {/* <StatCard
+                            title="탐지된 이상 이벤트(건)"
+                            value={kpiData.anomalyCount.toString()}
+                            icon={<AlertTriangle className="text-[#E0E0E0]" />}
+                        /> */}
+                    </motion.div>
+                </motion.div>
             </motion.div>
 
             <div className="px-8 pb-[0px]">
@@ -238,7 +245,7 @@ export default function SupervisorDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         <motion.div variants={itemVariants} className="lg:col-span-6 h-full flex flex-col">
                             <div className="grid grid-cols-2 gap-6 h-full">
-                                <div className="relative bg-[#E0E0E0] p-4 rounded-2xl shadow flex flex-col gap-6">
+                                <div className="relative bg-[rgba(40,40,40)] p-4 rounded-2xl shadow flex flex-col gap-6">
                                     <div
                                         className="absolute top-4 right-4"
                                         onMouseEnter={() => setIsTooltipVisible(true)}
@@ -248,15 +255,15 @@ export default function SupervisorDashboard() {
                                             <CircleHelp className="w-6 h-6 text-[rgba(111,131,175)] cursor-pointer" />
                                         </button>
                                         {isTooltipVisible && (
-                                            <div className="absolute top-12 right-0 mb-2 w-80 p-4 bg-[#E0E0E0] border-2 border-[rgba(111,131,175)] text-white rounded-lg shadow-xl z-20">
+                                            <div className="absolute top-12 right-0 mb-2 w-80 p-4 bg-[rgba(40,40,40)] border-2 border-[rgba(111,131,175)] text-white rounded-lg shadow-xl z-20">
                                                 <h4 className="font-noto-500 text-[rgba(111,131,175)] text-lg mb-2 border-b border-[rgba(111,131,175)] pb-2">탐지 유형 안내</h4>
 
                                                 <div className="mb-3">
                                                     <p className="text-lg text-[rgba(111,131,175)]">룰 기반 탐지 (Rule-based)</p>
-                                                    <p className="text-md text-gray-600 mt-1">
+                                                    <p className="text-md text-[#E0E0E0] mt-1">
                                                         사전에 정의된 명확한 비즈니스 규칙(Rule)을 위반하는 이벤트를 식별합니다.
                                                     </p>
-                                                    <ul className="list-disc list-inside text-md text-gray-500 mt-2 space-y-1">
+                                                    <ul className="list-disc list-inside text-md text-[#e0e0e0c7] mt-2 space-y-1">
                                                         <li><strong>위조(Fake):</strong> 등록되지 않은 EPC 코드가 시스템에 등장</li>
                                                         <li><strong>변조(Tamper):</strong> EPC 코드의 구조적 비정상성 감지</li>
                                                         <li><strong>복제(Clone):</strong> 동일 코드가 비정상적 시간/장소에서 동시 사용</li>
@@ -265,7 +272,7 @@ export default function SupervisorDashboard() {
 
                                                 <div>
                                                     <p className="text-lg text-[rgba(111,131,175)]">AI 기반 탐지 (AI-based)</p>
-                                                    <p className="text-md text-gray-600 mt-1">
+                                                    <p className="text-md text-[#E0E0E0] mt-1">
                                                         과거 물류 데이터의 복합적인 패턴을 학습한 AI 모델이 정상 범주를 벗어나는 이벤트를 '이상치(Anomaly)'로 판단하여 탐지합니다.<br />
                                                         이는 개별 규칙으로는 식별하기 어려운 미묘하고 복합적인 이상 신호를 찾아내는 데 효과적입니다.
                                                     </p>
@@ -274,7 +281,7 @@ export default function SupervisorDashboard() {
                                         )}
                                     </div>
                                     <div className="flex flex-col flex-1 min-h-[300px]">
-                                        <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-2 pb-2 flex-shrink-0">
+                                        <h3 className="font-noto-400 text-white text-2xl px-2 pb-2 flex-shrink-0">
                                             이상 탐지 유형별 건수
                                         </h3>
                                         <div className="flex-grow relative">
@@ -284,7 +291,7 @@ export default function SupervisorDashboard() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col flex-1 min-h-[300px]">
-                                        <h3 className="font-noto-500 text-[rgba(111,131,175)] text-xl px-2 pb-2 flex-shrink-0">
+                                        <h3 className="font-noto-400 text-white text-2xl px-2 pb-2 flex-shrink-0">
                                             룰 기반 vs AI 기반 탐지 분석
                                         </h3>
                                         <div className="flex-grow relative">
@@ -295,24 +302,62 @@ export default function SupervisorDashboard() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-6">
-                                    <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
-                                        <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">요일별 이상 이벤트 추이</h3>
-                                        <div className="flex-grow overflow-hidden">
-                                            <DynamicTimelineChart data={eventTimelineData} />
-                                        </div>
-                                    </div>
                                     <div className="bg-[rgba(40,40,40)] px-4 pt-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
-                                        <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트 추이</h3>
+                                        <h3 className="font-noto-400 text-white text-2xl px-3 pb-3 mb-2 flex-shrink-0">공급망 단계별 이상 이벤트 추이</h3>
                                         <div className="flex-grow overflow-hidden">
                                             <DynamicStageLollipopChart data={stageChartData} />
                                         </div>
                                     </div>
-                                    <div className="bg-[rgba(111,131,175)] p-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
-                                        <h3 className="font-noto-500 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">제품별 이상 이벤트 추이</h3>
+                                    <div className="bg-gradient-to-b from-[rgba(111,131,175)] to-[#8895b2] p-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
+                                        <h3 className="font-noto-400 text-white text-2xl px-3 pb-3 mb-2 flex-shrink-0">요일별 이상 이벤트 추이</h3>
+                                        <div className="flex-grow overflow-hidden">
+                                            <DynamicTimelineChart data={eventTimelineData} />
+                                        </div>
+                                    </div>
+                                    <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[240px] flex flex-col flex-grow">
+                                        <h3 className="font-noto-400 text-white text-2xl px-3 pb-3 mb-2 flex-shrink-0">제품별 이상 이벤트 추이</h3>
                                         <div className="flex-grow overflow-hidden">
                                             <DynamicProductChart data={productAnomalyData} />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                        <motion.div variants={itemVariants} className="flex flex-col lg:col-span-3 h-full gap-6">
+                            <div className="bg-[rgba(40,40,40)] rounded-2xl shadow pl-6 py-6 flex flex-col h-[380px]">
+                                <h3 className="font-noto-400 text-white text-2xl mb-4 flex-shrink-0">전체 물류 성과</h3>
+                                <div className="flex-grow flex items-center justify-between gap-6 h-full overflow-hidden">
+                                    <div className="flex-1 grid grid-cols-1 grid-rows-4 gap-2 h-full">
+                                        <div className="flex flex-col justify-center items-center rounded-lg py-2 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 cursor-pointer">
+                                            <p className="text-sm text-white/70">판매율</p>
+                                            <p className="text-2xl font-bold font-lato text-white mt-1">{kpiData.salesRate}<span className="text-lg">%</span></p>
+                                        </div>
+                                        <div className="flex flex-col justify-center items-center rounded-lg py-2 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 cursor-pointer">
+                                            <p className="text-sm text-white/70">출고율</p>
+                                            <p className="text-2xl font-bold font-lato text-white mt-1">{kpiData.dispatchRate}<span className="text-lg">%</span></p>
+                                        </div>
+                                        <div className="flex flex-col justify-center items-center rounded-lg py-2 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 cursor-pointer">
+                                            <p className="text-sm text-white/70">평균 리드타임</p>
+                                            <p className="text-2xl font-bold font-lato text-white mt-1">{kpiData.avgLeadTime.toFixed(1)}<span className="text-lg">일</span></p>
+                                        </div>
+                                        <div className="flex flex-col justify-center items-center rounded-lg py-2 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 cursor-pointer">
+                                            <p className="text-sm text-white/70">총 품목 수</p>
+                                            <p className="text-2xl font-bold font-lato text-white mt-1">{formatNumberCompact(kpiData.codeCount)}<span className="text-lg">개</span></p>
+                                        </div>
+                                    </div>
+                                    <div className="w-3/5 h-full flex-shrink-0">
+                                        <img
+                                            src="/images/car4.png"
+                                            alt="미래형 물류 트럭"
+                                            className="w-full h-full object-contain rounded-lg"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
+                                <h3 className="font-noto-400 text-white text-2xl px-3 pb-3 mb-2 flex-shrink-0">비지니스 스탭별 재고 분산</h3>
+                                <div className="flex-grow overflow-hidden">
+                                    <DynamicInventoryChart data={inventoryData} />
                                 </div>
                             </div>
                         </motion.div>
@@ -321,45 +366,9 @@ export default function SupervisorDashboard() {
                                 onWidgetClick={handleWidgetClick}
                             />
                         </motion.div>
-                        <motion.div variants={itemVariants} className="flex flex-col lg:col-span-3 h-full gap-6">
-                            <div className="relative min-h-[380px] font-noto-400">
-                                <FactoryIcon className="h-full shadow" />
-                                <div className="absolute inset-0 z-10 top-0 left-0 p-4">
-                                    <h3 className=" text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">전체 물류 성과</h3>
-                                </div>
-                                <div className="absolute inset-0 z-10 top-12 flex-grow grid grid-cols-2 grid-rows-2 gap-4 mt-4 p-6">
-                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
-                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
-                                        <p className="text-sm text-gray-300">판매율</p>
-                                        <p className="text-5xl font-bold font-lato text-white">{kpiData.salesRate}<span className="text-xl">%</span></p>
-                                    </div>
-                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
-                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
-                                        <p className="text-sm text-gray-300">출고율</p>
-                                        <p className="text-5xl font-bold text-white font-lato">{kpiData.dispatchRate}<span className="text-xl">%</span></p>
-                                    </div>
-                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
-                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
-                                        <p className="text-sm text-gray-300">평균 리드타임</p>
-                                        <p className="text-5xl font-bold text-white font-lato">{kpiData.avgLeadTime.toFixed(1)}<span className="text-xl">일</span></p>
-                                    </div>
-                                    <div className="flex flex-col justify-center items-center rounded-lg p-2 bg-white/10 backdrop-blur-sm border border-white/20 
-                                                    transition-all duration-300 hover:bg-white/20 cursor-pointer gap-1">
-                                        <p className="text-sm text-gray-300">총 품목 수</p>
-                                        <p className="text-5xl font-bold text-white font-lato">{formatNumberCompact(kpiData.codeCount)}<span className="text-xl">개</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-[rgba(40,40,40)] p-4 rounded-2xl shadow min-h-[380px] flex flex-col flex-grow">
-                                <h3 className="font-noto-400 text-white text-xl px-3 pb-3 mb-2 flex-shrink-0">유형별 재고 분산</h3>
-                                <div className="flex-grow overflow-hidden">
-                                    <DynamicInventoryChart data={inventoryData} />
-                                </div>
-                            </div>
-                        </motion.div>
                     </div>
                     <motion.div variants={itemVariants}>
-                        <h3 className="font-noto-400 text-white text-2xl mb-4 font-vietnam mt-10">Anomaly List</h3>
+                        <h3 className="font-noto-400 text-white text-2xl mb-4 font-vietnam mt-20">Anomaly List</h3>
                         <AnomalyTripTable
                             trips={anomalyTrips}
                             onRowClick={handleRowClick}

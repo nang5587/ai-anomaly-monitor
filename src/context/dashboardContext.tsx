@@ -266,8 +266,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             return { anomalyChartData: [], stageChartData: [], eventTimelineData: [], vennDiagramData: [] };
         }
 
-        const anomalyThreshold = parseFloat(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '0.5');
-        const thresholdValue = anomalyThreshold * 100;
+        const thresholdValue = parseFloat(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '50');
         const countsByType: Record<AnomalyType, number> = { fake: 0, tamper: 0, clone: 0, other: 0 };
         let ruleBasedOnlyCount = 0;
         let aiBasedOnlyCount = 0;

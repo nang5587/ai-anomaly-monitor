@@ -40,7 +40,7 @@ const AnomalyFilterTabs: React.FC<AnomalyFilterTabsProps> = ({disabled}) => {
         <div style={{
             display: 'flex',
             gap: '8px',
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backgroundColor: 'rgba(30, 30, 30)',
             padding: '6px',
             borderRadius: '9999px',
             backdropFilter: 'blur(8px)',

@@ -25,7 +25,7 @@ async function ensureTripCache() {
             if (!tripsRes.ok || !anomaliesRes.ok) {
                 throw new Error('Failed to fetch dummy data JSON');
             }
-            
+
             const tripsJson = await tripsRes.json();
             const anomaliesJson = await anomaliesRes.json();
 
@@ -35,7 +35,7 @@ async function ensureTripCache() {
             };
         } catch (error) {
             console.error(error);
-            tripDataCache = { trips: [], anomalies: [] }; 
+            tripDataCache = { trips: [], anomalies: [] };
         }
     }
 }
@@ -61,7 +61,7 @@ export async function getAnomalies(params: { fileId?: number, limit?: number, cu
     const allAnomalies = tripDataCache?.anomalies || [];
     const limit = params?.limit || 50;
     const startIndex = params?.cursor ? Number(params.cursor) : 0;
-    
+
     const paginatedData = allAnomalies.slice(startIndex, startIndex + limit);
     const nextCursor = (startIndex + limit < allAnomalies.length) ? (startIndex + limit).toString() : null;
 
@@ -79,11 +79,11 @@ export async function getAllAnomalies(params?: { fileId?: number }): Promise<Ana
 export async function getTrips(params?: { fileId?: number, limit?: number, cursor?: string }): Promise<PaginatedTripsResponse> {
     console.log(`[MOCK] getTrips from JSON with cursor: ${params?.cursor}`);
     await ensureTripCache();
-    
+
     const allTrips = tripDataCache?.trips || [];
     const limit = params?.limit || 50;
     const startIndex = params?.cursor ? Number(params.cursor) : 0;
-    
+
     const paginatedData = allTrips.slice(startIndex, startIndex + limit);
     const nextCursor = (startIndex + limit < allTrips.length) ? (startIndex + limit).toString() : null;
 
@@ -102,7 +102,7 @@ export async function getNodes(): Promise<LocationNode[]> {
 export async function getKpiSummary(params?: { fileId?: number }): Promise<KpiSummary> {
     console.log(`[MOCK] getKpiSummary calculated from JSON`);
     await ensureTripCache();
-    
+
     const totalTripCount = tripDataCache?.trips.length || 0;
     const anomalyCount = tripDataCache?.anomalies.length || 0;
 
@@ -134,20 +134,45 @@ export async function getInventoryDistribution(params?: { fileId?: number }): Pr
 export async function getAnomalyCountsByProduct(params?: { fileId?: number }): Promise<ByProductResponse> {
     console.log("[MOCK] getAnomalyCountsByProduct calculated from JSON");
     await ensureTripCache();
-    
+
+    const thresholdValue = parseFloat(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '50');
+
     const counts = (tripDataCache?.anomalies || []).reduce((acc, trip) => {
+        // 제품 이름이 없는 데이터는 건너뜁니다.
+        if (!trip.productName) return acc;
+
+        // 해당 제품에 대한 집계 객체가 없으면 초기화합니다.
         if (!acc[trip.productName]) {
-            acc[trip.productName] = { productName: trip.productName, fake: 0, tamper: 0, clone: 0, other: 0, total: 0 };
+            acc[trip.productName] = {
+                productName: trip.productName,
+                fake: 0,
+                tamper: 0,
+                clone: 0,
+                other: 0,
+                total: 0
+            };
         }
-        trip.anomalyTypeList.forEach(type => {
+
+        trip.anomalyTypeList?.forEach(type => {
             if (type in acc[trip.productName]) {
                 acc[trip.productName][type]++;
             }
         });
-        acc[trip.productName].total++;
+
+        const isAiBased = typeof trip.anomaly === 'number' && trip.anomaly >= thresholdValue;
+        if (isAiBased) {
+            acc[trip.productName].other++;
+        }
+
+        acc[trip.productName].total =
+            acc[trip.productName].fake +
+            acc[trip.productName].tamper +
+            acc[trip.productName].clone +
+            acc[trip.productName].other;
+
         return acc;
-    }, {} as Record<string, any>);
-    
+    }, {} as Record<string, { productName: string; fake: number; tamper: number; clone: number; other: number; total: number; }>);
+
     await mockDelay();
     return Object.values(counts);
 }
@@ -176,7 +201,7 @@ export async function getFilterOptions(params?: { fileId?: number }): Promise<Fi
         trip.anomalyTypeList.forEach(type => anomalyTypes.add(type));
     });
 
-    await mockDelay(200); 
+    await mockDelay(200);
 
     return {
         scanLocations: Array.from(scanLocations),
