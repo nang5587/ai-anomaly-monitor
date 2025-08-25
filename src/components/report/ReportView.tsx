@@ -192,7 +192,7 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
                     detailsSheet.addRow([
                         counter++, '변조(Tamper)', trip.epcCode, trip.productName,
                         `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
-                        formatDateNum(trip.to.eventTime) // *️⃣ 백연결 시 함수 변경?
+                        formatDateNum(trip.to.eventTime)
                     ]);
                 });
             }
@@ -236,7 +236,7 @@ const ReportView = forwardRef<ReportViewRef, ReportViewProps>(({ pdfContentRef }
                     detailsSheet.addRow([
                         counter++, 'AI탐지(Other)', trip.epcCode, trip.productName,
                         `${trip.from.scanLocation} → ${trip.to.scanLocation}`,
-                        formatDateNum(trip.to.eventTime) // *️⃣ 백연결 시 함수 변경?
+                        formatDateNum(trip.to.eventTime)
                     ]);
                 });
             }

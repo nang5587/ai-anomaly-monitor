@@ -64,17 +64,16 @@ apiClient.interceptors.response.use(
 
 const isMock = process.env.NEXT_PUBLIC_MOCK_API === 'true';
 
-// --- Mock 데이터 정의 ---
 const mockFiles: FileItem[] = [
-    { fileId: 1, fileName: '인천공장_물류데이터.csv', userId: 'nang5587', fileSize: 125456, createdAt: new Date('2025-08-21T10:30:00Z').toISOString(), locationId: 0 },
-    { fileId: 2, fileName: '인천센터_입출고_기록.csv', userId: 'nang5587', fileSize: 783412, createdAt: new Date('2025-08-20T15:00:00Z').toISOString(), locationId: 0 },
-    { fileId: 3, fileName: '인천_재고현황_snapshot.csv', userId: 'nang5587', fileSize: 426678, createdAt: new Date('2025-08-19T09:00:00Z').toISOString(), locationId: 0 },
-    { fileId: 4, fileName: '인천_센서데이터_로그.csv', userId: 'nang5587', fileSize: 987454, createdAt: new Date('2025-08-18T18:45:00Z').toISOString(), locationId: 0 },
+    { fileId: 1, fileName: '인천공장_물류데이터.csv', userId: 'nang5587', fileSize: 125456, createdAt: new Date('2025-08-21T10:30:00Z').toISOString(), locationId: 1 },
+    { fileId: 2, fileName: '인천센터_입출고_기록.csv', userId: 'nang5587', fileSize: 783412, createdAt: new Date('2025-08-20T15:00:00Z').toISOString(), locationId: 1 },
+    { fileId: 3, fileName: '인천_재고현황_snapshot.csv', userId: 'nang5587', fileSize: 426678, createdAt: new Date('2025-08-19T09:00:00Z').toISOString(), locationId: 1 },
+    { fileId: 4, fileName: '인천_센서데이터_로그.csv', userId: 'nang5587', fileSize: 987454, createdAt: new Date('2025-08-18T18:45:00Z').toISOString(), locationId: 1 },
 ];
 
 const mockCoverReportDatabase: Record<number, CoverReportData> = {
-    1: { fileName: "인천공장_물류데이터.csv", userName: "강나현", locationId: 0, createdAt: "2025-08-21T10:30:00Z", period: ["2025-08-14T00:00:00Z", "2025-08-21T00:00:00Z"] },
-    2: { fileName: "인천센터_입출고_기록.csv", userName: "강나현", locationId: 0, createdAt: "2025-08-20T15:00:00Z", period: ["2025-08-13T00:00:00Z", "2025-08-20T00:00:00Z"] },
+    1: { fileName: "인천공장_물류데이터.csv", userName: "강나현", locationId: 1, createdAt: "2025-08-21T10:30:00Z", period: ["2025-08-14T00:00:00Z", "2025-08-21T00:00:00Z"] },
+    2: { fileName: "인천센터_입출고_기록.csv", userName: "강나현", locationId: 1, createdAt: "2025-08-20T15:00:00Z", period: ["2025-08-13T00:00:00Z", "2025-08-20T00:00:00Z"] },
 };
 
 

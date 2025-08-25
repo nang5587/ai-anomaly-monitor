@@ -32,10 +32,7 @@ import {
     getAnomalyCountsByProduct
 } from '@/services/dataService';
 
-import {
-    getCoverReportData,
-    getFiles_client
-} from '@/services/apiService';
+import { getCoverReportData, getFiles_client } from '@/api/apiClient';
 
 import {
     mergeAndGenerateTimestamps,

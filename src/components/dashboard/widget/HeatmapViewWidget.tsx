@@ -12,9 +12,8 @@ import { StackedColumnLayer } from '../../visual/StackedColumnLayer';
 
 import { ANOMALY_TYPE_COLORS } from '@/types/colorUtils';
 const DEFAULT_COLOR: Color = [201, 203, 207];
-
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
+const ANOMALY_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '70', 10);
 const WIDGET_VIEW_STATE = {
     longitude: 127.9,
     latitude: 36.5,
@@ -33,51 +32,64 @@ export const HeatmapViewWidget: React.FC<HeatmapViewWidgetProps> = ({ showLegend
     const trips = useAtomValue(allAnomalyTripsAtom)
     const nodesWithStats = useMemo((): NodeWithEventStats[] => {
         if (!trips || !nodes || nodes.length === 0) return [];
-
-        const statsMap = new Map<string, Record<string, number>>();
-
+        const locationStats = new Map<string, {
+            total: number;
+            eventTypeStats: EventTypeStats;
+        }>();
         trips.forEach(trip => {
-            if (!trip.anomalyTypeList || trip.anomalyTypeList.length === 0) return;
-            const locations = [trip.from.scanLocation, trip.to.scanLocation];
-            locations.forEach(location => {
+            const affectedLocations = [...new Set([trip.from.scanLocation, trip.to.scanLocation])];
+            const isOtherAnomaly = trip.anomaly >= ANOMALY_THRESHOLD;
+
+            affectedLocations.forEach(location => {
                 if (!location) return;
-                if (!statsMap.has(location)) {
-                    statsMap.set(location, {});
+                let stats = locationStats.get(location);
+                if (!stats) {
+                    stats = { total: 0, eventTypeStats: {} };
+                    locationStats.set(location, stats);
                 }
-                const locationStats = statsMap.get(location)!;
-                trip.anomalyTypeList.forEach(anomalyType => {
-                    locationStats[anomalyType] = (locationStats[anomalyType] || 0) + 1;
-                });
+                stats.total += 1;
+                if (trip.anomalyTypeList) {
+                    trip.anomalyTypeList.forEach(anomalyType => {
+                        if (!stats.eventTypeStats[anomalyType]) {
+                            stats.eventTypeStats[anomalyType] = { count: 0, hasAnomaly: true };
+                        }
+                        stats.eventTypeStats[anomalyType]!.count += 1;
+                    });
+                }
+                if (isOtherAnomaly) {
+                    const otherType: AnomalyType = 'other';
+                    if (!stats.eventTypeStats[otherType]) {
+                        stats.eventTypeStats[otherType] = { count: 0, hasAnomaly: true };
+                    }
+                    stats.eventTypeStats[otherType]!.count += 1;
+                }
             });
         });
-
-        return nodes.reduce((acc: NodeWithEventStats[], node) => {
-            const stats = statsMap.get(node.scanLocation);
-            if (stats) {
-                const totalCount = Object.values(stats).reduce((sum, count) => sum + count, 0);
-
-                let dominantType = '';
-                let dominantCount = 0;
-                Object.entries(stats).forEach(([type, count]) => {
-                    if (count > dominantCount) {
-                        dominantType = type;
-                        dominantCount = count;
-                    }
-                });
-
-                acc.push({
-                    ...node,
-                    totalEventCount: totalCount,
-                    hasAnomaly: true,
-                    eventTypeStats: Object.fromEntries(
-                        Object.entries(stats).map(([type, count]) => [type, { count, hasAnomaly: true }])
-                    ),
-                    dominantEventType: dominantType,
-                    dominantEventCount: dominantCount,
-                });
+        const mappedNodes = nodes.map(node => {
+            const stats = locationStats.get(node.scanLocation);
+            if (!stats || stats.total === 0) {
+                return null;
             }
-            return acc;
-        }, []);
+            let dominantType: AnomalyType | '' = '';
+            let dominantCount = 0;
+            Object.entries(stats.eventTypeStats).forEach(([type, typeStats]) => {
+                if (typeStats.count > dominantCount) {
+                    dominantType = type as AnomalyType;
+                    dominantCount = typeStats.count;
+                }
+            });
+            return {
+                ...node,
+                totalEventCount: stats.total,
+                hasAnomaly: true,
+                eventTypeStats: stats.eventTypeStats,
+                dominantEventType: dominantType,
+                dominantEventCount: dominantCount,
+            } as NodeWithEventStats;
+        });
+        return mappedNodes.filter(
+            (node): node is NodeWithEventStats => node !== null
+        );
     }, [trips, nodes]);
 
     if (!nodes || nodes.length === 0 || !trips) {
@@ -132,7 +144,7 @@ export const HeatmapViewWidget: React.FC<HeatmapViewWidgetProps> = ({ showLegend
                     />
                 </DeckGL>
             </div>
-            
+
             {showLegend && (
                 <div
                     style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, fontSize: '10px' }}

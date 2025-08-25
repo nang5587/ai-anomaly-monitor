@@ -25,9 +25,8 @@ import { StackedColumnLayer } from './StackedColumnLayer';
 import { ANOMALY_TYPE_COLORS } from '@/types/colorUtils';
 
 const DEFAULT_COLOR: Color = [201, 203, 207];
-
 const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
+const ANOMALY_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '70', 10);
 
 export const HeatmapView: React.FC = () => {
     const [viewState, setViewState] = useAtom(mapViewStateAtom);
@@ -53,36 +52,37 @@ export const HeatmapView: React.FC = () => {
             total: number;
             eventTypeStats: EventTypeStats;
         }>();
-
         allAnomalies.forEach(trip => {
-            trip.anomalyTypeList.forEach(anomalyType => {
-                const affectedLocations = [...new Set([trip.from.scanLocation, trip.to.scanLocation])];
-
-                affectedLocations.forEach(location => {
-                    if (!location) return;
-                    let stats = locationStats.get(location);
-                    if (!stats) {
-                        stats = {
-                            total: 0,
-                            eventTypeStats: {},
-                        };
-                        locationStats.set(location, stats);
+            const affectedLocations = [...new Set([trip.from.scanLocation, trip.to.scanLocation])];
+            const isOtherAnomaly = trip.anomaly >= ANOMALY_THRESHOLD;
+            affectedLocations.forEach(location => {
+                if (!location) return;
+                let stats = locationStats.get(location);
+                if (!stats) {
+                    stats = { total: 0, eventTypeStats: {} };
+                    locationStats.set(location, stats);
+                }
+                stats.total += 1;
+                if (trip.anomalyTypeList) {
+                    trip.anomalyTypeList.forEach(anomalyType => {
+                        if (!stats.eventTypeStats[anomalyType]) {
+                            stats.eventTypeStats[anomalyType] = { count: 0, hasAnomaly: true };
+                        }
+                        stats.eventTypeStats[anomalyType]!.count += 1;
+                    });
+                }
+                if (isOtherAnomaly) {
+                    const otherType: AnomalyType = 'other';
+                    if (!stats.eventTypeStats[otherType]) {
+                        stats.eventTypeStats[otherType] = { count: 0, hasAnomaly: true };
                     }
-                    stats.total += 1;
-                    const eventType: AnomalyType = anomalyType;
-                    if (!stats.eventTypeStats[eventType]) {
-                        stats.eventTypeStats[eventType] = {
-                            count: 0,
-                            hasAnomaly: true,
-                        };
-                    }
-                    stats.eventTypeStats[eventType]!.count += 1;
-                });
+                    stats.eventTypeStats[otherType]!.count += 1;
+                }
             });
         });
         const mappedNodes = allNodes.map(node => {
             const stats = locationStats.get(node.scanLocation);
-            if (!stats) {
+            if (!stats || stats.total === 0) {
                 return null;
             }
             let dominantType: AnomalyType | '' = '';
@@ -105,7 +105,6 @@ export const HeatmapView: React.FC = () => {
         return mappedNodes.filter(
             (node): node is NodeWithEventStats => node !== null
         );
-
     }, [allAnomalies, allNodes]);
 
     const handleClick = (info: PickingInfo) => {

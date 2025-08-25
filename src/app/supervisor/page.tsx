@@ -196,7 +196,7 @@ export default function SupervisorDashboard() {
                 animate="visible"
             >
                 <motion.div
-                    className='grid grid-cols-4 items-center gap-8 mb-6'
+                    className='grid grid-cols-4 items-end gap-8 mb-6'
                     variants={containerVariants}
                 >
                     <motion.h2
@@ -341,7 +341,7 @@ export default function SupervisorDashboard() {
                                             <p className="text-2xl font-bold font-lato text-white mt-1">{kpiData.avgLeadTime.toFixed(1)}<span className="text-lg">일</span></p>
                                         </div>
                                         <div className="flex flex-col justify-center items-center rounded-lg py-2 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 cursor-pointer">
-                                            <p className="text-sm text-white/70">총 품목 수</p>
+                                            <p className="text-sm text-white/70">총 EPC 수</p>
                                             <p className="text-2xl font-bold font-lato text-white mt-1">{formatNumberCompact(kpiData.codeCount)}<span className="text-lg">개</span></p>
                                         </div>
                                     </div>

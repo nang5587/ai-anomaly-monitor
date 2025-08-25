@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { getFiles_client } from "@/api/apiClient";
 
-import { FileText, FileSpreadsheet, Download } from 'lucide-react';
+import { FileText, FileSpreadsheet } from 'lucide-react';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -58,6 +59,23 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
 
     const [isPreviewSelectorOpen, setIsPreviewSelectorOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'pdf' | 'excel'>('pdf');
+    const [files, setFiles] = useState<FileItem[]>(initialFiles);
+
+    useEffect(() => {
+        const isMock = process.env.NEXT_PUBLIC_MOCK_API === 'true';
+        if (isMock) {
+            const fetchMockFiles = async () => {
+                console.log("Mock 모드 활성화: 클라이언트에서 Mock 파일 데이터를 불러옵니다.");
+                try {
+                    const mockData = await getFiles_client();
+                    setFiles(mockData);
+                } catch (error) {
+                    console.error("Mock 파일 데이터 로딩 실패:", error);
+                }
+            };
+            fetchMockFiles();
+        }
+    }, []);
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -71,10 +89,7 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
 
     const selectedFileId = searchParams.get('fileId')
         ? Number(searchParams.get('fileId'))
-        : initialFiles[0]?.fileId || null;
-
-
-    const [files] = useState<FileItem[]>(initialFiles);
+        : files[0]?.fileId || null;
 
     const handleFileSelect = (fileId: number) => {
         if (!user) {
@@ -166,10 +181,10 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                     columnStyles: {
                         0: { cellWidth: 7 },
                         1: { cellWidth: 20 },
-                        2: { cellWidth: 30 }, 
+                        2: { cellWidth: 30 },
                         3: { cellWidth: 20 },
-                        4: { cellWidth: 'auto' }, 
-                        5: { cellWidth: 38 } 
+                        4: { cellWidth: 'auto' },
+                        5: { cellWidth: 38 }
                     }
                 });
             } else {
@@ -312,9 +327,10 @@ export default function ReportClient({ initialFiles }: ReportClientProps) {
                                     borderRadius: '6px',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
-                                    color: 'rgba(111, 131, 175, 1)',
-                                    backgroundColor: selectedFileId === file.fileId ? 'rgb(255, 255, 255)' : 'rgba(255, 255, 255, 0.7)',
-                                    fontWeight: selectedFileId === file.fileId ? '500' : 'normal'
+                                    color: selectedFileId === file.fileId ? 'rgba(255,255,255)' : 'rgba(255,255,255,0.6)',
+                                    backgroundColor: selectedFileId === file.fileId ? 'rgb(50, 50, 50)' : 'rgba(30, 30, 30, 0.7)',
+                                    fontWeight: selectedFileId === file.fileId ? '500' : 'normal',
+                                    border: selectedFileId === file.fileId ? '1px solid rgba(111,131,175)' : '1px solid transparent'
                                 }}
                             >
                                 {file.fileName}

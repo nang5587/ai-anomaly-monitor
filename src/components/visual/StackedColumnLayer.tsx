@@ -8,7 +8,8 @@ import type { AnomalyType } from '../../types/data';
 import { type StatValue } from '@/types/map'
 
 import { ANOMALY_TYPE_COLORS } from '@/types/colorUtils';
-const ANOMALY_TYPE_ORDER: AnomalyType[] = [
+const ANOMALY_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '70', 10);
+const STACKING_ORDER: AnomalyType[] = [
     'fake',
     'tamper',
     'clone',
@@ -64,15 +65,24 @@ export class StackedColumnLayer extends CompositeLayer<StackedColumnLayerProps> 
                     pickable: true,
                 }));
             }
+            const availableTypes = Object.keys(eventTypeStats);
+            availableTypes.sort((a, b) => {
+                const indexA = STACKING_ORDER.indexOf(a as AnomalyType);
+                const indexB = STACKING_ORDER.indexOf(b as AnomalyType);
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            });
+            
             let accumulatedHeight = 0;
-            return ANOMALY_TYPE_ORDER.map((type, index) => {
-                const stats = eventTypeStats[type] as StatValue | undefined;
-                if (!stats || stats.count === 0) {
-                    return null;
-                }
+            return availableTypes.map((type, index) => {
+                const stats = eventTypeStats[type];
+                if (!stats || stats.count === 0) return null;
+                
                 const segmentHeight = stats.count * actualElevationScale;
                 const baseHeight = accumulatedHeight;
                 accumulatedHeight += segmentHeight;
+
                 return new ColumnLayer(this.getSubLayerProps({
                     id: `${this.props.id}-${node.scanLocation}-${type}-${index}`,
                     data: [node],

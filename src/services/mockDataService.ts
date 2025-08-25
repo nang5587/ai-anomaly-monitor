@@ -111,8 +111,8 @@ export async function getKpiSummary(params?: { fileId?: number }): Promise<KpiSu
         totalTripCount,
         anomalyCount,
         uniqueProductCount: 12,
-        codeCount: 200000,
-        anomalyRate: 0.0125,
+        codeCount: 2000,
+        anomalyRate: 0.0001,
         salesRate: 85.5,
         dispatchRate: 92.1,
         inventoryRate: 78.2,
@@ -138,10 +138,7 @@ export async function getAnomalyCountsByProduct(params?: { fileId?: number }): P
     const thresholdValue = parseFloat(process.env.NEXT_PUBLIC_ANOMALY_THRESHOLD || '50');
 
     const counts = (tripDataCache?.anomalies || []).reduce((acc, trip) => {
-        // 제품 이름이 없는 데이터는 건너뜁니다.
         if (!trip.productName) return acc;
-
-        // 해당 제품에 대한 집계 객체가 없으면 초기화합니다.
         if (!acc[trip.productName]) {
             acc[trip.productName] = {
                 productName: trip.productName,
@@ -212,4 +209,3 @@ export async function getFilterOptions(params?: { fileId?: number }): Promise<Fi
         eventTimeRange: ['2025-01-01T00:00:00Z', '2025-12-31T23:59:59Z'],
     };
 }
-// ... (getFilterOptions, getToLocations 등도 위와 같이 public의 JSON을 기반으로 동적 계산 가능)
